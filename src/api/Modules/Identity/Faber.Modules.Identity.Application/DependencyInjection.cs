@@ -73,11 +73,6 @@ public static class DependencyInjection
         var keycloakOptions = serviceProvider.GetRequiredService<IOptions<KeycloakOptions>>().Value;
 
         services.AddRefitGeneratedClient<IKeycloakApi>()
-            .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
-            {
-                ServerCertificateCustomValidationCallback =
-                    HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-            })
             .ConfigureHttpClient(client =>
             {
                 client.BaseAddress = new Uri(keycloakOptions.BaseUrl);

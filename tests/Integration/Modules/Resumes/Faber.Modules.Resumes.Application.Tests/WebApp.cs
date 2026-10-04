@@ -105,6 +105,17 @@ public class WebApp : AppFixture<Program>
             .WithEnvironment("KEYCLOAK_ADMIN_PASSWORD", KeycloakPassword)
             .WithEnvironment("KC_FEATURES", KeycloakToken)
             .WithPortBinding(8080, true)
+            .WithCreateParameterModifier(parameters =>
+            {
+                // Keep HTTP fixtures local so Keycloak's external TLS policy does not require HTTPS.
+                var portBindings = parameters.HostConfig?.PortBindings ??
+                    throw new InvalidOperationException("Keycloak test port bindings were not configured.");
+
+                foreach (var binding in portBindings.Values.SelectMany(bindings => bindings))
+                {
+                    binding.HostIP = "127.0.0.1";
+                }
+            })
             .Build();
 
         _redisContainer = UsesRedis
@@ -161,11 +172,6 @@ public class WebApp : AppFixture<Program>
         builder.ConfigureServices(services =>
         {
             services.AddRefitGeneratedClient<IKeycloakApi>()
-                .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
-                {
-                    ServerCertificateCustomValidationCallback =
-                        HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-                })
                 .ConfigureHttpClient(client =>
                 {
                     client.BaseAddress = new Uri(Keycloak.GetBaseAddress());
