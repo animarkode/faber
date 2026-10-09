@@ -12,6 +12,7 @@ using Faber.Modules.Identity.PublicApi;
 using Faber.Modules.Resumes.Infrastructure.Database;
 using Faber.Modules.Users.Application;
 using Faber.Modules.Users.PublicApi;
+using Faber.Testing.Shared.Containers;
 using Faber.Testing.Shared.Data;
 using FastEndpoints.Testing;
 using Microsoft.AspNetCore.Hosting;
@@ -125,6 +126,9 @@ public class WebApp : AppFixture<Program>
 
         await Task.WhenAll(startTasks);
 
+        await _keycloakContainer.DisableSslRequirementAsync(
+            KeycloakUsername, KeycloakPassword, ["master", KeycloakRealm]);
+
         _vaultAddr = $"http://{Vault.Hostname}:{Vault.GetMappedPublicPort(8200)}";
         Environment.SetEnvironmentVariable("VAULT_TOKEN", VaultToken);
         Environment.SetEnvironmentVariable("VAULT_ADDR", _vaultAddr);
@@ -161,11 +165,6 @@ public class WebApp : AppFixture<Program>
         builder.ConfigureServices(services =>
         {
             services.AddRefitGeneratedClient<IKeycloakApi>()
-                .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
-                {
-                    ServerCertificateCustomValidationCallback =
-                        HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-                })
                 .ConfigureHttpClient(client =>
                 {
                     client.BaseAddress = new Uri(Keycloak.GetBaseAddress());

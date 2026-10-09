@@ -3,6 +3,7 @@ using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Containers;
 using DotNet.Testcontainers.Networks;
 using Faber.Api.Tests.Features.RateLimiting.Data;
+using Faber.Testing.Shared.Containers;
 using Faber.Testing.Shared.Data;
 using Faber.Modules.Communication.PublicApi;
 using Faber.Modules.Documents.PublicApi;
@@ -102,6 +103,9 @@ public class WebApp : AppFixture<Program>
             _vaultContainer.StartAsync(),
             _keycloakContainer.StartAsync());
 
+        await _keycloakContainer.DisableSslRequirementAsync(
+            KeycloakUsername, KeycloakPassword, ["master", KeycloakRealm]);
+
         _vaultAddr = $"http://{Vault.Hostname}:{Vault.GetMappedPublicPort(8200)}";
         Environment.SetEnvironmentVariable("VAULT_TOKEN", VaultToken);
         Environment.SetEnvironmentVariable("VAULT_ADDR", _vaultAddr);
@@ -144,11 +148,6 @@ public class WebApp : AppFixture<Program>
             services.AddTransient<IStartupFilter, TestClientIpStartupFilter>();
 
             services.AddRefitGeneratedClient<IKeycloakApi>()
-                .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
-                {
-                    ServerCertificateCustomValidationCallback =
-                        HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-                })
                 .ConfigureHttpClient(client =>
                 {
                     client.BaseAddress = new Uri(Keycloak.GetBaseAddress());
