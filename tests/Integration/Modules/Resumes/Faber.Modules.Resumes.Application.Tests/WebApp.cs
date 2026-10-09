@@ -12,6 +12,7 @@ using Faber.Modules.Identity.PublicApi;
 using Faber.Modules.Resumes.Infrastructure.Database;
 using Faber.Modules.Users.Application;
 using Faber.Modules.Users.PublicApi;
+using Faber.Testing.Shared.Containers;
 using Faber.Testing.Shared.Data;
 using FastEndpoints.Testing;
 using Microsoft.AspNetCore.Hosting;
@@ -105,17 +106,6 @@ public class WebApp : AppFixture<Program>
             .WithEnvironment("KEYCLOAK_ADMIN_PASSWORD", KeycloakPassword)
             .WithEnvironment("KC_FEATURES", KeycloakToken)
             .WithPortBinding(8080, true)
-            .WithCreateParameterModifier(parameters =>
-            {
-                // Keep HTTP fixtures local so Keycloak's external TLS policy does not require HTTPS.
-                var portBindings = parameters.HostConfig?.PortBindings ??
-                    throw new InvalidOperationException("Keycloak test port bindings were not configured.");
-
-                foreach (var binding in portBindings.Values.SelectMany(bindings => bindings))
-                {
-                    binding.HostIP = "127.0.0.1";
-                }
-            })
             .Build();
 
         _redisContainer = UsesRedis
@@ -135,6 +125,9 @@ public class WebApp : AppFixture<Program>
         }
 
         await Task.WhenAll(startTasks);
+
+        await _keycloakContainer.DisableSslRequirementAsync(
+            KeycloakUsername, KeycloakPassword, ["master", KeycloakRealm]);
 
         _vaultAddr = $"http://{Vault.Hostname}:{Vault.GetMappedPublicPort(8200)}";
         Environment.SetEnvironmentVariable("VAULT_TOKEN", VaultToken);
