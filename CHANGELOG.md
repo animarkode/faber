@@ -1,5 +1,26 @@
 # Changelog
 
+## [0.3.0](https://github.com/animarkode/faber/compare/faber-v0.2.2...faber-v0.3.0) (2026-10-09)
+
+
+### Features
+
+* **api:** add internal production readiness probes ([#35](https://github.com/animarkode/faber/issues/35)) ([44b0fb2](https://github.com/animarkode/faber/commit/44b0fb2c95ab38171cb09a09332baec51f3bc784))
+* **resumes:** add projects section to resumes ([#20](https://github.com/animarkode/faber/issues/20)) ([ac33bd5](https://github.com/animarkode/faber/commit/ac33bd5a80c36474ca891b47328f668ffb9fd844))
+* **resumes:** cache resumes and generated PDFs in Redis ([#22](https://github.com/animarkode/faber/issues/22)) ([3c44de0](https://github.com/animarkode/faber/commit/3c44de0a5eb55cc15067049dc955ac8eb80afcf8))
+
+
+### Bug Fixes
+
+* **infra:** correct HTTP headers and shared runtime configuration ([#40](https://github.com/animarkode/faber/issues/40)) ([d0984d4](https://github.com/animarkode/faber/commit/d0984d44d2622764d57eb9f68a2c74e1881d271d))
+* **notifications:** correct SMTP server setting name ([#34](https://github.com/animarkode/faber/issues/34)) ([4cd36a7](https://github.com/animarkode/faber/commit/4cd36a7256e6c60ac4775695dbe10dc8b20e0ac4))
+* **vault:** renew API tokens before expiry ([#33](https://github.com/animarkode/faber/issues/33)) ([37b50d1](https://github.com/animarkode/faber/commit/37b50d145e79955635cf4c1c2b54697aaccdb1a7))
+
+
+### Refactoring
+
+* **database:** standardize module schema and migration history constants ([#18](https://github.com/animarkode/faber/issues/18)) ([e2c4c64](https://github.com/animarkode/faber/commit/e2c4c64ad87ec87d71a642a35d7548bccb2af898))
+
 ## [0.2.2](https://github.com/VoxSollers/faber/compare/faber-v0.2.1...faber-v0.2.2) (2026-09-16)
 
 
