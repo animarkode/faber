@@ -37,5 +37,12 @@ jobs:
           context: ${{ matrix.context }}
           file: ${{ matrix.dockerfile }}
           push: false
+          # Only faber-web is run afterwards, so only it is loaded into the
+          # local image store.
+          load: ${{ matrix.image == 'faber-web' }}
           tags: faber/${{ matrix.image }}:pr
           cache-from: type=gha,scope=${{ matrix.image }}
+
+      - name: Smoke-test faber-web
+        if: matrix.image == 'faber-web'
+        run: src/web/faber-app/scripts/smoke-test-image.sh faber/faber-web:pr

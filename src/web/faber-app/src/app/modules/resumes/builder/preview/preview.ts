@@ -96,13 +96,8 @@ export class Preview implements OnDestroy {
 
   private async loadPdfjs(): Promise<typeof PdfJs> {
     if (this.pdfjsLib) return this.pdfjsLib;
-    const lib = await this.pdfjsLoader();
-    lib.GlobalWorkerOptions.workerSrc = new URL(
-      'pdfjs-dist/build/pdf.worker.mjs',
-      import.meta.url,
-    ).toString();
-    this.pdfjsLib = lib;
-    return lib;
+    this.pdfjsLib = await this.pdfjsLoader();
+    return this.pdfjsLib;
   }
 
   constructor() {
