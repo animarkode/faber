@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.3.1](https://github.com/animarkode/faber/compare/faber-v0.3.0...faber-v0.3.1) (2026-10-10)
+
+
+### Bug Fixes
+
+* **resumes:** bundle the PDF.js worker into the web build ([#46](https://github.com/animarkode/faber/issues/46)) ([5eb8573](https://github.com/animarkode/faber/commit/5eb8573320b74cbfe6e678936f00b401b3cae23a))
+
 ## [0.3.0](https://github.com/animarkode/faber/compare/faber-v0.2.2...faber-v0.3.0) (2026-10-09)
 
 
