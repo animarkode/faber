@@ -30,6 +30,9 @@ public class RateLimitingOptions
     /// <summary>Limits for the <c>auth-session</c> policy (per IP).</summary>
     public SlidingWindowPolicyOptions AuthSession { get; set; } = new() { PermitLimit = 20, WindowSeconds = 60 };
 
+    /// <summary>Limits for the <c>auth-external</c> policy (external sign-in redirect and callback).</summary>
+    public SlidingWindowPolicyOptions AuthExternal { get; set; } = new() { PermitLimit = 20, WindowSeconds = 60 };
+
     /// <summary>Limits for the <c>authenticated-default</c> policy (per user).</summary>
     public SlidingWindowPolicyOptions AuthenticatedDefault { get; set; } = new() { PermitLimit = 100, WindowSeconds = 60 };
 

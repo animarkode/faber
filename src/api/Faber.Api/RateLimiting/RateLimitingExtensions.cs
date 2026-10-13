@@ -39,6 +39,7 @@ public static class RateLimitingExtensions
             limiter.AddPolicy<string, AuthPasswordResetPolicy>(RateLimitPolicies.AuthPasswordReset);
             limiter.AddPolicy<string, AuthRefreshPolicy>(RateLimitPolicies.AuthRefresh);
             limiter.AddPolicy<string, AuthSessionPolicy>(RateLimitPolicies.AuthSession);
+            limiter.AddPolicy<string, AuthExternalPolicy>(RateLimitPolicies.AuthExternal);
             limiter.AddPolicy<string, AuthenticatedDefaultPolicy>(RateLimitPolicies.AuthenticatedDefault);
             limiter.AddPolicy<string, ExpensiveResourcePolicy>(RateLimitPolicies.ExpensiveResource);
             limiter.AddPolicy<string, UserLookupPolicy>(RateLimitPolicies.UserLookup);

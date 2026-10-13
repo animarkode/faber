@@ -22,7 +22,7 @@ public class ExternalSignInEndpoint(
         Group<AuthGroup>();
         Version(1);
         AllowAnonymous();
-        Options(x => x.RequireRateLimiting(RateLimitPolicies.AuthStrict));
+        Options(x => x.RequireRateLimiting(RateLimitPolicies.AuthExternal));
     }
 
     public override async Task<RedirectHttpResult> ExecuteAsync(ExternalSignInRequest request, CancellationToken ct)

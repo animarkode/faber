@@ -18,6 +18,9 @@ public static class RateLimitPolicies
     /// <summary>Bounded per-IP sliding window for the anonymous sign-out endpoint.</summary>
     public const string AuthSession = "auth-session";
 
+    /// <summary>Bounded per-IP sliding window for the external sign-in redirect and callback endpoints.</summary>
+    public const string AuthExternal = "auth-external";
+
     /// <summary>Generous per-user baseline for authenticated CRUD endpoints.</summary>
     public const string AuthenticatedDefault = "authenticated-default";
 
