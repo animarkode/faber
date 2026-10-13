@@ -1637,7 +1637,7 @@
       "addReadTokenRoleOnCreate": false,
       "authenticateByDefault": false,
       "linkOnly": false,
-      "firstBrokerLoginFlowAlias": "faber first broker login",
+      "firstBrokerLoginFlowAlias": "silent first broker login",
       "config": {
         "clientId": "<GOOGLE-CLIENT-ID>",
         "clientSecret": "<GOOGLE-CLIENT-SECRET>",
@@ -1656,7 +1656,7 @@
       "addReadTokenRoleOnCreate": false,
       "authenticateByDefault": false,
       "linkOnly": false,
-      "firstBrokerLoginFlowAlias": "faber first broker login",
+      "firstBrokerLoginFlowAlias": "silent first broker login",
       "config": {
         "clientId": "<GITHUB-CLIENT-ID>",
         "clientSecret": "<GITHUB-CLIENT-SECRET>",
@@ -2492,7 +2492,7 @@
     },
     {
       "id": "c3f2e5d4-2d33-4e43-8a03-7f9cbd3e2c01",
-      "alias": "faber first broker login",
+      "alias": "silent first broker login",
       "description": "Creates a new user on first brokered sign-in without any interactive step",
       "providerId": "basic-flow",
       "topLevel": true,

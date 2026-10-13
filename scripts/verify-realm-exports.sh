@@ -25,7 +25,7 @@ test_exports=(
 brokering_filter='{
   identityProviders,
   identityProviderMappers,
-  brokerFlows: [.authenticationFlows[] | select(.alias == "faber first broker login") | del(.id)],
+  brokerFlows: [.authenticationFlows[] | select(.alias == "silent first broker login") | del(.id)],
   verifyProfile: [.requiredActions[] | select(.alias == "VERIFY_PROFILE") | .enabled],
   apiClientFlows: [.clients[] | select(.clientId == "faber-api") | {standardFlowEnabled, directAccessGrantsEnabled}]
 }'
