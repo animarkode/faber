@@ -4,6 +4,7 @@ using DotNet.Testcontainers.Containers;
 using DotNet.Testcontainers.Networks;
 using Faber.Testing.Shared.Containers;
 using Faber.Testing.Shared.Data;
+using Faber.Modules.Auth.Application.Tests.Features.Shared;
 using Faber.Modules.Communication.PublicApi;
 using Faber.Modules.Identity.Application.Keycloak;
 using Faber.Modules.Identity.Infrastructure.Database;
@@ -101,6 +102,10 @@ public class WebApp : AppFixture<Program>
         await _keycloakContainer.DisableSslRequirementAsync(
             KeycloakUsername, KeycloakPassword, ["master", KeycloakRealm]);
 
+        // Before the app boots, so the provider catalog's first (cached) read already sees the stand-in.
+        await _keycloakContainer.AddStandInIdentityProviderAsync(
+            KeycloakUsername, KeycloakPassword, KeycloakRealm, ExternalSignInTestSupport.StandIn);
+
         _vaultAddr = $"http://{Vault.Hostname}:{Vault.GetMappedPublicPort(8200)}";
         Environment.SetEnvironmentVariable("VAULT_TOKEN", VaultToken);
         Environment.SetEnvironmentVariable("VAULT_ADDR", _vaultAddr);
@@ -156,9 +161,10 @@ public class WebApp : AppFixture<Program>
 
         builder.UseSetting("ExternalSignIn:Providers:0", "google");
         builder.UseSetting("ExternalSignIn:Providers:1", "github");
-        builder.UseSetting("ExternalSignIn:CallbackUrl", "http://localhost/api/v1/auth/external/callback");
-        builder.UseSetting("ExternalSignIn:SuccessRedirectUrl", "http://localhost:4200/auth/external/callback");
-        builder.UseSetting("ExternalSignIn:FailureRedirectUrl", "http://localhost:4200/auth/sign-in");
+        builder.UseSetting("ExternalSignIn:Providers:2", ExternalSignInTestSupport.StandIn.Alias);
+        builder.UseSetting("ExternalSignIn:CallbackUrl", ExternalSignInTestSupport.CallbackUrl);
+        builder.UseSetting("ExternalSignIn:SuccessRedirectUrl", ExternalSignInTestSupport.SuccessUrl);
+        builder.UseSetting("ExternalSignIn:FailureRedirectUrl", ExternalSignInTestSupport.FailureUrl);
 
         builder.UseSetting("FluentEmail:SmtpServer", "localhost");
         builder.UseSetting("FluentEmail:SmtpPort", "1025");

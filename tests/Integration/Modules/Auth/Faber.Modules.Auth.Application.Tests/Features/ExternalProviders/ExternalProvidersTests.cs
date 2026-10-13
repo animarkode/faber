@@ -11,14 +11,14 @@ namespace Faber.Modules.Auth.Application.Tests.Features.ExternalProviders;
 public class ExternalProvidersTests(WebApp app) : TestBase
 {
     [Fact]
-    public async Task NoProviderEnabledInKeycloak_ShouldReturnEmptyList()
+    public async Task OnlyStandInEnabledInKeycloak_ShouldReturnOnlyStandIn()
     {
         using var response = await ExternalSignInTestSupport.GetAsync(app, "/api/v1/auth/external/providers");
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
         var body = await response.Content.ReadFromJsonAsync<ExternalProvidersResponse>(TestContext.Current.CancellationToken);
         body.ShouldNotBeNull();
-        body.Providers.ShouldBeEmpty();
+        body.Providers.ShouldBe([ExternalSignInTestSupport.StandIn.Alias]);
     }
 
     [Fact]

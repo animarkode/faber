@@ -1,6 +1,13 @@
 using System.Net;
+using Faber.Modules.Auth.Application.Features.Refresh;
 using Faber.Modules.Auth.Application.Features.Shared.ExternalSignIn;
+using Faber.Modules.Auth.Application.Features.Shared.Requests;
+using Faber.Modules.Auth.Application.Tests.Features.Me;
+using Faber.Modules.Auth.Application.Tests.Features.Refresh;
 using Faber.Modules.Auth.Application.Tests.Features.Shared;
+using Faber.Modules.Auth.Domain.Enums;
+using Faber.Modules.Common.PublicApi;
+using Faber.Testing.Shared.Http;
 using FastEndpoints.Testing;
 using Shouldly;
 using static Faber.Modules.Auth.Application.Tests.Features.Shared.ExternalSignInTestSupport;
@@ -98,6 +105,95 @@ public class ExternalCallbackTests(WebApp app) : TestBase
         using var response = await GetAsync(app, $"{CallbackRoute}?state={State}", MintCookie(app, State));
 
         await AssertFailureAsync(response, ExternalSignInErrorCodes.ExchangeFailed);
+    }
+
+    [Fact]
+    public async Task StandInSignIn_ShouldRedirectToSuccessUrlWithRefreshCookieOnly()
+    {
+        var (callbackUrl, stateCookie) = await AuthenticateWithStandInAsync(app);
+
+        using var response = await GetAsync(app, callbackUrl, stateCookie);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Found);
+        var location = response.Headers.Location.ShouldNotBeNull().OriginalString;
+        location.ShouldBe(SuccessUrl);
+        location.ShouldNotContain("?");
+        location.ShouldNotContain("access_token");
+        location.ShouldNotContain("refresh_token");
+        location.ShouldNotContain("code");
+        SetsRefreshToken(response).ShouldBeTrue();
+        CookieValue(response, CookieConstants.RefreshTokenKey).ShouldNotBeNullOrWhiteSpace();
+        DeletesStateCookie(response).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task ReturningStandInUser_ShouldSignInAgain()
+    {
+        var (firstCallbackUrl, firstStateCookie) = await AuthenticateWithStandInAsync(app);
+        using var first = await GetAsync(app, firstCallbackUrl, firstStateCookie);
+        var (secondCallbackUrl, secondStateCookie) = await AuthenticateWithStandInAsync(app);
+
+        using var second = await GetAsync(app, secondCallbackUrl, secondStateCookie);
+
+        first.Headers.Location?.OriginalString.ShouldBe(SuccessUrl);
+        second.Headers.Location?.OriginalString.ShouldBe(SuccessUrl);
+        SetsRefreshToken(second).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task ReplayedCallbackWithoutStateCookie_ShouldRedirectWithInvalidState()
+    {
+        var (callbackUrl, stateCookie) = await AuthenticateWithStandInAsync(app);
+        using var first = await GetAsync(app, callbackUrl, stateCookie);
+        first.Headers.Location?.OriginalString.ShouldBe(SuccessUrl);
+
+        using var replay = await GetAsync(app, callbackUrl);
+
+        await AssertFailureAsync(replay, ExternalSignInErrorCodes.InvalidState);
+    }
+
+    [Fact]
+    public async Task ReplayedCallbackWithOriginalStateCookie_ShouldRedirectWithExchangeFailed()
+    {
+        var (callbackUrl, stateCookie) = await AuthenticateWithStandInAsync(app);
+        using var first = await GetAsync(app, callbackUrl, stateCookie);
+        first.Headers.Location?.OriginalString.ShouldBe(SuccessUrl);
+
+        using var replay = await GetAsync(app, callbackUrl, stateCookie);
+
+        await AssertFailureAsync(replay, ExternalSignInErrorCodes.ExchangeFailed);
+    }
+
+    [Fact]
+    public async Task StandInSignIn_ShouldYieldTokensTheApiAccepts()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var webHeaders = new Dictionary<string, string>
+        {
+            { RefreshConstants.ClientTypeHeader, nameof(ClientType.Web) }
+        };
+        var (callbackUrl, stateCookie) = await AuthenticateWithStandInAsync(app);
+        using var callback = await GetAsync(app, callbackUrl, stateCookie);
+        var refreshToken = CookieValue(callback, CookieConstants.RefreshTokenKey).ShouldNotBeNull();
+        using var client = CreateClient(app);
+
+        var (refreshHttp, refresh) = await client.PostWithCookiesAsync<RefreshTokenRequest, RefreshResponse>(
+            RefreshConstants.RequestUri,
+            new RefreshTokenRequest(null, nameof(ClientType.Web)),
+            new Cookie(CookieConstants.RefreshTokenKey, refreshToken),
+            webHeaders,
+            ct);
+
+        refreshHttp.StatusCode.ShouldBe(HttpStatusCode.OK);
+        var accessToken = refresh.ShouldNotBeNull().AccessToken;
+        accessToken.ShouldNotBeNullOrWhiteSpace();
+
+        using var me = await client.GetWithHeadersAsync(
+            MeConstants.RequestUri,
+            new Dictionary<string, string> { { MeConstants.AuthorizationHeader, $"Bearer {accessToken}" } },
+            ct);
+
+        me.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
     private static Task AssertFailureAsync(HttpResponseMessage response, string errorCode)
