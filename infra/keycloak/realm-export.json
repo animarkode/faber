@@ -1651,7 +1651,7 @@
       "providerId": "github",
       "enabled": false,
       "updateProfileFirstLoginMode": "off",
-      "trustEmail": false,
+      "trustEmail": true,
       "storeToken": false,
       "addReadTokenRoleOnCreate": false,
       "authenticateByDefault": false,
