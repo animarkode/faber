@@ -384,6 +384,7 @@ user.Email.ShouldBe(expected, StringCompareShould.IgnoreCase);
 
 **Keep in sync:**
 - `infra/keycloak/realm-export.json`
+- `tests/Integration/Faber.Api.Tests/realm-export.json`
 - `tests/Integration/Modules/Auth/Faber.Modules.Auth.Application.Tests/realm-export.json`
 - `tests/Integration/Modules/Resumes/Faber.Modules.Resumes.Application.Tests/realm-export.json`
 
@@ -409,7 +410,7 @@ This means email verification and password reset are **hybrid flows**:
 | Admin token expired mid-request | Generate fresh token per call (not cached) |
 | Keycloak lowercases username/email | Compare with `IgnoreCase` in tests |
 | Audience mapper references non-existent client | Verify `clientId` exists in realm-export |
-| Test realm-export out of sync with prod | Apply all realm changes to both files |
+| Test realm-export out of sync with prod | Apply all realm changes to all four files |
 | Local action-token docs assume bcrypt/string selectors | Real implementation uses `Ulid` selector + Argon2id hash/salt |
 | Interface docs assume bool responses for token verification | Real API returns `VerifyActionTokenResponse` / `StoreActionTokenResponse` |
 | SSL validation behavior described as dev-only | Verify actual DI wiring before changing, because current setup bypasses validation unconditionally |
