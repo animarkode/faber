@@ -7,16 +7,9 @@ namespace Faber.Modules.Common.PublicApi;
 
 public static class HttpContextExtensions
 {
-    /// <summary>
-    /// Mirrors <c>Faber.Api.Http.CorsExtensions.LanModeEnvVar</c>. This project is referenced BY
-    /// the API host, not the reverse, so that compiled constant isn't reachable here — keep this
-    /// literal in sync with it and with the "LAN_MODE" key in both launchSettings.json "lan" profiles.
-    /// </summary>
-    private const string LanModeEnvVar = "LAN_MODE";
-
     private static CookieOptions BuildRefreshTokenCookieOptions(HttpContext context)
     {
-        var lanMode = context.RequestServices.GetRequiredService<IConfiguration>().GetValue<bool>(LanModeEnvVar);
+        var lanMode = context.RequestServices.GetRequiredService<IConfiguration>().GetValue<bool>(ConfigurationConstants.LanMode);
 
         // LAN mode serves the app over plain http:// from a LAN IP rather than the
         // browser-exempted "localhost", which isn't a secure context: a Secure cookie is silently

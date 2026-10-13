@@ -37,6 +37,42 @@ public interface IIdentityModuleApi
         string password,
         CancellationToken cancellationToken = default);
 
+    /// <summary>
+    /// Exchanges an authorization code obtained through the browser sign-in flow for tokens.
+    /// </summary>
+    /// <param name="code">The authorization code returned to the redirect URI.</param>
+    /// <param name="codeVerifier">The PKCE code verifier matching the challenge sent with the authorization request.</param>
+    /// <param name="redirectUri">The redirect URI used in the authorization request.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>
+    /// The issued tokens, or a <see cref="TokenResponse"/> with empty access and refresh tokens when
+    /// the exchange fails for any reason other than the caller's own cancellation (invalid or already used
+    /// code, wrong verifier, Keycloak unreachable or timing out).
+    /// </returns>
+    public Task<TokenResponse> SignInWithAuthorizationCodeAsync(
+        string code,
+        string codeVerifier,
+        string redirectUri,
+        CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Builds the Keycloak authorization endpoint URI that starts a PKCE sign-in through a brokered provider.
+    /// </summary>
+    /// <param name="provider">The identity provider alias passed as <c>kc_idp_hint</c>.</param>
+    /// <param name="state">The opaque state value echoed back on the redirect.</param>
+    /// <param name="codeChallenge">The S256 PKCE code challenge.</param>
+    /// <param name="redirectUri">The redirect URI Keycloak returns the browser to.</param>
+    /// <returns>The fully encoded authorization URI.</returns>
+    public Uri BuildAuthorizationUri(string provider, string state, string codeChallenge, string redirectUri);
+
+    /// <summary>
+    /// Gets the aliases of the identity providers that are enabled in the realm.
+    /// </summary>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <returns>The aliases of the enabled identity providers.</returns>
+    public Task<IReadOnlyCollection<string>> GetEnabledIdentityProvidersAsync(
+        CancellationToken cancellationToken = default);
+
     public Task SignOutAsync(string refreshToken, CancellationToken cancellationToken = default);
 
     public Task<TokenResponse> RefreshTokenAsync(string refreshToken, CancellationToken cancellationToken = default);
