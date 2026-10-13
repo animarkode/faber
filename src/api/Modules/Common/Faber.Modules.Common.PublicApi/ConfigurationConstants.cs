@@ -11,5 +11,6 @@ public static class ConfigurationConstants
         public const string ResumeLimits = "ResumeLimits";
         public const string RateLimiting = "RateLimiting";
         public const string ForwardedHeaders = "ForwardedHeaders";
+        public const string ExternalSignIn = "ExternalSignIn";
     }
 }

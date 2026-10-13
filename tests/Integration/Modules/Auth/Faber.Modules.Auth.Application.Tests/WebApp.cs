@@ -154,6 +154,12 @@ public class WebApp : AppFixture<Program>
         builder.UseSetting("Jwt:Audience", KeycloakClientId);
         builder.UseSetting("RateLimiting:Enabled", "false");
 
+        builder.UseSetting("ExternalSignIn:Providers:0", "google");
+        builder.UseSetting("ExternalSignIn:Providers:1", "github");
+        builder.UseSetting("ExternalSignIn:CallbackUrl", "http://localhost/api/v1/auth/external/callback");
+        builder.UseSetting("ExternalSignIn:SuccessRedirectUrl", "http://localhost:4200/auth/external/callback");
+        builder.UseSetting("ExternalSignIn:FailureRedirectUrl", "http://localhost:4200/auth/sign-in");
+
         builder.UseSetting("FluentEmail:SmtpServer", "localhost");
         builder.UseSetting("FluentEmail:SmtpPort", "1025");
         builder.UseSetting("FluentEmail:FromEmail", "test@test.com");
