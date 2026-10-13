@@ -9,6 +9,7 @@ using Faber.Modules.Identity.PublicApi.Contracts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Refit;
 using TokenResponse = Faber.Modules.Identity.PublicApi.Contracts.TokenResponse;
 using UserResponse = Faber.Modules.Identity.PublicApi.Contracts.UserResponse;
 
@@ -186,6 +187,77 @@ public class IdentityModuleApi : IIdentityModuleApi
         var token = await _keycloakApi.GetTokenAsync(_options.Realm, request, cancellationToken);
 
         return new TokenResponse(token.AccessToken, token.RefreshToken, token.ExpiresIn, token.RefreshExpiresIn);
+    }
+
+    /// <inheritdoc />
+    public async Task<TokenResponse> SignInWithAuthorizationCodeAsync(
+        string code,
+        string codeVerifier,
+        string redirectUri,
+        CancellationToken cancellationToken = default)
+    {
+        var request = new AuthorizationCodeTokenRequest
+        {
+            ClientId = _options.ClientId,
+            ClientSecret = _options.ClientSecret,
+            Code = code,
+            RedirectUri = redirectUri,
+            CodeVerifier = codeVerifier
+        };
+
+        try
+        {
+            var token = await _keycloakApi.ExchangeAuthorizationCodeAsync(_options.Realm, request, cancellationToken);
+
+            return new TokenResponse(token.AccessToken, token.RefreshToken, token.ExpiresIn, token.RefreshExpiresIn);
+        }
+        catch (ApiException ex) when ((int)ex.StatusCode is >= 400 and < 500)
+        {
+            _logger.LogWarning(
+                "Keycloak rejected the authorization code exchange with status {StatusCode}.",
+                (int)ex.StatusCode);
+
+            return new TokenResponse(string.Empty, string.Empty, 0, 0);
+        }
+    }
+
+    /// <inheritdoc />
+    public Uri BuildAuthorizationUri(string provider, string state, string codeChallenge, string redirectUri)
+    {
+        var query = new Dictionary<string, string>
+        {
+            ["response_type"] = "code",
+            ["client_id"] = _options.ClientId,
+            ["redirect_uri"] = redirectUri,
+            ["scope"] = "openid offline_access",
+            ["state"] = state,
+            ["code_challenge"] = codeChallenge,
+            ["code_challenge_method"] = "S256",
+            ["kc_idp_hint"] = provider
+        };
+
+        var queryString = string.Join(
+            '&',
+            query.Select(pair => $"{Uri.EscapeDataString(pair.Key)}={Uri.EscapeDataString(pair.Value)}"));
+
+        return new Uri($"{_options.Issuer.TrimEnd('/')}/protocol/openid-connect/auth?{queryString}");
+    }
+
+    /// <inheritdoc />
+    public async Task<IReadOnlyCollection<string>> GetEnabledIdentityProvidersAsync(
+        CancellationToken cancellationToken = default)
+    {
+        var adminToken = await BearerAdminToken.GenerateAsync(_keycloakApi, _options, cancellationToken);
+
+        var providers = await _keycloakApi.GetIdentityProvidersAsync(
+            _options.Realm,
+            adminToken.Value,
+            cancellationToken);
+
+        return providers
+            .Where(provider => provider is { Enabled: true, Alias: not null })
+            .Select(provider => provider.Alias!)
+            .ToList();
     }
 
     public async Task SignOutAsync(string refreshToken, CancellationToken cancellationToken = default)

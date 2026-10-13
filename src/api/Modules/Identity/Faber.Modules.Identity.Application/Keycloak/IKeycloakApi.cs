@@ -12,6 +12,12 @@ public interface IKeycloakApi
         CancellationToken cancellationToken = default);
 
     [Post("/realms/{realm}/protocol/openid-connect/token")]
+    public Task<TokenResponse> ExchangeAuthorizationCodeAsync(
+        [AliasAs("realm")] string realm,
+        [Body(BodySerializationMethod.UrlEncoded)] AuthorizationCodeTokenRequest request,
+        CancellationToken cancellationToken = default);
+
+    [Post("/realms/{realm}/protocol/openid-connect/token")]
     public Task<TokenResponse> GetAdminTokenAsync(
         [AliasAs("realm")] string realm,
         [Body(BodySerializationMethod.UrlEncoded)] AdminTokenRequest request,
@@ -43,6 +49,12 @@ public interface IKeycloakApi
         [Header("Authorization")] string token,
         [Query] string email,
         [Query] bool exact = true,
+        CancellationToken cancellationToken = default);
+
+    [Get("/admin/realms/{realm}/identity-provider/instances")]
+    public Task<List<IdentityProviderResponse>> GetIdentityProvidersAsync(
+        [AliasAs("realm")] string realm,
+        [Header("Authorization")] string token,
         CancellationToken cancellationToken = default);
 
     [Put("/admin/realms/{realm}/users/{id}/reset-password")]
