@@ -6,7 +6,6 @@ using Faber.Modules.Identity.PublicApi;
 using FastEndpoints;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
-using Refit;
 
 namespace Faber.Modules.Auth.Application.Features.ExternalCallback;
 
@@ -45,29 +44,20 @@ public class ExternalCallbackCommandHandler(
 
         logger.LogInformation("[STEP] Exchanging authorization code");
 
-        try
+        var token = await identityModuleApi.SignInWithAuthorizationCodeAsync(
+            command.Code,
+            stored.Value.CodeVerifier,
+            options.Value.CallbackUrl,
+            ct);
+
+        if (string.IsNullOrEmpty(token.AccessToken) || string.IsNullOrEmpty(token.RefreshToken))
         {
-            var token = await identityModuleApi.SignInWithAuthorizationCodeAsync(
-                command.Code,
-                stored.Value.CodeVerifier,
-                options.Value.CallbackUrl,
-                ct);
-
-            if (string.IsNullOrEmpty(token.AccessToken) || string.IsNullOrEmpty(token.RefreshToken))
-            {
-                return Fail(ExternalSignInErrorCodes.ExchangeFailed);
-            }
-
-            logger.LogInformation("[SUCCESS] {HandlerName} | External sign-in completed", HandlerName);
-
-            return token.MapToResponse();
-        }
-        catch (Exception ex) when (ex is ApiException or HttpRequestException)
-        {
-            logger.LogError(ex, "[FAIL] {HandlerName} | Keycloak code exchange failed", HandlerName);
-
             return Fail(ExternalSignInErrorCodes.ExchangeFailed);
         }
+
+        logger.LogInformation("[SUCCESS] {HandlerName} | External sign-in completed", HandlerName);
+
+        return token.MapToResponse();
     }
 
     private Error Fail(string code)

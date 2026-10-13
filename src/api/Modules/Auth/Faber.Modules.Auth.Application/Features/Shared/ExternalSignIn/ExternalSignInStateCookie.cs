@@ -13,11 +13,9 @@ public static class ExternalSignInStateCookie
     /// <summary>The state cookie is only sent to the external-auth routes (api prefix + version + group).</summary>
     public const string Path = "/api/v1/auth/external";
 
-    private const string LanModeKey = "LAN_MODE";
-
     public static bool IsLanMode(IConfiguration configuration)
     {
-        return configuration.GetValue<bool>(LanModeKey);
+        return configuration.GetValue<bool>(ConfigurationConstants.LanMode);
     }
 
     public static void Append(HttpContext context, string value, TimeSpan lifetime)

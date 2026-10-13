@@ -211,11 +211,14 @@ public class IdentityModuleApi : IIdentityModuleApi
 
             return new TokenResponse(token.AccessToken, token.RefreshToken, token.ExpiresIn, token.RefreshExpiresIn);
         }
-        catch (ApiException ex) when ((int)ex.StatusCode is >= 400 and < 500)
+        catch (Exception ex) when (!cancellationToken.IsCancellationRequested)
         {
+            // Rejections, transport failures and timeouts all end the same way for the caller; only a
+            // cancellation it asked for itself propagates.
             _logger.LogWarning(
-                "Keycloak rejected the authorization code exchange with status {StatusCode}.",
-                (int)ex.StatusCode);
+                "The authorization code exchange failed with {ExceptionType} (status {StatusCode}).",
+                ex.GetType().Name,
+                (ex as ApiException)?.StatusCode);
 
             return new TokenResponse(string.Empty, string.Empty, 0, 0);
         }

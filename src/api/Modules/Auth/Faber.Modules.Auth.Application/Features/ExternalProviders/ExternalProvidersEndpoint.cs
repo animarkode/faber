@@ -9,7 +9,7 @@ using Microsoft.Extensions.Logging;
 namespace Faber.Modules.Auth.Application.Features.ExternalProviders;
 
 public class ExternalProvidersEndpoint(ILogger<ExternalProvidersEndpoint> logger)
-    : EndpointWithoutRequest<Results<Ok<ExternalProvidersResponse>, StatusCodeHttpResult>>
+    : EndpointWithoutRequest<Ok<ExternalProvidersResponse>>
 {
     public override void Configure()
     {
@@ -20,20 +20,12 @@ public class ExternalProvidersEndpoint(ILogger<ExternalProvidersEndpoint> logger
         Options(x => x.RequireRateLimiting(RateLimitPolicies.AuthSession));
     }
 
-    public override async Task<Results<Ok<ExternalProvidersResponse>, StatusCodeHttpResult>> ExecuteAsync(
-        CancellationToken ct)
+    public override async Task<Ok<ExternalProvidersResponse>> ExecuteAsync(CancellationToken ct)
     {
         var path = HttpContext.Request.Path.Value;
         logger.LogInformation("[HTTP GET] {Path} started", path);
 
         var result = await new ExternalProvidersCommand().ExecuteAsync(ct);
-
-        if (result.IsError)
-        {
-            logger.LogWarning("[HTTP GET] {Path} failed: {Error}", path, result.FirstError.Description);
-
-            return TypedResults.StatusCode(StatusCodes.Status500InternalServerError);
-        }
 
         logger.LogInformation("[HTTP GET] {Path} completed successfully", path);
 

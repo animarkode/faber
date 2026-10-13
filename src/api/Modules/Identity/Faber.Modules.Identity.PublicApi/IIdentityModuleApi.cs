@@ -46,7 +46,8 @@ public interface IIdentityModuleApi
     /// <param name="cancellationToken">A token to cancel the operation.</param>
     /// <returns>
     /// The issued tokens, or a <see cref="TokenResponse"/> with empty access and refresh tokens when
-    /// Keycloak rejects the exchange (invalid or already used code, wrong verifier).
+    /// the exchange fails for any reason other than the caller's own cancellation (invalid or already used
+    /// code, wrong verifier, Keycloak unreachable or timing out).
     /// </returns>
     public Task<TokenResponse> SignInWithAuthorizationCodeAsync(
         string code,

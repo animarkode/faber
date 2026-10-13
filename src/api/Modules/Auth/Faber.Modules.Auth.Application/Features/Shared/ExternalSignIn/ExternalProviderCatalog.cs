@@ -24,32 +24,36 @@ public class ExternalProviderCatalog(
             return [];
         }
 
-        try
-        {
-            var enabled = await cache.GetOrCreateAsync(
-                CacheKey,
-                async cacheCt =>
+        var enabled = await cache.GetOrCreateAsync(
+            CacheKey,
+            async cacheCt =>
+            {
+                // Own scope: the factory is shared between concurrent callers and must not capture
+                // a request-scoped service of whichever caller happened to arrive first.
+                await using var scope = scopeFactory.CreateAsyncScope();
+                var identityModuleApi = scope.ServiceProvider.GetRequiredService<IIdentityModuleApi>();
+
+                try
                 {
-                    // Own scope: the factory is shared between concurrent callers and must not capture
-                    // a request-scoped service of whichever caller happened to arrive first.
-                    await using var scope = scopeFactory.CreateAsyncScope();
-                    var identityModuleApi = scope.ServiceProvider.GetRequiredService<IIdentityModuleApi>();
-
                     return (await identityModuleApi.GetEnabledIdentityProvidersAsync(cacheCt)).ToArray();
-                },
-                new HybridCacheEntryOptions { Expiration = CacheLifetime, LocalCacheExpiration = CacheLifetime },
-                cancellationToken: ct);
+                }
+                catch (Exception ex) when (ex is not OperationCanceledException)
+                {
+                    // Cached like a real answer, so a persistent failure costs one lookup per cache
+                    // lifetime instead of one per request.
+                    logger.LogWarning(
+                        ex,
+                        "[FAIL] Could not load enabled identity providers; offering none. A 403 means the " +
+                        "API client's service account lacks the realm-management role view-identity-providers");
 
-            return enabled
-                .Where(alias => options.Value.Providers.Contains(alias, StringComparer.OrdinalIgnoreCase))
-                .ToList();
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            // A thrown factory is never cached, so the next request retries Keycloak.
-            logger.LogWarning(ex, "[FAIL] Could not load enabled identity providers; offering none");
+                    return [];
+                }
+            },
+            new HybridCacheEntryOptions { Expiration = CacheLifetime, LocalCacheExpiration = CacheLifetime },
+            cancellationToken: ct);
 
-            return [];
-        }
+        return enabled
+            .Where(alias => options.Value.Providers.Contains(alias, StringComparer.OrdinalIgnoreCase))
+            .ToList();
     }
 }
