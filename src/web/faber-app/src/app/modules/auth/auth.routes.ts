@@ -27,6 +27,11 @@ export const authRoutes: Routes = [
         path: 'verify-email',
         loadComponent: () => import('./verify-email/verify-email').then(m => m.VerifyEmail),
       },
+      {
+        path: 'external/callback',
+        loadComponent: () =>
+          import('./external-sign-in/external-callback/external-callback').then(m => m.ExternalCallback),
+      },
     ],
   },
 ];

@@ -52,6 +52,6 @@
 </fb-auth-card>
 
 <fb-toast
-  [message]="invalidLogin() ? 'Wrong username or password.' : null"
+  [message]="toastMessage()"
   variant="error"
-  (dismissed)="invalidLogin.set(false)" />
+  (dismissed)="dismissToast()" />
