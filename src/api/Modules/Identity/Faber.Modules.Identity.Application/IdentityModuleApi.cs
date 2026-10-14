@@ -9,6 +9,7 @@ using Faber.Modules.Identity.PublicApi.Contracts;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
+using Microsoft.IdentityModel.JsonWebTokens;
 using Refit;
 using TokenResponse = Faber.Modules.Identity.PublicApi.Contracts.TokenResponse;
 using UserResponse = Faber.Modules.Identity.PublicApi.Contracts.UserResponse;
@@ -17,6 +18,9 @@ namespace Faber.Modules.Identity.Application;
 
 public class IdentityModuleApi : IIdentityModuleApi
 {
+    private const string ProviderEmailVerifiedAttribute = "idp_email_verified";
+    private const string PasswordCredentialType = "password";
+
     private readonly IdentityDbContext _dbContext;
     private readonly IKeycloakApi _keycloakApi;
     private readonly ILogger<IdentityModuleApi> _logger;
@@ -261,6 +265,95 @@ public class IdentityModuleApi : IIdentityModuleApi
             .Where(provider => provider is { Enabled: true, Alias: not null })
             .Select(provider => provider.Alias!)
             .ToList();
+    }
+
+    /// <inheritdoc />
+    public async Task<ExternalAccountResponse?> GetExternalAccountAsync(
+        string accessToken,
+        CancellationToken cancellationToken = default)
+    {
+        // No signature validation: the token was just issued to the API by Keycloak's token endpoint over the
+        // back channel and never comes from a request, so only the subject is needed to look the user up.
+        var userId = ReadSubject(accessToken);
+
+        if (userId is null)
+        {
+            _logger.LogWarning("The access token has no readable subject.");
+
+            return null;
+        }
+
+        var adminToken = await BearerAdminToken.GenerateAsync(_keycloakApi, _options, cancellationToken);
+
+        try
+        {
+            var user = await _keycloakApi.GetUserByIdAsync(_options.Realm, userId, adminToken.Value, cancellationToken);
+
+            var credentials = await _keycloakApi.GetUserCredentialsAsync(
+                _options.Realm,
+                userId,
+                adminToken.Value,
+                cancellationToken);
+
+            var providerEmailVerified = user.Attributes?.GetValueOrDefault(ProviderEmailVerifiedAttribute)
+                ?.FirstOrDefault();
+
+            return new ExternalAccountResponse(
+                userId,
+                user.Email,
+                user.EmailVerified == true,
+                string.Equals(providerEmailVerified, "true", StringComparison.OrdinalIgnoreCase),
+                credentials.Any(credential => credential.Type == PasswordCredentialType),
+                DateTimeOffset.FromUnixTimeMilliseconds(user.CreatedTimestamp ?? 0));
+        }
+        catch (ApiException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
+        {
+            _logger.LogWarning("User {UserId} was not found while reading account facts.", userId);
+
+            return null;
+        }
+    }
+
+    /// <inheritdoc />
+    public async Task UnlinkIdentityProviderAsync(
+        string userId,
+        string provider,
+        CancellationToken cancellationToken = default)
+    {
+        var adminToken = await BearerAdminToken.GenerateAsync(_keycloakApi, _options, cancellationToken);
+
+        await _keycloakApi.RemoveFederatedIdentityAsync(
+            _options.Realm,
+            userId,
+            provider,
+            adminToken.Value,
+            cancellationToken);
+
+        _logger.LogInformation("Unlinked identity provider {Provider} from user {UserId}", provider, userId);
+    }
+
+    /// <inheritdoc />
+    public async Task DeleteUserAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        var adminToken = await BearerAdminToken.GenerateAsync(_keycloakApi, _options, cancellationToken);
+
+        await _keycloakApi.DeleteUserAsync(_options.Realm, userId, adminToken.Value, cancellationToken);
+
+        _logger.LogInformation("Deleted user {UserId} from Keycloak", userId);
+    }
+
+    private static string? ReadSubject(string accessToken)
+    {
+        var handler = new JsonWebTokenHandler();
+
+        if (string.IsNullOrWhiteSpace(accessToken) || !handler.CanReadToken(accessToken))
+        {
+            return null;
+        }
+
+        var subject = handler.ReadJsonWebToken(accessToken).Subject;
+
+        return string.IsNullOrWhiteSpace(subject) ? null : subject;
     }
 
     public async Task SignOutAsync(string refreshToken, CancellationToken cancellationToken = default)
