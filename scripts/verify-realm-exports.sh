@@ -26,6 +26,8 @@ brokering_filter='{
   identityProviders,
   identityProviderMappers,
   brokerFlows: [.authenticationFlows[] | select(.alias == "silent first broker login") | del(.id)],
+  verifyEmail,
+  idpEmailVerifiedProfile: [.components["org.keycloak.userprofile.UserProfileProvider"][]?.config["kc.user.profile.config"][0] | fromjson | .attributes[] | select(.name == "idp_email_verified")],
   verifyProfile: [.requiredActions[] | select(.alias == "VERIFY_PROFILE") | .enabled],
   apiClientFlows: [.clients[] | select(.clientId == "faber-api") | {standardFlowEnabled, directAccessGrantsEnabled}]
 }'
