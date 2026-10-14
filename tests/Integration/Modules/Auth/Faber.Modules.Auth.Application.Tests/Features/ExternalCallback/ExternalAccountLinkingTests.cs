@@ -128,6 +128,7 @@ public class ExternalAccountLinkingTests(WebApp app) : TestBase
         var brokered = (await UsersByEmailAsync(email)).ShouldHaveSingleItem();
         var userId = brokered["id"]!.GetValue<string>();
         await app.SetStandInUserEmailVerifiedAsync(username, emailVerified: false);
+        var offlineBefore = await OfflineSessionCountAsync(userId);
 
         using var callback = await SignInWithStandInUserAsync(app, username, password);
 
@@ -136,7 +137,131 @@ public class ExternalAccountLinkingTests(WebApp app) : TestBase
         survivor["id"]!.GetValue<string>().ShouldBe(userId);
         (await LinkedProvidersAsync(userId)).ShouldBe([SecondStandInAlias]);
         (await SessionCountAsync(userId)).ShouldBe(0);
+        // The legitimate first sign-in keeps its offline session; the refused one must not add another.
+        (await OfflineSessionCountAsync(userId)).ShouldBe(offlineBefore);
     }
+
+    [Theory]
+    [InlineData("account", "realms/faber/account/")]
+    [InlineData("account-console", "realms/faber/account/")]
+    [InlineData("security-admin-console", "admin/faber/console/")]
+    public async Task DisabledBuiltInClient_ShouldBeRejectedWithoutReachingTheProvider(string clientId, string redirectPath)
+    {
+        var options = KeycloakOptionsValue();
+        var query = string.Join('&',
+            $"client_id={Uri.EscapeDataString(clientId)}",
+            $"redirect_uri={Uri.EscapeDataString($"{options.BaseUrl.TrimEnd('/')}/{redirectPath}")}",
+            "response_type=code",
+            "scope=openid",
+            $"kc_idp_hint={StandIn.Alias}");
+        var uri = new Uri($"{options.BaseUrl.TrimEnd('/')}/realms/{options.Realm}/protocol/openid-connect/auth?{query}");
+
+        using var http = new HttpClient(new HttpClientHandler { AllowAutoRedirect = false, UseCookies = false });
+        using var response = await http.GetAsync(uri, TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldNotBe(HttpStatusCode.Found);
+        response.Headers.Location.ShouldBeNull();
+        ((int)response.StatusCode).ShouldBeInRange(400, 499);
+    }
+
+    [Fact]
+    public async Task SwappedHintToUnverifiedProvider_ShouldRefuseAndLinkNothing()
+    {
+        var email = UniqueEmail();
+        var account = await CreateFaberAccountAsync(app, email, verified: true);
+        var (username, password) = await CreateStandInUserAsync(app, email, emailVerified: false);
+
+        using var callback = await SignInWithSwappedHintAsync(username, password);
+
+        AssertRefused(callback, ExternalSignInErrorCodes.ProviderEmailUnverified);
+        await AssertUntouchedAsync(account, email, expectVerified: true);
+    }
+
+    [Fact]
+    public async Task SwappedHintToVerifiedProvider_ShouldLinkTheProviderActuallyUsed()
+    {
+        var email = UniqueEmail();
+        var account = await CreateFaberAccountAsync(app, email, verified: true);
+        var (username, password) = await CreateStandInUserAsync(app, email, emailVerified: true);
+
+        using var callback = await SignInWithSwappedHintAsync(username, password);
+
+        AssertSuccess(callback);
+        (await LinkedProvidersAsync(account.UserId)).ShouldBe([StandIn.Alias]);
+    }
+
+    [Fact]
+    public async Task SuccessfulLinkingSignIn_ShouldLeaveAnOfflineSession()
+    {
+        var email = UniqueEmail();
+        var account = await CreateFaberAccountAsync(app, email, verified: true);
+        var (username, password) = await CreateStandInUserAsync(app, email, emailVerified: true);
+
+        using var callback = await SignInWithStandInUserAsync(app, username, password);
+
+        AssertSuccess(callback);
+        (await OfflineSessionCountAsync(account.UserId)).ShouldBeGreaterThan(0);
+    }
+
+    private async Task<HttpResponseMessage> SignInWithSwappedHintAsync(string username, string password)
+    {
+        var (authorizationUri, stateCookie) = await StartStandInSignInAsync(app, SecondStandInAlias);
+        var builder = new UriBuilder(authorizationUri);
+        var query = builder.Query.TrimStart('?');
+        query.ShouldContain($"kc_idp_hint={SecondStandInAlias}");
+        builder.Query = query.Replace($"kc_idp_hint={SecondStandInAlias}", $"kc_idp_hint={StandIn.Alias}", StringComparison.Ordinal);
+
+        using var browser = new ExternalSignInBrowser(StandIn.Realm, username, password, CallbackUrl);
+        var callback = await browser.SignInAsync(builder.Uri, TestContext.Current.CancellationToken);
+
+        return await GetAsync(app, callback.PathAndQuery, stateCookie);
+    }
+
+    private KeycloakOptions KeycloakOptionsValue()
+    {
+        return app.Services.GetRequiredService<IOptions<KeycloakOptions>>().Value;
+    }
+
+    /// <summary>
+    /// Offline sessions are read with the master realm's admin: the API's own service account cannot list
+    /// clients, so it would report an empty list whether or not the session exists.
+    /// </summary>
+    private async Task<int> OfflineSessionCountAsync(string userId)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var options = KeycloakOptionsValue();
+        using var http = new HttpClient { BaseAddress = new Uri(options.BaseUrl) };
+
+        using var tokenResponse = await http.PostAsync(
+            "realms/master/protocol/openid-connect/token",
+            new FormUrlEncodedContent(new Dictionary<string, string>
+            {
+                ["grant_type"] = "password",
+                ["client_id"] = "admin-cli",
+                ["username"] = "admin",
+                ["password"] = "admin"
+            }),
+            ct);
+        tokenResponse.EnsureSuccessStatusCode();
+        var token = JsonNode.Parse(await tokenResponse.Content.ReadAsStringAsync(ct))!["access_token"]!.GetValue<string>();
+
+        var clients = await AdminGetAsync(http, token, $"clients?clientId={Uri.EscapeDataString(options.ClientId)}", options.Realm, ct);
+        var clientUuid = clients.ShouldHaveSingleItem()!["id"]!.GetValue<string>();
+        var sessions = await AdminGetAsync(http, token, $"users/{userId}/offline-sessions/{clientUuid}", options.Realm, ct);
+
+        return sessions.Count;
+    }
+
+    private static async Task<JsonArray> AdminGetAsync(HttpClient http, string token, string path, string realm, CancellationToken ct)
+    {
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"admin/realms/{realm}/{path}");
+        request.Headers.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Bearer", token);
+        using var response = await http.SendAsync(request, ct);
+        response.EnsureSuccessStatusCode();
+
+        return JsonNode.Parse(await response.Content.ReadAsStringAsync(ct))!.AsArray();
+    }
+
 
     [Fact]
     public async Task UnverifiedAccountPasswordSignIn_ShouldReturnUnauthorizedAndLeaveNoSession()
@@ -147,6 +272,7 @@ public class ExternalAccountLinkingTests(WebApp app) : TestBase
 
         response.StatusCode.ShouldBe(HttpStatusCode.Unauthorized);
         (await SessionCountAsync(account.UserId)).ShouldBe(0);
+        (await OfflineSessionCountAsync(account.UserId)).ShouldBe(0);
     }
 
     private static void AssertSuccess(HttpResponseMessage callback)
@@ -176,6 +302,7 @@ public class ExternalAccountLinkingTests(WebApp app) : TestBase
         (await LinkedProvidersAsync(account.UserId)).ShouldBeEmpty();
         (await HasPasswordAsync(account.UserId)).ShouldBeTrue();
         (await SessionCountAsync(account.UserId)).ShouldBe(0);
+        (await OfflineSessionCountAsync(account.UserId)).ShouldBe(0);
     }
 
     private async Task<HttpResponseMessage> PasswordSignInAsync(FaberAccount account)
