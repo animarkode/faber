@@ -3,6 +3,7 @@ using System.Text;
 using ErrorOr;
 using Faber.Modules.Auth.Application.Features.Shared.ExternalSignIn;
 using Faber.Modules.Identity.PublicApi;
+using Faber.Modules.Identity.PublicApi.Contracts;
 using FastEndpoints;
 using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Options;
@@ -55,9 +56,105 @@ public class ExternalCallbackCommandHandler(
             return Fail(ExternalSignInErrorCodes.ExchangeFailed);
         }
 
+        var account = await identityModuleApi.GetExternalAccountAsync(token.AccessToken, ct);
+
+        if (account is null)
+        {
+            await EndSessionAsync(token.RefreshToken, null, ct);
+
+            return Fail(ExternalSignInErrorCodes.ExchangeFailed);
+        }
+
+        // Keycloak links on a matching e-mail without checks; this is the only gate.
+        var refusal = EvaluateLinkingRule(account);
+
+        if (refusal is not null)
+        {
+            await RollBackAsync(token.RefreshToken, account, stored.Value.Provider, refusal, ct);
+
+            return Fail(refusal);
+        }
+
         logger.LogInformation("[SUCCESS] {HandlerName} | External sign-in completed", HandlerName);
 
         return token.MapToResponse();
+    }
+
+    private static string? EvaluateLinkingRule(ExternalAccountResponse account)
+    {
+        if (string.IsNullOrWhiteSpace(account.Email) || !account.ProviderEmailVerified)
+        {
+            return ExternalSignInErrorCodes.ProviderEmailUnverified;
+        }
+
+        return account.EmailVerified ? null : ExternalSignInErrorCodes.EmailConfirmationRequired;
+    }
+
+    private async Task RollBackAsync(
+        string refreshToken,
+        ExternalAccountResponse account,
+        string provider,
+        string code,
+        CancellationToken ct)
+    {
+        logger.LogWarning(
+            "[STEP] Rolling back external sign-in of user {UserId} via {Provider}: {ErrorCode}",
+            account.UserId,
+            provider,
+            code);
+
+        // The session goes first: a live SSO session would let the browser reach the account console.
+        await EndSessionAsync(refreshToken, account.UserId, ct);
+
+        // A failure here is only logged: the rule is a state check evaluated on every callback, so an
+        // unlink or delete that did not happen is retried by the next sign-in attempt.
+        try
+        {
+            var createdBySignIn = !account.HasPassword &&
+                                  account.CreatedAt >= DateTimeOffset.UtcNow - stateProtector.Lifetime;
+
+            await (createdBySignIn
+                ? identityModuleApi.DeleteUserAsync(account.UserId, ct)
+                : identityModuleApi.UnlinkIdentityProviderAsync(account.UserId, provider, ct));
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogError(
+                ex,
+                "[FAIL] {HandlerName} | Rollback failed for user {UserId} via {Provider} ({ErrorCode})",
+                HandlerName,
+                account.UserId,
+                provider,
+                code);
+        }
+    }
+
+    private async Task EndSessionAsync(string refreshToken, string? userId, CancellationToken ct)
+    {
+        try
+        {
+            await identityModuleApi.SignOutAsync(refreshToken, ct);
+
+            return;
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogWarning(ex, "[FAIL] {HandlerName} | Sign-out by refresh token failed", HandlerName);
+        }
+
+        if (userId is null)
+        {
+            return;
+        }
+
+        try
+        {
+            await identityModuleApi.SignOutAllSessionsAsync(userId, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogError(ex, "[FAIL] {HandlerName} | Could not end any session of user {UserId}", HandlerName, userId);
+        }
     }
 
     private Error Fail(string code)

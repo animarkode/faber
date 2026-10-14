@@ -46,6 +46,6 @@ public class ExternalSignInCommandHandler(
 
         logger.LogInformation("[SUCCESS] {HandlerName} | Redirecting to provider {Provider}", HandlerName, provider);
 
-        return new ExternalSignInResponse(authorizationUri, stateProtector.Protect(state, codeVerifier));
+        return new ExternalSignInResponse(authorizationUri, stateProtector.Protect(state, codeVerifier, provider));
     }
 }

@@ -128,6 +128,13 @@ public interface IKeycloakApi
         [Header("Authorization")] string token,
         CancellationToken cancellationToken = default);
 
+    [Post("/admin/realms/{realm}/users/{id}/logout")]
+    public Task LogoutUserAsync(
+        [AliasAs("realm")] string realm,
+        [AliasAs("id")] string userId,
+        [Header("Authorization")] string token,
+        CancellationToken cancellationToken = default);
+
     [Delete("/admin/realms/{realm}/users/{id}")]
     public Task DeleteUserAsync(
         [AliasAs("realm")] string realm,

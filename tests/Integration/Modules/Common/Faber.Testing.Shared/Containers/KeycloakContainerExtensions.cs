@@ -137,6 +137,15 @@ public static class KeycloakContainerExtensions
                 "-s", "config.useJwksUrl=true",
                 "-s", "config.validateSignature=true"],
             cancellationToken);
+
+        // Mirrors the realm's google-email-verified mapper: the API's linking rule reads this attribute.
+        await ExecuteAsync(container,
+            [Kcadm, "create", $"identity-provider/instances/{provider.Alias}/mappers", "-r", brokerRealm,
+                "-s", $"name={provider.Alias}-email-verified",
+                "-s", $"identityProviderAlias={provider.Alias}",
+                "-s", "identityProviderMapper=oidc-user-attribute-idp-mapper",
+                "-s", "config={\"syncMode\":\"FORCE\",\"claim\":\"email_verified\",\"user.attribute\":\"idp_email_verified\"}"],
+            cancellationToken);
     }
 
     private static Task SignInAsync(KeycloakContainer container, string adminUsername, string adminPassword,

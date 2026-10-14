@@ -127,6 +127,7 @@ public class WebApp : AppFixture<Program>
                                throw new InvalidOperationException("CreateUserAsync returned null");
 
             await IdentityModuleApi.ResetPasswordAsync(userResponse.UserId, password, CancellationToken.None);
+            await IdentityModuleApi.VerifyEmailAsync(request.Email, CancellationToken.None);
         }
     }
 

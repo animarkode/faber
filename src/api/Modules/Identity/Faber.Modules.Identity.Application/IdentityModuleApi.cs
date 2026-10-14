@@ -342,6 +342,16 @@ public class IdentityModuleApi : IIdentityModuleApi
         _logger.LogInformation("Deleted user {UserId} from Keycloak", userId);
     }
 
+    /// <inheritdoc />
+    public async Task SignOutAllSessionsAsync(string userId, CancellationToken cancellationToken = default)
+    {
+        var adminToken = await BearerAdminToken.GenerateAsync(_keycloakApi, _options, cancellationToken);
+
+        await _keycloakApi.LogoutUserAsync(_options.Realm, userId, adminToken.Value, cancellationToken);
+
+        _logger.LogInformation("Ended all Keycloak sessions of user {UserId}", userId);
+    }
+
     private static string? ReadSubject(string accessToken)
     {
         var handler = new JsonWebTokenHandler();

@@ -5,7 +5,7 @@ using Microsoft.Extensions.Options;
 namespace Faber.Modules.Auth.Application.Features.Shared.ExternalSignIn;
 
 /// <summary>
-/// Protects the <c>{state, code_verifier}</c> pair stored in the state cookie with a time-limited
+/// Protects the <c>{state, code_verifier, provider}</c> triple stored in the state cookie with a time-limited
 /// Data Protection protector, so the cookie is confidential, tamper-proof and self-expiring.
 /// </summary>
 public class ExternalSignInStateProtector(
@@ -23,20 +23,20 @@ public class ExternalSignInStateProtector(
     /// <summary>The lifetime of a freshly protected value.</summary>
     public TimeSpan Lifetime => TimeSpan.FromSeconds(options.Value.StateLifetimeSeconds);
 
-    /// <summary>Protects the pair so that it expires after <see cref="Lifetime"/>.</summary>
-    public string Protect(string state, string codeVerifier)
+    /// <summary>Protects the triple so that it expires after <see cref="Lifetime"/>.</summary>
+    public string Protect(string state, string codeVerifier, string provider)
     {
-        return Protect(state, codeVerifier, DateTimeOffset.UtcNow.Add(Lifetime));
+        return Protect(state, codeVerifier, provider, DateTimeOffset.UtcNow.Add(Lifetime));
     }
 
-    /// <summary>Protects the pair with an explicit expiry (used by tests to mint expired cookies).</summary>
-    public string Protect(string state, string codeVerifier, DateTimeOffset expiresAt)
+    /// <summary>Protects the triple with an explicit expiry (used by tests to mint expired cookies).</summary>
+    public string Protect(string state, string codeVerifier, string provider, DateTimeOffset expiresAt)
     {
-        return _protector.Protect($"{state}{Separator}{codeVerifier}", expiresAt);
+        return _protector.Protect($"{state}{Separator}{codeVerifier}{Separator}{provider}", expiresAt);
     }
 
-    /// <summary>Returns the pair, or <see langword="null"/> when the value is malformed, tampered with or expired.</summary>
-    public (string State, string CodeVerifier)? Unprotect(string? protectedValue)
+    /// <summary>Returns the triple, or <see langword="null"/> when the value is malformed, tampered with or expired.</summary>
+    public (string State, string CodeVerifier, string Provider)? Unprotect(string? protectedValue)
     {
         if (string.IsNullOrEmpty(protectedValue))
         {
@@ -47,7 +47,7 @@ public class ExternalSignInStateProtector(
         {
             var parts = _protector.Unprotect(protectedValue).Split(Separator);
 
-            return parts.Length == 2 ? (parts[0], parts[1]) : null;
+            return parts.Length == 3 && parts[2].Length > 0 ? (parts[0], parts[1], parts[2]) : null;
         }
         catch (System.Security.Cryptography.CryptographicException)
         {

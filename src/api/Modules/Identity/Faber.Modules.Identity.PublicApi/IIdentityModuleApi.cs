@@ -97,7 +97,7 @@ public interface IIdentityModuleApi
     /// <param name="userId">The Keycloak user id.</param>
     /// <param name="provider">The identity provider alias.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <exception cref="HttpRequestException">Thrown when Keycloak rejects the request or is unreachable; the caller logs and decides.</exception>
+    /// <remarks>Throws when Keycloak rejects the request or is unreachable; the caller logs and decides.</remarks>
     public Task UnlinkIdentityProviderAsync(
         string userId,
         string provider,
@@ -108,8 +108,16 @@ public interface IIdentityModuleApi
     /// </summary>
     /// <param name="userId">The Keycloak user id.</param>
     /// <param name="cancellationToken">A token to cancel the operation.</param>
-    /// <exception cref="HttpRequestException">Thrown when Keycloak rejects the request or is unreachable; the caller logs and decides.</exception>
+    /// <remarks>Throws when Keycloak rejects the request or is unreachable; the caller logs and decides.</remarks>
     public Task DeleteUserAsync(string userId, CancellationToken cancellationToken = default);
+
+    /// <summary>
+    /// Ends every Keycloak session of a user.
+    /// </summary>
+    /// <param name="userId">The Keycloak user id.</param>
+    /// <param name="cancellationToken">A token to cancel the operation.</param>
+    /// <remarks>Throws when Keycloak rejects the request or is unreachable; the caller logs and decides.</remarks>
+    public Task SignOutAllSessionsAsync(string userId, CancellationToken cancellationToken = default);
 
     public Task SignOutAsync(string refreshToken, CancellationToken cancellationToken = default);
 
