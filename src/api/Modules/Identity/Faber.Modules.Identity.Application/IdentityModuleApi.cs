@@ -295,6 +295,12 @@ public class IdentityModuleApi : IIdentityModuleApi
                 adminToken.Value,
                 cancellationToken);
 
+            var federatedIdentities = await _keycloakApi.GetFederatedIdentitiesAsync(
+                _options.Realm,
+                userId,
+                adminToken.Value,
+                cancellationToken);
+
             var providerEmailVerified = user.Attributes?.GetValueOrDefault(ProviderEmailVerifiedAttribute)
                 ?.FirstOrDefault();
 
@@ -304,7 +310,11 @@ public class IdentityModuleApi : IIdentityModuleApi
                 user.EmailVerified == true,
                 string.Equals(providerEmailVerified, "true", StringComparison.OrdinalIgnoreCase),
                 credentials.Any(credential => credential.Type == PasswordCredentialType),
-                DateTimeOffset.FromUnixTimeMilliseconds(user.CreatedTimestamp ?? 0));
+                DateTimeOffset.FromUnixTimeMilliseconds(user.CreatedTimestamp ?? 0),
+                federatedIdentities
+                    .Select(identity => identity.IdentityProvider)
+                    .OfType<string>()
+                    .ToList());
         }
         catch (ApiException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {

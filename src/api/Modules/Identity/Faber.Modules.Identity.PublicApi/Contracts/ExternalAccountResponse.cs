@@ -15,10 +15,12 @@ namespace Faber.Modules.Identity.PublicApi.Contracts;
 /// </param>
 /// <param name="HasPassword">Whether the account has a password credential, meaning it was created through sign-up.</param>
 /// <param name="CreatedAt">When the account was created.</param>
+/// <param name="LinkedProviders">The aliases of every identity provider linked to the account.</param>
 public record ExternalAccountResponse(
     string UserId,
     string? Email,
     bool EmailVerified,
     bool ProviderEmailVerified,
     bool HasPassword,
-    DateTimeOffset CreatedAt);
+    DateTimeOffset CreatedAt,
+    IReadOnlyCollection<string> LinkedProviders);

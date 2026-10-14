@@ -56,7 +56,21 @@ public class ExternalCallbackCommandHandler(
             return Fail(ExternalSignInErrorCodes.ExchangeFailed);
         }
 
-        var account = await identityModuleApi.GetExternalAccountAsync(token.AccessToken, ct);
+        ExternalAccountResponse? account;
+
+        try
+        {
+            account = await identityModuleApi.GetExternalAccountAsync(token.AccessToken, ct);
+        }
+        catch (Exception ex) when (ex is not OperationCanceledException)
+        {
+            logger.LogError(ex, "[FAIL] {HandlerName} | Could not read the account after the code exchange", HandlerName);
+
+            // The link is left in place: the rule is a state check, so the next attempt evaluates it again.
+            await EndSessionAsync(token.RefreshToken, null, ct);
+
+            return Fail(ExternalSignInErrorCodes.ExchangeFailed);
+        }
 
         if (account is null)
         {
@@ -110,8 +124,12 @@ public class ExternalCallbackCommandHandler(
         // unlink or delete that did not happen is retried by the next sign-in attempt.
         try
         {
+            // Delete only an account this sign-in alone created: a victim's brokered-only account that a
+            // second, unverified provider was auto-linked to must be unlinked, never deleted.
             var createdBySignIn = !account.HasPassword &&
-                                  account.CreatedAt >= DateTimeOffset.UtcNow - stateProtector.Lifetime;
+                                  account.CreatedAt >= DateTimeOffset.UtcNow - stateProtector.Lifetime &&
+                                  account.LinkedProviders.Count == 1 &&
+                                  account.LinkedProviders.Contains(provider, StringComparer.OrdinalIgnoreCase);
 
             await (createdBySignIn
                 ? identityModuleApi.DeleteUserAsync(account.UserId, ct)

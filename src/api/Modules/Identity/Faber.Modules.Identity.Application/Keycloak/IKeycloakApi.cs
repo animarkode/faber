@@ -120,6 +120,13 @@ public interface IKeycloakApi
         [Header("Authorization")] string token,
         CancellationToken cancellationToken = default);
 
+    [Get("/admin/realms/{realm}/users/{id}/federated-identity")]
+    public Task<List<FederatedIdentityResponse>> GetFederatedIdentitiesAsync(
+        [AliasAs("realm")] string realm,
+        [AliasAs("id")] string userId,
+        [Header("Authorization")] string token,
+        CancellationToken cancellationToken = default);
+
     [Delete("/admin/realms/{realm}/users/{id}/federated-identity/{provider}")]
     public Task RemoveFederatedIdentityAsync(
         [AliasAs("realm")] string realm,
