@@ -16,6 +16,14 @@ namespace Faber.Modules.Identity.PublicApi.Contracts;
 /// <param name="HasPassword">Whether the account has a password credential, meaning it was created through sign-up.</param>
 /// <param name="CreatedAt">When the account was created.</param>
 /// <param name="LinkedProviders">The aliases of every identity provider linked to the account.</param>
+/// <param name="Provider">
+/// The <c>identity_provider</c> claim of the token: the provider that actually authenticated this session,
+/// or <see langword="null"/> for a non-brokered sign-in. Unlike <c>kc_idp_hint</c> it cannot be edited by the user.
+/// </param>
+/// <param name="AuthenticatedAt">
+/// When the session authenticated: the token's <c>auth_time</c>, falling back to <c>iat</c>. Both are
+/// stamped by Keycloak's clock, so it is comparable with <paramref name="CreatedAt"/>.
+/// </param>
 public record ExternalAccountResponse(
     string UserId,
     string? Email,
@@ -23,4 +31,6 @@ public record ExternalAccountResponse(
     bool ProviderEmailVerified,
     bool HasPassword,
     DateTimeOffset CreatedAt,
-    IReadOnlyCollection<string> LinkedProviders);
+    IReadOnlyCollection<string> LinkedProviders,
+    string? Provider,
+    DateTimeOffset AuthenticatedAt);

@@ -547,7 +547,7 @@
       "rootUrl": "${authBaseUrl}",
       "baseUrl": "/realms/faber/account/",
       "surrogateAuthRequired": false,
-      "enabled": true,
+      "enabled": false,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
@@ -594,7 +594,7 @@
       "rootUrl": "${authBaseUrl}",
       "baseUrl": "/realms/faber/account/",
       "surrogateAuthRequired": false,
-      "enabled": true,
+      "enabled": false,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [
@@ -786,6 +786,22 @@
             "access.token.claim": "true",
             "userinfo.token.claim": "false"
           }
+        },
+        {
+          "id": "8d1c5e2a-3f47-4b69-a1d0-6e9b27c4f853",
+          "name": "identity-provider",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-usersessionmodel-note-mapper",
+          "consentRequired": false,
+          "config": {
+            "user.session.note": "identity_provider",
+            "claim.name": "identity_provider",
+            "jsonType.label": "String",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true",
+            "userinfo.token.claim": "false"
+          }
         }
       ],
       "defaultClientScopes": [
@@ -854,7 +870,7 @@
       "rootUrl": "${authAdminUrl}",
       "baseUrl": "/admin/faber/console/",
       "surrogateAuthRequired": false,
-      "enabled": true,
+      "enabled": false,
       "alwaysDisplayInConsole": false,
       "clientAuthenticatorType": "client-secret",
       "redirectUris": [

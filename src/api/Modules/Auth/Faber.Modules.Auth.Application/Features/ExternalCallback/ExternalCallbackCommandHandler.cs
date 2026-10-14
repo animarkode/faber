@@ -79,12 +79,14 @@ public class ExternalCallbackCommandHandler(
             return Fail(ExternalSignInErrorCodes.ExchangeFailed);
         }
 
-        // Keycloak links on a matching e-mail without checks; this is the only gate.
+        // Keycloak links on a matching e-mail without checks; this is the only gate. The provider is the
+        // one the token says authenticated this session: the state cookie's provider is only what the user
+        // asked for via kc_idp_hint, which they can change to any other enabled provider in the URL.
         var refusal = EvaluateLinkingRule(account);
 
         if (refusal is not null)
         {
-            await RollBackAsync(token.RefreshToken, account, stored.Value.Provider, refusal, ct);
+            await RollBackAsync(token.RefreshToken, account, refusal, ct);
 
             return Fail(refusal);
         }
@@ -96,7 +98,8 @@ public class ExternalCallbackCommandHandler(
 
     private static string? EvaluateLinkingRule(ExternalAccountResponse account)
     {
-        if (string.IsNullOrWhiteSpace(account.Email) || !account.ProviderEmailVerified)
+        if (string.IsNullOrWhiteSpace(account.Provider) ||
+            string.IsNullOrWhiteSpace(account.Email) || !account.ProviderEmailVerified)
         {
             return ExternalSignInErrorCodes.ProviderEmailUnverified;
         }
@@ -107,10 +110,10 @@ public class ExternalCallbackCommandHandler(
     private async Task RollBackAsync(
         string refreshToken,
         ExternalAccountResponse account,
-        string provider,
         string code,
         CancellationToken ct)
     {
+        var provider = account.Provider;
         logger.LogWarning(
             "[STEP] Rolling back external sign-in of user {UserId} via {Provider}: {ErrorCode}",
             account.UserId,
@@ -120,14 +123,22 @@ public class ExternalCallbackCommandHandler(
         // The session goes first: a live SSO session would let the browser reach the account console.
         await EndSessionAsync(refreshToken, account.UserId, ct);
 
+        // Without a provider on the token there is no link made by this sign-in: nothing to unlink, and an
+        // account that cannot be tied to this sign-in is never deleted.
+        if (string.IsNullOrWhiteSpace(provider))
+        {
+            return;
+        }
+
         // A failure here is only logged: the rule is a state check evaluated on every callback, so an
         // unlink or delete that did not happen is retried by the next sign-in attempt.
         try
         {
             // Delete only an account this sign-in alone created: a victim's brokered-only account that a
-            // second, unverified provider was auto-linked to must be unlinked, never deleted.
+            // second, unverified provider was auto-linked to must be unlinked, never deleted. Both
+            // timestamps come from Keycloak's clock, so API host clock skew cannot widen the window.
             var createdBySignIn = !account.HasPassword &&
-                                  account.CreatedAt >= DateTimeOffset.UtcNow - stateProtector.Lifetime &&
+                                  account.CreatedAt >= account.AuthenticatedAt - stateProtector.Lifetime &&
                                   account.LinkedProviders.Count == 1 &&
                                   account.LinkedProviders.Contains(provider, StringComparer.OrdinalIgnoreCase);
 

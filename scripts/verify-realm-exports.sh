@@ -29,6 +29,8 @@ brokering_filter='{
   verifyEmail,
   idpEmailVerifiedProfile: [.components["org.keycloak.userprofile.UserProfileProvider"][]?.config["kc.user.profile.config"][0] | fromjson | .attributes[] | select(.name == "idp_email_verified")],
   verifyProfile: [.requiredActions[] | select(.alias == "VERIFY_PROFILE") | .enabled],
+  disabledClients: [.clients[] | select(.clientId == "account" or .clientId == "account-console" or .clientId == "security-admin-console") | {clientId, enabled}],
+  identityProviderClaimMapper: [.clients[] | select(.clientId == "faber-api") | .protocolMappers[] | select(.name == "identity-provider") | del(.id)],
   apiClientFlows: [.clients[] | select(.clientId == "faber-api") | {standardFlowEnabled, directAccessGrantsEnabled}]
 }'
 

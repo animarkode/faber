@@ -92,6 +92,17 @@ public interface IIdentityModuleApi
         CancellationToken cancellationToken = default);
 
     /// <summary>
+    /// Reads the <c>email_verified</c> claim of an access token that Keycloak has just issued to the API.
+    /// </summary>
+    /// <remarks>
+    /// The signature is not validated, for the same reason as the <c>sub</c> claim: the token comes from
+    /// Keycloak's token endpoint over the back channel and never from a request.
+    /// </remarks>
+    /// <param name="accessToken">An access token that Keycloak has just issued to the API.</param>
+    /// <returns><see langword="true"/> only when the claim is present and true; unreadable tokens fail closed.</returns>
+    public bool IsEmailVerified(string accessToken);
+
+    /// <summary>
     /// Removes the link between a user and a brokered identity provider.
     /// </summary>
     /// <param name="userId">The Keycloak user id.</param>

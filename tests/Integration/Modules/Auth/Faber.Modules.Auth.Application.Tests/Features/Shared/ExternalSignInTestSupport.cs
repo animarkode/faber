@@ -108,11 +108,11 @@ public static class ExternalSignInTestSupport
         return cookie is null ? null : Uri.UnescapeDataString(cookie[(name.Length + 1)..].Split(';')[0]);
     }
 
-    public static string MintCookie(WebApp app, string state, string verifier = "verifier", TimeSpan? lifetime = null, string? provider = null)
+    public static string MintCookie(WebApp app, string state, string verifier = "verifier", TimeSpan? lifetime = null)
     {
         var protector = app.Services.GetRequiredService<ExternalSignInStateProtector>();
 
-        return protector.Protect(state, verifier, provider ?? StandIn.Alias, DateTimeOffset.UtcNow.Add(lifetime ?? TimeSpan.FromMinutes(5)));
+        return protector.Protect(state, verifier, DateTimeOffset.UtcNow.Add(lifetime ?? TimeSpan.FromMinutes(5)));
     }
 
     public static IReadOnlyList<string> SetCookies(HttpResponseMessage response)

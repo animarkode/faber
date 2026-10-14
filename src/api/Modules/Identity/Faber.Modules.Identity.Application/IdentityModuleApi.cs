@@ -19,6 +19,9 @@ namespace Faber.Modules.Identity.Application;
 public class IdentityModuleApi : IIdentityModuleApi
 {
     private const string ProviderEmailVerifiedAttribute = "idp_email_verified";
+    private const string IdentityProviderClaim = "identity_provider";
+    private const string AuthTimeClaim = "auth_time";
+    private const string EmailVerifiedClaim = "email_verified";
     private const string PasswordCredentialType = "password";
 
     private readonly IdentityDbContext _dbContext;
@@ -274,9 +277,10 @@ public class IdentityModuleApi : IIdentityModuleApi
     {
         // No signature validation: the token was just issued to the API by Keycloak's token endpoint over the
         // back channel and never comes from a request, so only the subject is needed to look the user up.
-        var userId = ReadSubject(accessToken);
+        var jwt = ReadToken(accessToken);
+        var userId = string.IsNullOrWhiteSpace(jwt?.Subject) ? null : jwt.Subject;
 
-        if (userId is null)
+        if (jwt is null || userId is null)
         {
             _logger.LogWarning("The access token has no readable subject.");
 
@@ -314,7 +318,9 @@ public class IdentityModuleApi : IIdentityModuleApi
                 federatedIdentities
                     .Select(identity => identity.IdentityProvider)
                     .OfType<string>()
-                    .ToList());
+                    .ToList(),
+                ReadProvider(jwt),
+                ReadAuthenticatedAt(jwt));
         }
         catch (ApiException ex) when (ex.StatusCode == System.Net.HttpStatusCode.NotFound)
         {
@@ -362,18 +368,39 @@ public class IdentityModuleApi : IIdentityModuleApi
         _logger.LogInformation("Ended all Keycloak sessions of user {UserId}", userId);
     }
 
-    private static string? ReadSubject(string accessToken)
+    private static JsonWebToken? ReadToken(string accessToken)
     {
         var handler = new JsonWebTokenHandler();
 
-        if (string.IsNullOrWhiteSpace(accessToken) || !handler.CanReadToken(accessToken))
-        {
-            return null;
-        }
+        return string.IsNullOrWhiteSpace(accessToken) || !handler.CanReadToken(accessToken)
+            ? null
+            : handler.ReadJsonWebToken(accessToken);
+    }
 
-        var subject = handler.ReadJsonWebToken(accessToken).Subject;
+    private static string? ReadProvider(JsonWebToken token)
+    {
+        return token.TryGetPayloadValue<string>(IdentityProviderClaim, out var provider) &&
+               !string.IsNullOrWhiteSpace(provider)
+            ? provider
+            : null;
+    }
 
-        return string.IsNullOrWhiteSpace(subject) ? null : subject;
+    private static DateTimeOffset ReadAuthenticatedAt(JsonWebToken token)
+    {
+        return token.TryGetPayloadValue<long>(AuthTimeClaim, out var authTime)
+            ? DateTimeOffset.FromUnixTimeSeconds(authTime)
+            : new DateTimeOffset(token.IssuedAt, TimeSpan.Zero);
+    }
+
+    /// <inheritdoc />
+    public bool IsEmailVerified(string accessToken)
+    {
+        // No signature validation, same reasoning as the subject: the token was just issued to the API by Keycloak.
+        var token = ReadToken(accessToken);
+
+        return token is not null &&
+               token.TryGetPayloadValue<bool>(EmailVerifiedClaim, out var verified) &&
+               verified;
     }
 
     public async Task SignOutAsync(string refreshToken, CancellationToken cancellationToken = default)

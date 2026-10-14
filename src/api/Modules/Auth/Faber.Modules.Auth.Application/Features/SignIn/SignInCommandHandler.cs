@@ -1,6 +1,5 @@
 using ErrorOr;
 using Faber.Modules.Identity.PublicApi;
-using Faber.Modules.Identity.PublicApi.Contracts;
 using FastEndpoints;
 using Microsoft.Extensions.Logging;
 
@@ -28,27 +27,13 @@ public class SignInCommandHandler(
         }
 
         // Keycloak no longer refuses password sign-in for unverified accounts (realm verifyEmail is off so
-        // brokered linking never shows its verify-email page), so the API is the gate. The refusal is
-        // identical to a failed sign-in so it does not disclose the account's state.
-        ExternalAccountResponse? account;
-
-        try
-        {
-            account = await identityModuleApi.GetExternalAccountAsync(token.AccessToken, ct);
-        }
-        catch (Exception ex) when (ex is not OperationCanceledException)
-        {
-            logger.LogError(ex, "[FAIL] {HandlerName} | Could not read the account of {Username}", HandlerName, command.Username);
-
-            await EndSessionAsync(token.RefreshToken, ct);
-
-            return Error.Unauthorized("Auth.SignIn", "Sign in failed");
-        }
-
-        if (account is null || !account.EmailVerified)
+        // brokered linking never shows its verify-email page), so the API is the gate. The claim is already
+        // in the token, so no admin call is needed. The refusal is identical to a failed sign-in so it does
+        // not disclose the account's state.
+        if (!identityModuleApi.IsEmailVerified(token.AccessToken))
         {
             logger.LogWarning(
-                "[FAIL] {HandlerName} | Sign in refused for {Username}: account missing or e-mail not verified",
+                "[FAIL] {HandlerName} | Sign in refused for {Username}: e-mail not verified",
                 HandlerName,
                 command.Username);
 
