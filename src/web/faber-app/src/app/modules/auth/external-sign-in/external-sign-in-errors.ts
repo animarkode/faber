@@ -15,7 +15,7 @@ const MESSAGES: Readonly<Record<string, string>> = {
   email_confirmation_required:
     'An account with this e-mail already exists but is not confirmed yet. Confirm your e-mail from the link we sent, then try again.',
   [EXTERNAL_SIGN_IN_SESSION_FAILED]:
-    'You were signed in with the provider, but we could not start your session. Please try again.',
+    "We couldn't finish signing you in. Please try again.",
 };
 
 export function externalSignInErrorMessage(code: string | null | undefined): string | null {
