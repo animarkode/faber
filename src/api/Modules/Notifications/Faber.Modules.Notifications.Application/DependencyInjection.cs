@@ -5,6 +5,9 @@ using Faber.Modules.Notifications.Application.Email;
 using Faber.Modules.Notifications.Application.Email.RateLimiting;
 using Faber.Modules.Notifications.PublicApi.Options;
 using Faber.Modules.Notifications.PublicApi.OptionsSetup;
+using FluentEmail.Core;
+using FluentEmail.Core.Interfaces;
+using FluentEmail.Smtp;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
@@ -30,19 +33,30 @@ public static class DependencyInjection
 
         if (environment.IsDevelopment())
         {
-            var serviceProvider = services.BuildServiceProvider();
-            var fluentEmailOptions = serviceProvider.GetRequiredService<IOptions<FluentEmailOptions>>().Value;
+            // Both registrations read FluentEmailOptions when resolved instead of from a throwaway provider
+            // built here. ISender takes a factory rather than one SmtpClient instance: a shared client keeps
+            // its pooled connection for the app lifetime, so once the SMTP server drops it (Mailpit idling
+            // out or restarting) the next send writes to a dead socket, and SmtpClient is not safe for
+            // concurrent sends anyway. SmtpSender disposes each factory-built client after its send.
+            services.AddScoped<ISender>(sp =>
+            {
+                var options = sp.GetRequiredService<IOptions<FluentEmailOptions>>().Value;
 
-            services
-                .AddFluentEmail(fluentEmailOptions.FromEmail, fluentEmailOptions.FromName)
-                .AddRazorRenderer()
-                .AddSmtpSender(
-                    new SmtpClient(fluentEmailOptions.SmtpServer, int.Parse(fluentEmailOptions.SmtpPort))
-                    {
-                        EnableSsl = fluentEmailOptions.EnableSsl,
-                        UseDefaultCredentials = string.IsNullOrEmpty(fluentEmailOptions.Username),
-                        Credentials = new NetworkCredential(fluentEmailOptions.Username, fluentEmailOptions.Password)
-                    });
+                return new SmtpSender(() => CreateSmtpClient(options));
+            });
+
+            services.AddTransient<IFluentEmail>(sp =>
+            {
+                var options = sp.GetRequiredService<IOptions<FluentEmailOptions>>().Value;
+
+                // No template renderer: bodies arrive pre-rendered from the Documents module, so FluentEmail's
+                // own templating is never used.
+                return new FluentEmail.Core.Email(
+                    renderer: null,
+                    sp.GetRequiredService<ISender>(),
+                    options.FromEmail,
+                    options.FromName);
+            });
 
             services.AddScoped<FluentEmailSender>();
             services.AddScoped<IEmailSender>(sp => new ThrottledEmailSender(
@@ -65,4 +79,12 @@ public static class DependencyInjection
 
         return services;
     }
+
+    private static SmtpClient CreateSmtpClient(FluentEmailOptions options) =>
+        new(options.SmtpServer, int.Parse(options.SmtpPort))
+        {
+            EnableSsl = options.EnableSsl,
+            UseDefaultCredentials = string.IsNullOrEmpty(options.Username),
+            Credentials = new NetworkCredential(options.Username, options.Password)
+        };
 }
