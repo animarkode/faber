@@ -3,11 +3,13 @@ using ErrorOr;
 using Faber.Modules.Documents.PublicApi;
 using Faber.Modules.Notifications.Application.Email;
 using Faber.Modules.Notifications.PublicApi.Contracts;
+using Faber.Modules.Notifications.PublicApi.Options;
 using FluentEmail.Core;
 using FluentEmail.Core.Interfaces;
 using FluentEmail.Core.Models;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Logging.Abstractions;
+using Microsoft.Extensions.Options;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
 using Shouldly;
@@ -30,8 +32,8 @@ public class FluentEmailSenderTests
     }
 
     /// <summary>
-    /// Builds the sender over a real FluentEmail <see cref="FluentEmail.Core.Email"/>, so only the SMTP
-    /// transport (<see cref="ISender"/>) is substituted — the same seam SmtpSender plugs into at runtime.
+    /// Only the SMTP transport (<see cref="ISender"/>) is substituted — the same seam SmtpSender plugs
+    /// into at runtime — so the FluentEmail message the sender builds is real.
     /// </summary>
     private static FluentEmailSender CreateSender(ISender transport)
     {
@@ -41,14 +43,22 @@ public class FluentEmailSenderTests
             .RenderToHtmlAsync<TestTemplate>(Arg.Any<Dictionary<string, object?>>(), Arg.Any<CancellationToken>())
             .Returns("<p>body</p>");
 
-        var fluentEmail = new FluentEmail.Core.Email(null, transport, "no-reply@faber.test", "Faber");
+        var options = Options.Create(new FluentEmailOptions
+        {
+            FromEmail = "no-reply@faber.test",
+            FromName = "Faber"
+        });
 
-        return new FluentEmailSender(fluentEmail, NullLogger<FluentEmailSender>.Instance, documentsModuleApi);
+        return new FluentEmailSender(
+            transport,
+            options,
+            NullLogger<FluentEmailSender>.Instance,
+            documentsModuleApi);
     }
 
-    private static Task<ErrorOr<Success>> Send(FluentEmailSender sender)
+    private static Task<ErrorOr<Success>> Send(FluentEmailSender sender, string recipient = Recipient)
     {
-        var request = new EmailSenderRequest(Recipient, "Verify email", new Dictionary<string, object?>());
+        var request = new EmailSenderRequest(recipient, "Verify email", new Dictionary<string, object?>());
 
         return sender.SendAsync<TestTemplate>(request, CancellationToken.None);
     }
@@ -115,8 +125,34 @@ public class FluentEmailSenderTests
         result.IsError.ShouldBeFalse();
 
         await transport.Received(1).SendAsync(
-            Arg.Is<IFluentEmail>(email => email.Data.ToAddresses.Single().EmailAddress == Recipient),
+            Arg.Is<IFluentEmail>(email =>
+                email.Data.ToAddresses.Single().EmailAddress == Recipient &&
+                email.Data.FromAddress.EmailAddress == "no-reply@faber.test" &&
+                email.Data.FromAddress.Name == "Faber"),
             Arg.Any<CancellationToken?>());
+    }
+
+    [Fact]
+    public async Task ConsecutiveSends_ShouldAddressEachMessageToItsOwnRecipientOnly()
+    {
+        // FastEndpoints keeps event handlers, and the sender they hold, alive across requests. A
+        // reused FluentEmail builder appended each recipient to one shared To list, so every new
+        // verification email also went to everyone who had signed up before.
+        var transport = Substitute.For<ISender>();
+        var recipients = new List<string>();
+
+        transport
+            .SendAsync(Arg.Any<IFluentEmail>(), Arg.Any<CancellationToken?>())
+            .Returns(new SendResponse())
+            .AndDoes(call => recipients.AddRange(
+                call.Arg<IFluentEmail>().Data.ToAddresses.Select(address => address.EmailAddress)));
+
+        var sender = CreateSender(transport);
+
+        await Send(sender, "first@example.com");
+        await Send(sender, "second@example.com");
+
+        recipients.ShouldBe(["first@example.com", "second@example.com"]);
     }
 
     [Fact]
