@@ -38,7 +38,8 @@ describe('SocialSignIn', () => {
     fixture = TestBed.createComponent(SocialSignIn);
     fixture.detectChanges();
 
-    expect(root().innerHTML.replace(/<!--.*?-->/g, '').trim()).toBe('');
+    expect(root().children).toHaveLength(0);
+    expect(root().textContent?.trim()).toBe('');
   });
 
   it('should render nothing when no providers are available', async () => {
