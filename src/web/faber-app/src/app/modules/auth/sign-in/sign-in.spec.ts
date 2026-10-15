@@ -1,11 +1,20 @@
+import { signal } from '@angular/core';
 import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { provideRouter, Router } from '@angular/router';
 import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
 import { of, throwError } from 'rxjs';
 
 import { SignIn } from './sign-in';
 import { AuthClient } from '../auth-client';
 import { APP_ROUTES } from '../../../core/routes/app-routes';
+import { externalSignInErrorMessage } from '../external-sign-in/external-sign-in-errors';
+import { ExternalProvidersStore } from '../external-sign-in/external-providers-store';
+import { ExternalSignInErrorStore } from '../external-sign-in/external-sign-in-error-store';
+import { expectNoAxeViolations } from '../../../shared/testing/axe';
+
+/** Keeps the page's social buttons from issuing a providers request. */
+const noExternalProviders = { provide: ExternalProvidersStore, useValue: { providers: signal<string[]>([]) } };
 
 describe('SignIn', () => {
   let component: SignIn;
@@ -24,7 +33,9 @@ describe('SignIn', () => {
       providers: [
         provideRouter([]),
         provideHttpClient(),
+        provideHttpClientTesting(),
         { provide: AuthClient, useValue: mockAuthClient },
+        noExternalProviders,
       ],
     }).compileComponents();
 
@@ -77,4 +88,58 @@ describe('SignIn', () => {
     expect(component.form.controls.userName.touched).toBe(true);
     expect(component.form.controls.password.touched).toBe(true);
   });
+});
+
+describe('SignIn external sign-in errors', () => {
+  const MESSAGE = externalSignInErrorMessage('provider_denied');
+
+  async function create(pending: string | null): Promise<ComponentFixture<SignIn>> {
+    await TestBed.configureTestingModule({
+      imports: [SignIn],
+      providers: [
+        provideRouter([]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: AuthClient, useValue: { signIn: vi.fn() } },
+        noExternalProviders,
+      ],
+    }).compileComponents();
+
+    TestBed.inject(ExternalSignInErrorStore).set(pending);
+    const fixture = TestBed.createComponent(SignIn);
+    await fixture.whenStable();
+    return fixture;
+  }
+
+  it('should show the message the guard left for it', async () => {
+    const fixture = await create(MESSAGE);
+
+    expect(fixture.nativeElement.textContent).toContain(MESSAGE);
+  });
+
+  it('should consume the message so it shows only once', async () => {
+    await create(MESSAGE);
+
+    expect(TestBed.inject(ExternalSignInErrorStore).consume()).toBeNull();
+  });
+
+  it('should show no toast without a pending message', async () => {
+    const fixture = await create(null);
+
+    expect(fixture.componentInstance.toastMessage()).toBeNull();
+  });
+
+  it('should clear the message when dismissed', async () => {
+    const fixture = await create(MESSAGE);
+
+    fixture.componentInstance.dismissToast();
+
+    expect(fixture.componentInstance.toastMessage()).toBeNull();
+  });
+
+  it('should have no AXE violations with an error shown', async () => {
+    const fixture = await create(MESSAGE);
+
+    await expectNoAxeViolations(fixture);
+  }, 20000);
 });

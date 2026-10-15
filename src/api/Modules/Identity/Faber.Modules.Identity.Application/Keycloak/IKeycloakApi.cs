@@ -113,6 +113,42 @@ public interface IKeycloakApi
         [Body] UserEmailVerifyRequest request,
         CancellationToken cancellationToken = default);
 
+    [Get("/admin/realms/{realm}/users/{id}/credentials")]
+    public Task<List<CredentialRepresentation>> GetUserCredentialsAsync(
+        [AliasAs("realm")] string realm,
+        [AliasAs("id")] string userId,
+        [Header("Authorization")] string token,
+        CancellationToken cancellationToken = default);
+
+    [Get("/admin/realms/{realm}/users/{id}/federated-identity")]
+    public Task<List<FederatedIdentityResponse>> GetFederatedIdentitiesAsync(
+        [AliasAs("realm")] string realm,
+        [AliasAs("id")] string userId,
+        [Header("Authorization")] string token,
+        CancellationToken cancellationToken = default);
+
+    [Delete("/admin/realms/{realm}/users/{id}/federated-identity/{provider}")]
+    public Task RemoveFederatedIdentityAsync(
+        [AliasAs("realm")] string realm,
+        [AliasAs("id")] string userId,
+        [AliasAs("provider")] string provider,
+        [Header("Authorization")] string token,
+        CancellationToken cancellationToken = default);
+
+    [Post("/admin/realms/{realm}/users/{id}/logout")]
+    public Task LogoutUserAsync(
+        [AliasAs("realm")] string realm,
+        [AliasAs("id")] string userId,
+        [Header("Authorization")] string token,
+        CancellationToken cancellationToken = default);
+
+    [Delete("/admin/realms/{realm}/users/{id}")]
+    public Task DeleteUserAsync(
+        [AliasAs("realm")] string realm,
+        [AliasAs("id")] string userId,
+        [Header("Authorization")] string token,
+        CancellationToken cancellationToken = default);
+
     [Put("/admin/realms/{realm}/users/{id}/execute-actions-email")]
     Task ExecuteActionsEmailAsync(
         [AliasAs("realm")] string realm,

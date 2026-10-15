@@ -1,6 +1,9 @@
 using System.Net;
 using Faber.Modules.Auth.Application.Features.Shared.ExternalSignIn;
 using Faber.Modules.Common.PublicApi;
+using Faber.Modules.Identity.PublicApi;
+using Faber.Modules.Users.PublicApi;
+using Faber.Modules.Users.PublicApi.Contracts;
 using Faber.Testing.Shared.Containers;
 using FastEndpoints.Testing;
 using Microsoft.Extensions.DependencyInjection;
@@ -34,7 +37,15 @@ public static class ExternalSignInTestSupport
         FirstName: "Stand",
         LastName: "In");
 
-    public static string StandInRoute => $"/api/v1/auth/external/{StandIn.Alias}";
+    /// <summary>A second provider alias in the broker realm that points at the same stand-in realm.</summary>
+    public const string SecondStandInAlias = "stand-in-2";
+
+    public static string StandInRoute => RouteFor(StandIn.Alias);
+
+    public static string RouteFor(string alias)
+    {
+        return $"/api/v1/auth/external/{alias}";
+    }
 
     public static string FailureLocation(string errorCode)
     {
@@ -64,9 +75,10 @@ public static class ExternalSignInTestSupport
     }
 
     /// <summary>Starts a sign-in with the stand-in provider and returns where to go and the state cookie.</summary>
-    public static async Task<(Uri AuthorizationUri, string StateCookie)> StartStandInSignInAsync(WebApp app)
+    public static async Task<(Uri AuthorizationUri, string StateCookie)> StartStandInSignInAsync(
+        WebApp app, string? alias = null)
     {
-        using var response = await GetAsync(app, StandInRoute);
+        using var response = await GetAsync(app, alias is null ? StandInRoute : RouteFor(alias));
 
         response.StatusCode.ShouldBe(HttpStatusCode.Found);
         var authorizationUri = response.Headers.Location.ShouldNotBeNull();
@@ -119,4 +131,65 @@ public static class ExternalSignInTestSupport
     {
         return SetCookies(response).Any(c => c.StartsWith($"{CookieConstants.RefreshTokenKey}=", StringComparison.Ordinal));
     }
+
+    /// <summary>
+    /// Runs a whole stand-in sign-in for the given stand-in user, callback included, and returns the
+    /// callback's response. The browser helper throws when the flow lands on any Keycloak-rendered page, so a
+    /// returned response proves the chain went straight back to the callback URL.
+    /// </summary>
+    public static async Task<HttpResponseMessage> SignInWithStandInUserAsync(
+        WebApp app, string username, string password, string? alias = null)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var (authorizationUri, stateCookie) = await StartStandInSignInAsync(app, alias);
+
+        using var browser = new ExternalSignInBrowser(StandIn.Realm, username, password, CallbackUrl);
+        var callback = await browser.SignInAsync(authorizationUri, ct);
+
+        return await GetAsync(app, callback.PathAndQuery, stateCookie);
+    }
+
+    /// <summary>Creates a stand-in provider user with a unique name and returns its credentials.</summary>
+    public static async Task<(string Username, string Password)> CreateStandInUserAsync(
+        WebApp app, string? email, bool emailVerified)
+    {
+        var username = $"stand-in-{Guid.NewGuid():N}";
+        await app.AddStandInUserAsync(username, StandIn.Password, email, emailVerified);
+
+        return (username, StandIn.Password);
+    }
+
+    /// <summary>An e-mail that no other test uses, on a reserved domain.</summary>
+    public static string UniqueEmail()
+    {
+        return $"linking-{Guid.NewGuid():N}@faber-tests.test";
+    }
+
+    /// <summary>
+    /// Creates a Faber account with a password the same way the sign-up and test-seeding paths do: user
+    /// module, then a password through the identity module, then (optionally) the e-mail verification.
+    /// </summary>
+    public static async Task<FaberAccount> CreateFaberAccountAsync(WebApp app, string email, bool verified)
+    {
+        var ct = TestContext.Current.CancellationToken;
+        await using var scope = app.Services.CreateAsyncScope();
+        var users = scope.ServiceProvider.GetRequiredService<IUserModuleApi>();
+        var identity = scope.ServiceProvider.GetRequiredService<IIdentityModuleApi>();
+        var username = $"faber-{Guid.NewGuid():N}";
+        const string password = "Faber-Passw0rd!1";
+
+        var user = await users.CreateUserAsync(new CreateUserRequest(username, email, "Faber", "Account"), ct) ??
+                   throw new InvalidOperationException("CreateUserAsync returned null");
+        await identity.ResetPasswordAsync(user.UserId, password, ct);
+
+        if (verified)
+        {
+            await identity.VerifyEmailAsync(email, ct);
+        }
+
+        return new FaberAccount(user.UserId, username, email, password);
+    }
 }
+
+/// <summary>A Faber account with a password, as created by <see cref="ExternalSignInTestSupport"/>.</summary>
+public sealed record FaberAccount(string UserId, string Username, string Email, string Password);

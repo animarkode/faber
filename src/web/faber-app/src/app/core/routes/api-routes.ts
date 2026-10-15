@@ -20,6 +20,10 @@ export const API_ROUTES = {
     verifyEmail: `${base}/auth/verify-email`,
     forgotPassword: `${base}/auth/forgot-password`,
     resetPassword: `${base}/auth/reset-password`,
+    external: {
+      providers: `${base}/auth/external/providers`,
+      start: (provider: string) => `${base}/auth/external/${encodeURIComponent(provider)}`,
+    },
   },
   identity: {
     verifyActionToken: `${base}/identity/verify-action-token`,
