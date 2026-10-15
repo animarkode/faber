@@ -1,6 +1,6 @@
 import { ChangeDetectionStrategy, Component, computed, inject, OnInit, signal } from '@angular/core';
 import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
 import { LUCIDE_ICONS, LucideAngularModule, LucideIconProvider, X } from 'lucide-angular';
 import { AuthClient } from '../auth-client';
@@ -9,7 +9,7 @@ import { FbInput } from '../../../shared/components/fb-input/fb-input';
 import { FbAuthCard } from '../../../shared/components/fb-auth-card/fb-auth-card';
 import { FbButton } from '../../../shared/components/fb-button/fb-button';
 import { FbIconButton } from '../../../shared/components/fb-icon-button/fb-icon-button';
-import { externalSignInErrorMessage } from '../external-sign-in/external-sign-in-errors';
+import { ExternalSignInErrorStore } from '../external-sign-in/external-sign-in-error-store';
 import { SocialSignIn } from '../external-sign-in/social-sign-in/social-sign-in';
 import { FbToast } from '../../../shared/components/fb-toast/fb-toast';
 import { FbThemeToggle } from '../../../shared/components/fb-theme-toggle/fb-theme-toggle';
@@ -24,7 +24,7 @@ import { FbThemeToggle } from '../../../shared/components/fb-theme-toggle/fb-the
 })
 export class SignIn implements OnInit {
   private readonly router = inject(Router);
-  private readonly route = inject(ActivatedRoute);
+  private readonly externalSignInErrors = inject(ExternalSignInErrorStore);
   private readonly authClient = inject(AuthClient);
   private readonly fb = inject(NonNullableFormBuilder);
 
@@ -67,17 +67,7 @@ export class SignIn implements OnInit {
   }
 
   private showExternalError(): void {
-    const code = this.route.snapshot.queryParamMap.get('error');
-    if (!code) {
-      return;
-    }
-    this.externalError.set(externalSignInErrorMessage(code));
-    this.router.navigate([], {
-      relativeTo: this.route,
-      queryParams: { error: null },
-      queryParamsHandling: 'merge',
-      replaceUrl: true,
-    });
+    this.externalError.set(this.externalSignInErrors.consume());
   }
 
   protected readonly APP_ROUTES = APP_ROUTES;
