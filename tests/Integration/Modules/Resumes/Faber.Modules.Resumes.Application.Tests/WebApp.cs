@@ -28,7 +28,6 @@ namespace Faber.Modules.Resumes.Application.Tests;
 
 public class WebApp : AppFixture<Program>
 {
-    private const string KeycloakImage = "quay.io/keycloak/keycloak:26.2.5";
     private const string KeycloakUsername = "admin";
     private const string KeycloakPassword = "admin";
     private const string KeycloakToken = "token-exchange";
@@ -98,7 +97,7 @@ public class WebApp : AppFixture<Program>
 
         _keycloakContainer = new KeycloakBuilder()
             .WithName($"keycloak-tests-{Guid.NewGuid()}")
-            .WithImage(KeycloakImage)
+            .WithImage(await FaberKeycloakImage.GetAsync())
             .WithNetwork(_network)
             .WithResourceMapping(new FileInfo("realm-export.json"), "/opt/keycloak/data/import/")
             .WithCommand("--import-realm")
