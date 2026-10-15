@@ -767,7 +767,9 @@
         "oauth2.device.authorization.grant.enabled": "false",
         "backchannel.logout.revoke.offline.tokens": "false"
       },
-      "authenticationFlowBindingOverrides": {},
+      "authenticationFlowBindingOverrides": {
+        "browser": "9fdc5519-247f-422e-907d-27837064760f"
+      },
       "fullScopeAllowed": true,
       "nodeReRegistrationTimeout": -1,
       "protocolMappers": [
@@ -2567,6 +2569,40 @@
           "authenticatorFlow": false,
           "requirement": "ALTERNATIVE",
           "priority": 20,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false
+        }
+      ]
+    },
+    {
+      "id": "9fdc5519-247f-422e-907d-27837064760f",
+      "alias": "faber external sign-in",
+      "description": "Browser flow of faber-api: signs in from the SSO cookie or redirects to the identity provider named by kc_idp_hint; anything else, including an error the provider reports back, returns to the client instead of showing a Keycloak page",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "auth-cookie",
+          "authenticatorFlow": false,
+          "requirement": "ALTERNATIVE",
+          "priority": 10,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "identity-provider-redirector",
+          "authenticatorFlow": false,
+          "requirement": "ALTERNATIVE",
+          "priority": 20,
+          "autheticatorFlow": false,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "faber-return-to-client",
+          "authenticatorFlow": false,
+          "requirement": "ALTERNATIVE",
+          "priority": 30,
           "autheticatorFlow": false,
           "userSetupAllowed": false
         }

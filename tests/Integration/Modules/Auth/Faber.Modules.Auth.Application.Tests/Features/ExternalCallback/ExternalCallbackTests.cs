@@ -1,4 +1,5 @@
 using System.Net;
+using System.Web;
 using Faber.Modules.Auth.Application.Features.Refresh;
 using Faber.Modules.Auth.Application.Features.Shared.ExternalSignIn;
 using Faber.Modules.Auth.Application.Features.Shared.Requests;
@@ -7,8 +8,10 @@ using Faber.Modules.Auth.Application.Tests.Features.Refresh;
 using Faber.Modules.Auth.Application.Tests.Features.Shared;
 using Faber.Modules.Auth.Domain.Enums;
 using Faber.Modules.Common.PublicApi;
+using Faber.Modules.Identity.PublicApi;
 using Faber.Testing.Shared.Http;
 using FastEndpoints.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
 using static Faber.Modules.Auth.Application.Tests.Features.Shared.ExternalSignInTestSupport;
 
@@ -194,6 +197,39 @@ public class ExternalCallbackTests(WebApp app) : TestBase
             ct);
 
         me.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task CancelAtProvider_ShouldRedirectWithProviderDenied()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var email = UniqueEmail();
+        var (username, password) = await CreateStandInUserAsync(app, email, emailVerified: true);
+        var (authorizationUri, stateCookie) = await StartStandInSignInAsync(app);
+        using var browser = new ExternalSignInBrowser(StandIn.Realm, username, password, CallbackUrl);
+
+        var callback = await browser.CancelAtProviderAsync(authorizationUri, ct);
+        using var response = await GetAsync(app, callback.PathAndQuery, stateCookie);
+
+        HttpUtility.ParseQueryString(callback.Query)["error"].ShouldBe("access_denied");
+        await AssertFailureAsync(response, ExternalSignInErrorCodes.ProviderDenied);
+        (await app.Services.GetRequiredService<IIdentityModuleApi>().IsEmailUniqueAsync(email, ct)).ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task AuthorizationWithoutIdpHint_ShouldReturnToCallbackInsteadOfKeycloakLoginForm()
+    {
+        var (authorizationUri, stateCookie) = await StartStandInSignInAsync(app);
+        var query = HttpUtility.ParseQueryString(authorizationUri.Query);
+        query["kc_idp_hint"].ShouldBe(StandIn.Alias);
+        query.Remove("kc_idp_hint");
+        var withoutHint = new UriBuilder(authorizationUri) { Query = query.ToString() }.Uri;
+        using var browser = new ExternalSignInBrowser(StandIn.Realm, StandIn.Username, StandIn.Password, CallbackUrl);
+
+        var callback = await browser.SignInAsync(withoutHint, TestContext.Current.CancellationToken);
+        using var response = await GetAsync(app, callback.PathAndQuery, stateCookie);
+
+        await AssertFailureAsync(response, ExternalSignInErrorCodes.ProviderDenied);
     }
 
     private static Task AssertFailureAsync(HttpResponseMessage response, string errorCode)
