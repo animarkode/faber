@@ -26,8 +26,10 @@ public class NewUserSignedUpEventHandler(
 
         if (result.IsError)
         {
-            // The event is published fire-and-forget after the HTTP response was already written, so
-            // there is no caller left to hand a 429 to — the log is the back-pressure signal here.
+            // The publisher awaits this handler, but the event carries no result back: the user or reset
+            // token already exists, so failing the request would only hide that it succeeded. The log is
+            // the signal here — which is also why IEmailSender reports delivery failures instead of
+            // throwing them.
             logger.LogWarning(
                 "Verification email not sent: {ErrorCode}",
                 result.FirstError.Code);

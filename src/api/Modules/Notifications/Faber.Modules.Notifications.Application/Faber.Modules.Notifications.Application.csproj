@@ -30,6 +30,7 @@
              Widening them to public to make them testable would remove exactly the guard the modifier
              exists for, so the unit test assembly is named as a friend instead. -->
         <InternalsVisibleTo Include="Faber.Modules.Notifications.Application.UnitTests"/>
+        <InternalsVisibleTo Include="Faber.Modules.Auth.Application.Tests"/>
     </ItemGroup>
 
     <ItemGroup>

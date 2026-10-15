@@ -9,4 +9,6 @@ public static class SignUpConstants
     public const string ValidFirstName = "John";
     public const string ValidLastName = "Doe";
     public const int MinValidationErrorsForAllFields = 4;
+    public const string TransportFailureUsername = "smtpfailureuser";
+    public const string TransportFailureEmail = "smtp-failure@email.com";
 }
