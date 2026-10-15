@@ -22,7 +22,7 @@ export const API_ROUTES = {
     resetPassword: `${base}/auth/reset-password`,
     external: {
       providers: `${base}/auth/external/providers`,
-      start: (provider: string) => `${base}/auth/external/${provider}`,
+      start: (provider: string) => `${base}/auth/external/${encodeURIComponent(provider)}`,
     },
   },
   identity: {

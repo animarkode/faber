@@ -1,8 +1,7 @@
-import { ChangeDetectionStrategy, Component, computed } from '@angular/core';
-import { httpResource } from '@angular/common/http';
+import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
 import { NgOptimizedImage } from '@angular/common';
 import { API_ROUTES } from '../../../../core/routes/api-routes';
-import { ExternalProvidersResponse } from '../external-providers-response';
+import { ExternalProvidersStore } from '../external-providers-store';
 import { isKnownProvider, SOCIAL_PROVIDERS, SocialProvider } from '../social-providers';
 
 interface SocialProviderLink {
@@ -27,14 +26,11 @@ const NEUTRAL_CLASSES = 'border-line bg-background text-foreground';
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class SocialSignIn {
-  private readonly providersResource = httpResource<ExternalProvidersResponse>(
-    () => API_ROUTES.auth.external.providers,
-  );
+  private readonly providersStore = inject(ExternalProvidersStore);
 
   /** Catalog entries the API reports as available; empty while loading or on error. */
   protected readonly links = computed<SocialProviderLink[]>(() => {
-    if (this.providersResource.status() !== 'resolved') return [];
-    const available = new Set((this.providersResource.value()?.providers ?? []).filter(isKnownProvider));
+    const available = new Set(this.providersStore.providers().filter(isKnownProvider));
     return SOCIAL_PROVIDERS.filter((provider) => available.has(provider.id)).map((provider) => ({
       id: provider.id,
       text: `Continue with ${provider.label}`,

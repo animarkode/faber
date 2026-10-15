@@ -84,6 +84,17 @@ describe('SocialSignIn', () => {
     expect(root().querySelector('div')).toBeNull();
   });
 
+  it('should not refetch providers for a second instance', async () => {
+    await render(['google']);
+
+    const second = TestBed.createComponent(SocialSignIn);
+    second.detectChanges();
+    await second.whenStable();
+
+    http.expectNone(API_ROUTES.auth.external.providers);
+    expect(second.nativeElement.querySelectorAll('a')).toHaveLength(1);
+  });
+
   it('should have no AXE violations with both providers', { timeout: 20000 }, async () => {
     await render(['google', 'github']);
 
