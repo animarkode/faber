@@ -1,9 +1,11 @@
+using System.Net.Mail;
 using ErrorOr;
 using Faber.Modules.Communication.PublicApi;
 using Faber.Modules.Documents.PublicApi;
 using Faber.Modules.Notifications.PublicApi;
 using Faber.Modules.Notifications.PublicApi.Contracts;
 using FluentEmail.Core;
+using FluentEmail.Core.Models;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Logging;
 
@@ -44,7 +46,22 @@ internal sealed class FluentEmailSender : IEmailSender
             .Subject(request.Subject)
             .Body(messageBody, request.IsHtml);
 
-        var result = await email.SendAsync();
+        SendResponse result;
+
+        try
+        {
+            result = await email.SendAsync(cancellationToken);
+        }
+        catch (Exception exception) when (exception is SmtpException or IOException)
+        {
+            // SmtpSender reports a transport failure (refused connection, dropped socket, rejected
+            // recipient) by throwing rather than through SendResponse. Left uncaught it escapes the
+            // event handler and fails the request that published the event, even though that request's
+            // own work is already done. Cancellation is not a delivery failure and is left to propagate.
+            _logger.LogWarning(exception, "Failed to send email via SMTP");
+
+            return EmailSendErrors.DeliveryFailed(exception.Message);
+        }
 
         if (!result.Successful)
         {
