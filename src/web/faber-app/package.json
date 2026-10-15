@@ -23,7 +23,7 @@
     "@angular/material": "^21.2.14",
     "@angular/material-date-fns-adapter": "^21.2.14",
     "@angular/platform-browser": "^21.2.23",
-    "@angular/router": "^21.2.23",
+    "@angular/router": "^21.2.24",
     "@tiptap/core": "^3.20.4",
     "@tiptap/extension-bubble-menu": "^3.26.0",
     "@tiptap/extension-placeholder": "^3.20.4",
