@@ -1660,7 +1660,7 @@
       "addReadTokenRoleOnCreate": false,
       "authenticateByDefault": false,
       "linkOnly": false,
-      "firstBrokerLoginFlowAlias": "silent first broker login",
+      "firstBrokerLoginFlowAlias": "create or link account",
       "config": {
         "clientId": "<GOOGLE-CLIENT-ID>",
         "clientSecret": "<GOOGLE-CLIENT-SECRET>",
@@ -1679,7 +1679,7 @@
       "addReadTokenRoleOnCreate": false,
       "authenticateByDefault": false,
       "linkOnly": false,
-      "firstBrokerLoginFlowAlias": "silent first broker login",
+      "firstBrokerLoginFlowAlias": "create or link account",
       "config": {
         "clientId": "<GITHUB-CLIENT-ID>",
         "clientSecret": "<GITHUB-CLIENT-SECRET>",
@@ -2549,7 +2549,7 @@
     },
     {
       "id": "c3f2e5d4-2d33-4e43-8a03-7f9cbd3e2c01",
-      "alias": "silent first broker login",
+      "alias": "create or link account",
       "description": "Creates a new user on first brokered sign-in, or links to the existing user with the same e-mail, without any interactive step",
       "providerId": "basic-flow",
       "topLevel": true,
@@ -2576,7 +2576,7 @@
     },
     {
       "id": "9fdc5519-247f-422e-907d-27837064760f",
-      "alias": "faber external sign-in",
+      "alias": "provider redirect only",
       "description": "Browser flow of faber-api: signs in from the SSO cookie or redirects to the identity provider named by kc_idp_hint; anything else, including an error the provider reports back, returns to the client instead of showing a Keycloak page",
       "providerId": "basic-flow",
       "topLevel": true,

@@ -54,7 +54,7 @@ public static class KeycloakContainerExtensions
     /// The stand-in realm gets one confidential client, which the broker realm authenticates with, and one
     /// enabled user with a password, a verified e-mail and a full name, so neither realm has a reason to show
     /// a profile page. The provider mirrors the brokering settings of the real providers: trusted e-mail, the
-    /// <c>silent first broker login</c> flow and <c>IMPORT</c> sync mode.
+    /// <c>create or link account</c> flow and <c>IMPORT</c> sync mode.
     /// </para>
     /// <para>
     /// The provider's URLs are split by who calls them. The authorization URL is followed by the "browser" (the
@@ -248,7 +248,7 @@ public static class KeycloakContainerExtensions
                 "-s", "providerId=oidc",
                 "-s", "enabled=true",
                 "-s", "trustEmail=true",
-                "-s", "firstBrokerLoginFlowAlias=silent first broker login",
+                "-s", "firstBrokerLoginFlowAlias=create or link account",
                 "-s", $"config.clientId={provider.ClientId}",
                 "-s", $"config.clientSecret={provider.ClientSecret}",
                 "-s", "config.clientAuthMethod=client_secret_post",
