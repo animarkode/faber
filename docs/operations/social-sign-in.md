@@ -53,7 +53,7 @@ Open the Keycloak admin console on the deployed host and sign in as the master r
 https://<KEYCLOAK-HOST>/admin/master/console
 ```
 
-Make every change below in realm **faber** (the realm selector at the top left). Do each step for an already-imported realm even if it looks done: check it, and fix it if it differs.
+The labels below are those of Keycloak 26.2.5, the version Faber pins; other versions may word them differently. Make every change below in realm **faber** (the realm selector at the top left). Do each step for an already-imported realm even if it looks done: check it, and fix it if it differs.
 
 ### 3.1 Identity providers, for both Google and GitHub
 
@@ -148,7 +148,7 @@ Open **Clients → faber-api → Settings**:
 
 1. **Standard flow**: on. Social sign-in is an authorization-code flow.
 2. **Direct access grants**: leave it on. Password sign-in uses it.
-3. **Valid redirect URIs**: exactly the API's `ExternalSignIn__CallbackUrl` from section 4, and nothing broader. Keycloak refuses any other redirect URI.
+3. **Valid redirect URIs**: exactly the API's `ExternalSignIn__CallbackUrl` from section 4, and nothing broader. Keycloak refuses any other redirect URI. Remove the imported `http://localhost:5020/api/v1/auth/external/callback` entry: it is the development value.
 
 ```text
 https://<API-HOST>/api/v1/auth/external/callback
