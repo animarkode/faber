@@ -862,13 +862,19 @@ describe('ResumesStore download', () => {
     });
     store = TestBed.inject(ResumesStore);
     httpMock = TestBed.inject(HttpTestingController);
+    // jsdom's Blob is not accepted by vitest's createObjectURL shim since jsdom 30.1;
+    // these tests care about the request and the revoke timing, not what the URL points at.
+    vi.spyOn(URL, 'createObjectURL').mockReturnValue('blob:resume-pdf');
 
     store.loadResume(RESUME_ID);
     httpMock.expectOne(API_ROUTES.resumes.byId(RESUME_ID)).flush(resume());
     // Preview is disabled by default, so loading the resume does not issue a generate request.
   });
 
-  afterEach(() => httpMock.verify());
+  afterEach(() => {
+    httpMock.verify();
+    vi.restoreAllMocks();
+  });
 
   it('asks the server for the PDF when no preview blob is cached', () => {
     store.downloadPdf();
