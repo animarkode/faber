@@ -41,11 +41,11 @@
   "devDependencies": {
     "@angular/animations": "^21.2.23",
     "@angular/build": "^21.2.24",
-    "@angular/cli": "^21.2.24",
+    "@angular/cli": "^22.2.3",
     "@angular/compiler-cli": "^21.2.23",
     "@eslint/js": "^10.0.1",
     "@tailwindcss/postcss": "^4.3.3",
-    "angular-eslint": "^21.4.0",
+    "angular-eslint": "^22.6.0",
     "axe-core": "^4.13.0",
     "eslint": "^10.10.0",
     "jsdom": "^30.0.1",
