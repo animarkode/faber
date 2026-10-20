@@ -1,4 +1,5 @@
 using System.Net;
+using System.Net.Mail;
 using Faber.Modules.Auth.Application.Features.SignIn;
 using Faber.Modules.Auth.Application.Features.SignUp;
 using Faber.Testing.Shared.Data;
@@ -8,6 +9,9 @@ using Faber.Modules.Identity.PublicApi;
 using FastEndpoints;
 using FastEndpoints.Testing;
 using Microsoft.Extensions.DependencyInjection;
+using FluentEmail.Core;
+using NSubstitute;
+using NSubstitute.ExceptionExtensions;
 using Shouldly;
 using static Faber.Modules.Auth.Application.Tests.Features.SignUp.SignUpConstants;
 
@@ -270,5 +274,40 @@ public class SignUpTests(WebApp app) : TestBase
         signInHttp.StatusCode.ShouldBe(HttpStatusCode.OK);
         signInResponse.AccessToken.ShouldNotBeNullOrEmpty();
         signInResponse.RefreshToken.ShouldNotBeNullOrEmpty();
+    }
+
+    [Fact]
+    [Priority(13)]
+    public async Task SmtpTransportFailure_ShouldReturnNoContent()
+    {
+        // The verification email is sent by an awaited event handler after the user already exists.
+        // A dropped SMTP connection must surface as a logged delivery failure, not turn the completed
+        // sign-up into a 500 that invites the user to retry into "username taken".
+        app.EmailTransport
+            .SendAsync(
+                Arg.Is<IFluentEmail>(email => email.Data.ToAddresses.Any(
+                    address => address.EmailAddress == TransportFailureEmail)),
+                Arg.Any<CancellationToken?>())
+            .ThrowsAsync(new SmtpException("Failure sending mail.", new IOException("Broken pipe")));
+
+        var request = new SignUpRequest(
+            TransportFailureUsername,
+            ValidPassword,
+            ValidPassword,
+            TransportFailureEmail,
+            ValidFirstName,
+            ValidLastName);
+
+        var httpResponse = await app.Client.PostWithHeadersAsync(
+            RequestUri,
+            request,
+            ct: TestContext.Current.CancellationToken);
+
+        httpResponse.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+
+        await app.EmailTransport.Received(1).SendAsync(
+            Arg.Is<IFluentEmail>(email => email.Data.ToAddresses.Any(
+                address => address.EmailAddress == TransportFailureEmail)),
+            Arg.Any<CancellationToken?>());
     }
 }

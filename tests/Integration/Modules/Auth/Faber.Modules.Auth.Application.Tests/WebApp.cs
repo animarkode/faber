@@ -9,9 +9,13 @@ using Faber.Modules.Communication.PublicApi;
 using Faber.Modules.Identity.Application.Keycloak;
 using Faber.Modules.Identity.Infrastructure.Database;
 using Faber.Modules.Identity.PublicApi;
+using Faber.Modules.Notifications.Application.Email;
 using Faber.Modules.Users.Application;
 using Faber.Modules.Users.PublicApi;
 using FastEndpoints.Testing;
+using FluentEmail.Core;
+using FluentEmail.Core.Interfaces;
+using FluentEmail.Core.Models;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
@@ -41,6 +45,9 @@ public class WebApp : AppFixture<Program>
     private string _vaultAddr = string.Empty;
 
     private IContainer? _vaultContainer;
+
+    /// <summary>The SMTP transport under the real email sender; tests configure failures per recipient.</summary>
+    public ISender EmailTransport { get; } = Substitute.For<ISender>();
 
     private IContainer Vault =>
         _vaultContainer ?? throw new InvalidOperationException("Vault container not initialized");
@@ -145,7 +152,15 @@ public class WebApp : AppFixture<Program>
                 });
 
             services.AddScoped<IUserModuleApi, UserModuleApi>();
-            services.AddScoped<IEmailSender>(_ => Substitute.For<IEmailSender>());
+
+            // The real FluentEmail sender over a substituted SMTP transport: only the mail server is
+            // faked, so a transport failure travels the same path it takes against Mailpit.
+            EmailTransport
+                .SendAsync(Arg.Any<IFluentEmail>(), Arg.Any<CancellationToken?>())
+                .Returns(new SendResponse());
+
+            services.AddSingleton(EmailTransport);
+            services.AddScoped<IEmailSender, FluentEmailSender>();
         });
 
         var keycloakBaseAddress = Keycloak.GetBaseAddress();

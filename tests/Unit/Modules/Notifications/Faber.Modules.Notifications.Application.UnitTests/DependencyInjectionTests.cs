@@ -2,6 +2,8 @@ using Faber.Modules.Communication.PublicApi;
 using Faber.Modules.Documents.PublicApi;
 using Faber.Modules.Notifications.Application.Email;
 using Faber.Modules.Vault.PublicApi;
+using FluentEmail.Core.Interfaces;
+using FluentEmail.Smtp;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
@@ -80,6 +82,21 @@ public class DependencyInjectionTests
         var emailSender = scope.ServiceProvider.GetRequiredService<IEmailSender>();
 
         emailSender.ShouldBeOfType<ThrottledEmailSender>();
+    }
+
+    [Fact]
+    public void AddNotificationsModule_DevelopmentEnvironment_ShouldResolveSmtpTransport()
+    {
+        // ISender reads FluentEmailOptions when resolved rather than from a provider built during
+        // registration; this pins that the configured options still produce the SMTP transport.
+        var services = CreateBaseServices();
+
+        services.AddNotificationsModule(CreateEnvironment("Development"));
+
+        using var provider = services.BuildServiceProvider();
+        using var scope = provider.CreateScope();
+
+        scope.ServiceProvider.GetRequiredService<ISender>().ShouldBeOfType<SmtpSender>();
     }
 
     [Fact]
