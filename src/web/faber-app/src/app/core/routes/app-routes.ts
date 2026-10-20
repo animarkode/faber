@@ -11,5 +11,6 @@ export const APP_ROUTES = {
     forgotPassword: '/auth/forgot-password',
     resetPassword: '/auth/reset-password',
     verifyEmail: '/auth/verify-email',
+    externalCallback: '/auth/external/callback',
   },
 } as const;

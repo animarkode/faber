@@ -64,7 +64,8 @@ var keycloakUser = builder.AddParameter("keycloak-admin")
 var keycloakPass = builder.AddParameter("keycloak-password", secret: true)
     .WithDescription("Password for that Keycloak admin.");
 
-var keycloak = builder.AddContainer("keycloak", "quay.io/keycloak/keycloak", "26.2.5")
+// Built from infra/keycloak/Dockerfile: the stock image plus Faber's own flow steps.
+var keycloak = builder.AddDockerfile("keycloak", keycloakDir)
     .WithHttpEndpoint(port: 8080, targetPort: 8080, name: "keycloak-http")
     .WithHttpEndpoint(port: 9000, targetPort: 9000, name: "keycloak-management")
     .WithHttpHealthCheck(path: "/health/ready", endpointName: "keycloak-management")

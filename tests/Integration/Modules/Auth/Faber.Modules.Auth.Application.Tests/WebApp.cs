@@ -28,7 +28,6 @@ namespace Faber.Modules.Auth.Application.Tests;
 
 public class WebApp : AppFixture<Program>
 {
-    private const string KeycloakImage = "quay.io/keycloak/keycloak:26.2.5";
     private const string KeycloakUsername = "admin";
     private const string KeycloakPassword = "admin";
     private const string KeycloakToken = "token-exchange";
@@ -91,7 +90,7 @@ public class WebApp : AppFixture<Program>
 
         _keycloakContainer = new KeycloakBuilder()
             .WithName($"keycloak-tests-{Guid.NewGuid()}")
-            .WithImage(KeycloakImage)
+            .WithImage(await FaberKeycloakImage.GetAsync())
             .WithNetwork(_network)
             .WithResourceMapping(new FileInfo("realm-export.json"), "/opt/keycloak/data/import/")
             .WithCommand("--import-realm")
@@ -112,6 +111,10 @@ public class WebApp : AppFixture<Program>
         // Before the app boots, so the provider catalog's first (cached) read already sees the stand-in.
         await _keycloakContainer.AddStandInIdentityProviderAsync(
             KeycloakUsername, KeycloakPassword, KeycloakRealm, ExternalSignInTestSupport.StandIn);
+
+        await _keycloakContainer.AddStandInIdentityProviderAliasAsync(
+            KeycloakUsername, KeycloakPassword, KeycloakRealm, ExternalSignInTestSupport.StandIn,
+            ExternalSignInTestSupport.SecondStandInAlias);
 
         _vaultAddr = $"http://{Vault.Hostname}:{Vault.GetMappedPublicPort(8200)}";
         Environment.SetEnvironmentVariable("VAULT_TOKEN", VaultToken);
@@ -134,6 +137,7 @@ public class WebApp : AppFixture<Program>
                                throw new InvalidOperationException("CreateUserAsync returned null");
 
             await IdentityModuleApi.ResetPasswordAsync(userResponse.UserId, password, CancellationToken.None);
+            await IdentityModuleApi.VerifyEmailAsync(request.Email, CancellationToken.None);
         }
     }
 
@@ -177,6 +181,7 @@ public class WebApp : AppFixture<Program>
         builder.UseSetting("ExternalSignIn:Providers:0", "google");
         builder.UseSetting("ExternalSignIn:Providers:1", "github");
         builder.UseSetting("ExternalSignIn:Providers:2", ExternalSignInTestSupport.StandIn.Alias);
+        builder.UseSetting("ExternalSignIn:Providers:3", ExternalSignInTestSupport.SecondStandInAlias);
         builder.UseSetting("ExternalSignIn:CallbackUrl", ExternalSignInTestSupport.CallbackUrl);
         builder.UseSetting("ExternalSignIn:SuccessRedirectUrl", ExternalSignInTestSupport.SuccessUrl);
         builder.UseSetting("ExternalSignIn:FailureRedirectUrl", ExternalSignInTestSupport.FailureUrl);
@@ -185,6 +190,21 @@ public class WebApp : AppFixture<Program>
         builder.UseSetting("FluentEmail:SmtpPort", "1025");
         builder.UseSetting("FluentEmail:FromEmail", "test@test.com");
         builder.UseSetting("FluentEmail:FromName", "Test");
+    }
+
+    /// <summary>Creates one more user in the stand-in provider realm.</summary>
+    public Task AddStandInUserAsync(string username, string password, string? email, bool emailVerified)
+    {
+        return Keycloak.AddStandInUserAsync(
+            KeycloakUsername, KeycloakPassword, ExternalSignInTestSupport.StandIn, username, password, email,
+            emailVerified);
+    }
+
+    /// <summary>Flips the e-mail verification the stand-in provider reports for an existing user.</summary>
+    public Task SetStandInUserEmailVerifiedAsync(string username, bool emailVerified)
+    {
+        return Keycloak.SetStandInUserEmailVerifiedAsync(
+            KeycloakUsername, KeycloakPassword, ExternalSignInTestSupport.StandIn, username, emailVerified);
     }
 
     protected override async ValueTask TearDownAsync()

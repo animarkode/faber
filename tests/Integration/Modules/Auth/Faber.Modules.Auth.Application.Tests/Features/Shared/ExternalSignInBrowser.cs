@@ -53,10 +53,32 @@ public sealed partial class ExternalSignInBrowser : IDisposable
 
     /// <summary>Follows the chain from <paramref name="authorizationUri"/> and returns the callback URL.</summary>
     /// <exception cref="InvalidOperationException">The chain lands anywhere other than the callback URL.</exception>
-    public async Task<Uri> SignInAsync(Uri authorizationUri, CancellationToken cancellationToken)
+    public Task<Uri> SignInAsync(Uri authorizationUri, CancellationToken cancellationToken)
+    {
+        return FollowAsync(
+            authorizationUri,
+            new Dictionary<string, string> { ["username"] = _username, ["password"] = _password },
+            cancellationToken);
+    }
+
+    /// <summary>
+    /// Follows the chain like <see cref="SignInAsync"/>, but presses Cancel on the provider's login form instead
+    /// of signing in, the way a user turns down Google's account chooser. Returns the callback URL.
+    /// </summary>
+    /// <exception cref="InvalidOperationException">The chain lands anywhere other than the callback URL.</exception>
+    public Task<Uri> CancelAtProviderAsync(Uri authorizationUri, CancellationToken cancellationToken)
+    {
+        return FollowAsync(
+            authorizationUri,
+            new Dictionary<string, string> { ["cancel"] = "on" },
+            cancellationToken);
+    }
+
+    private async Task<Uri> FollowAsync(
+        Uri authorizationUri, Dictionary<string, string> providerFormFields, CancellationToken cancellationToken)
     {
         var request = new HttpRequestMessage(HttpMethod.Get, authorizationUri);
-        var signedIn = false;
+        var formSent = false;
 
         for (var hop = 0; hop < MaxHops; hop++)
         {
@@ -82,19 +104,15 @@ public sealed partial class ExternalSignInBrowser : IDisposable
             var body = await response.Content.ReadAsStringAsync(cancellationToken);
             var formAction = response.StatusCode == HttpStatusCode.OK ? LoginFormAction(body) : null;
 
-            if (signedIn || formAction is null || !formAction.Contains($"/realms/{_providerRealm}/", StringComparison.Ordinal))
+            if (formSent || formAction is null || !formAction.Contains($"/realms/{_providerRealm}/", StringComparison.Ordinal))
             {
                 throw Unexpected(requestUri, response.StatusCode, body);
             }
 
-            signedIn = true;
+            formSent = true;
             request = new HttpRequestMessage(HttpMethod.Post, new Uri(requestUri, formAction))
             {
-                Content = new FormUrlEncodedContent(new Dictionary<string, string>
-                {
-                    ["username"] = _username,
-                    ["password"] = _password
-                })
+                Content = new FormUrlEncodedContent(providerFormFields)
             };
         }
 

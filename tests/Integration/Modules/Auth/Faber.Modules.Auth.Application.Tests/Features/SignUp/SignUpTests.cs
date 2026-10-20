@@ -5,8 +5,10 @@ using Faber.Modules.Auth.Application.Features.SignUp;
 using Faber.Testing.Shared.Data;
 using Faber.Testing.Shared.Http;
 using Faber.Modules.Auth.Application.Tests.Features.SignUp.Data;
+using Faber.Modules.Identity.PublicApi;
 using FastEndpoints;
 using FastEndpoints.Testing;
+using Microsoft.Extensions.DependencyInjection;
 using FluentEmail.Core;
 using NSubstitute;
 using NSubstitute.ExceptionExtensions;
@@ -257,6 +259,13 @@ public class SignUpTests(WebApp app) : TestBase
     [ClassData(typeof(FreshSignUpUsersData))]
     public async Task ValidSignUp_UserCanSignInAfterSignUp(SignUpRequest request)
     {
+        // A password account cannot sign in until its e-mail is verified in Faber.
+        using (var scope = app.Services.CreateScope())
+        {
+            await scope.ServiceProvider.GetRequiredService<IIdentityModuleApi>()
+                .VerifyEmailAsync(request.Email, TestContext.Current.CancellationToken);
+        }
+
         var signInRequest = new SignInRequest(request.Username, request.Password);
 
         var (signInHttp, signInResponse) =

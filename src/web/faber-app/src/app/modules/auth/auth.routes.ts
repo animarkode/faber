@@ -1,5 +1,6 @@
 import { Routes } from '@angular/router';
 import { Auth } from './auth';
+import { externalSignInErrorGuard } from './external-sign-in/external-sign-in-error-guard';
 
 export const authRoutes: Routes = [
   {
@@ -9,6 +10,7 @@ export const authRoutes: Routes = [
       { path: '', redirectTo: 'sign-in', pathMatch: 'full' },
       {
         path: 'sign-in',
+        canActivate: [externalSignInErrorGuard],
         loadComponent: () => import('./sign-in/sign-in').then(m => m.SignIn),
       },
       {
@@ -26,6 +28,11 @@ export const authRoutes: Routes = [
       {
         path: 'verify-email',
         loadComponent: () => import('./verify-email/verify-email').then(m => m.VerifyEmail),
+      },
+      {
+        path: 'external/callback',
+        loadComponent: () =>
+          import('./external-sign-in/external-callback/external-callback').then(m => m.ExternalCallback),
       },
     ],
   },
