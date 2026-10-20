@@ -31,13 +31,17 @@ updates:
         # Stay on Angular 21 until the planned framework migration. Major
         # upgrades are deliberately handled with `ng update`, not Dependabot.
         update-types: ["minor", "patch"]
+      # Tiptap packages pin each other to the exact same version, so a single
+      # package bumped alone fails npm ci with ERESOLVE.
+      tiptap:
+        patterns: ["@tiptap/*"]
       # Everything else that is only a build-time concern, batched so the
       # toolchain's transitive churn does not drown the queue.
       dev-dependencies:
         dependency-type: development
         # These belong to the Angular group even when they are declared in
         # devDependencies (for example, @angular/animations and the CLI).
-        exclude-patterns: ["@angular/*", "@angular-devkit/*", "angular-eslint"]
+        exclude-patterns: ["@angular/*", "@angular-devkit/*", "angular-eslint", "@tiptap/*"]
     ignore:
       # Keep receiving compatible 21.x fixes while postponing the Angular 22
       # migration until after the new year.
@@ -46,6 +50,10 @@ updates:
       - dependency-name: "@angular-devkit/*"
         update-types: ["version-update:semver-major"]
       - dependency-name: "angular-eslint"
+        update-types: ["version-update:semver-major"]
+      # @angular/build peers on typescript >=5.9 <6.0; a TypeScript 7 bump
+      # cannot be resolved by npm ci.
+      - dependency-name: "typescript"
         update-types: ["version-update:semver-major"]
       # Angular Build 21.x and 22.x currently declare Vitest ^4.0.8 as their
       # supported peer. Avoid a recurring PR that npm ci cannot resolve.
