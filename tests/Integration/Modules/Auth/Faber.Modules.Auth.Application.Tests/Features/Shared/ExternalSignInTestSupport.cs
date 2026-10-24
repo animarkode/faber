@@ -6,6 +6,7 @@ using Faber.Modules.Users.PublicApi;
 using Faber.Modules.Users.PublicApi.Contracts;
 using Faber.Testing.Shared.Containers;
 using FastEndpoints.Testing;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
 using Shouldly;
 
@@ -147,6 +148,25 @@ public static class ExternalSignInTestSupport
         var callback = await browser.SignInAsync(authorizationUri, ct);
 
         return await GetAsync(app, callback.PathAndQuery, stateCookie);
+    }
+
+    /// <summary>
+    /// Runs the action with LAN mode switched on for the shared app, then switches it back off. Tests in one
+    /// collection run one at a time, so no other test observes the switch.
+    /// </summary>
+    public static async Task WithLanModeAsync(WebApp app, Func<Task> action)
+    {
+        var configuration = app.Services.GetRequiredService<IConfiguration>();
+        configuration[ConfigurationConstants.LanMode] = "true";
+
+        try
+        {
+            await action();
+        }
+        finally
+        {
+            configuration[ConfigurationConstants.LanMode] = null;
+        }
     }
 
     /// <summary>Creates a stand-in provider user with a unique name and returns its credentials.</summary>

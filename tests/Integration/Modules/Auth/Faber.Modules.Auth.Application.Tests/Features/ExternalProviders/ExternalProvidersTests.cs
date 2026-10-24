@@ -23,6 +23,21 @@ public class ExternalProvidersTests(WebApp app) : TestBase
     }
 
     [Fact]
+    public async Task LanMode_ShouldReturnNoProviders()
+    {
+        await ExternalSignInTestSupport.WithLanModeAsync(app, async () =>
+        {
+            using var response = await ExternalSignInTestSupport.GetAsync(app, "/api/v1/auth/external/providers");
+
+            response.StatusCode.ShouldBe(HttpStatusCode.OK);
+            var body = await response.Content.ReadFromJsonAsync<ExternalProvidersResponse>(
+                TestContext.Current.CancellationToken);
+            body.ShouldNotBeNull();
+            body.Providers.ShouldBeEmpty();
+        });
+    }
+
+    [Fact]
     public async Task ProvidersRoute_ShouldNotBeTreatedAsProviderName()
     {
         using var response = await ExternalSignInTestSupport.GetAsync(app, "/api/v1/auth/external/providers");

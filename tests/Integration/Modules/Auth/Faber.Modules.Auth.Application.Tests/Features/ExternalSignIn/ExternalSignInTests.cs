@@ -34,6 +34,20 @@ public class ExternalSignInTests(WebApp app) : TestBase
     }
 
     [Fact]
+    public async Task EnabledProviderInLanMode_ShouldRedirectWithProviderUnavailable()
+    {
+        await ExternalSignInTestSupport.WithLanModeAsync(app, async () =>
+        {
+            using var response = await ExternalSignInTestSupport.GetAsync(app, ExternalSignInTestSupport.StandInRoute);
+
+            response.StatusCode.ShouldBe(HttpStatusCode.Found);
+            response.Headers.Location?.OriginalString.ShouldBe(
+                ExternalSignInTestSupport.FailureLocation(ExternalSignInErrorCodes.ProviderUnavailable));
+            ExternalSignInTestSupport.SetCookies(response).ShouldBeEmpty();
+        });
+    }
+
+    [Fact]
     public async Task EnabledProvider_ShouldRedirectToKeycloakAuthorizationEndpoint()
     {
         var configuration = app.Services.GetRequiredService<IConfiguration>();
