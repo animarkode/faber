@@ -99,6 +99,42 @@ Stop the AppHost and start it again (step 4). The unseal hook reads the key file
 
 The tracked `infra/keycloak/realm-export.json` stores the `faber-api` client secret as the placeholder `<YOUR-CLIENT-SECRET>` — that value is never used. On every start, `Faber.Bootstrap` regenerates the `faber-api` client secret through the Keycloak admin API and writes the result to `secrets/keycloak`, so nothing needs regenerating or copying by hand.
 
+#### Optional: Google and GitHub sign-in
+
+This step is optional. The stack works fully without it, and email and password sign-in needs nothing from it. Social sign-in does not work in LAN mode (`LAN_MODE`): the providers list stays empty there.
+
+The Google and GitHub identity providers ship disabled in `infra/keycloak/realm-export.json`, with the placeholders `<GOOGLE-CLIENT-ID>`, `<GOOGLE-CLIENT-SECRET>`, `<GITHUB-CLIENT-ID>` and `<GITHUB-CLIENT-SECRET>` as credentials. To enable them locally, create an OAuth client at each provider and enter its credentials in your local Keycloak. Never put real credentials in the repository.
+
+1. In Google Cloud Console, open **APIs & Services → Credentials → Create credentials → OAuth client ID** and choose **Web application**. Under **Authorized redirect URIs** add exactly:
+
+```text
+http://localhost:8080/realms/faber/broker/google/endpoint
+```
+
+2. In GitHub, open **Settings → Developer settings → OAuth Apps** and create an OAuth App. Set **Authorization callback URL** to exactly:
+
+```text
+http://localhost:8080/realms/faber/broker/github/endpoint
+```
+
+3. Open the local Keycloak admin console and sign in with the `Parameters:keycloak-admin` credentials from step 3:
+
+```text
+http://localhost:8080/admin/master/console
+```
+
+4. Select the `faber` realm, open **Identity providers**, then open `google`. Set **Client ID** to `<GOOGLE-CLIENT-ID>` and **Client secret** to `<GOOGLE-CLIENT-SECRET>`, turn **Enabled** on, and save. Repeat for `github` with `<GITHUB-CLIENT-ID>` and `<GITHUB-CLIENT-SECRET>`.
+
+The API caches the provider list for 60 seconds. Within a minute, this URL lists the enabled providers, in the shape `{"providers":["google"]}`:
+
+```text
+http://localhost:5020/api/v1/auth/external/providers
+```
+
+Keycloak imports the realm export only when the realm does not exist yet. A realm created before the social sign-in work therefore lacks the configuration this step relies on. Either delete the `faber` realm in the admin console and restart the AppHost, which also deletes its users, or follow the operator guide at [docs/operations/social-sign-in.md](docs/operations/social-sign-in.md).
+
+For a manual end-to-end check of the Google flow, see [docs/qa/external-sign-in-google.md](docs/qa/external-sign-in-google.md).
+
 ### 7. Frontend
 
 The frontend runs separately:
