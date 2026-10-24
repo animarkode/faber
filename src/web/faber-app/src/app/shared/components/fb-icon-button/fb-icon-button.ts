@@ -11,8 +11,11 @@ const iconButtonVariants = cva(
           'rounded-[10px] bg-transparent text-muted-foreground hover:bg-input hover:text-foreground',
         ghost:
           'rounded-[9px] bg-transparent text-muted-foreground/70 hover:bg-muted hover:text-foreground',
+        // Filled with the card colour by default. A container that is itself
+        // bg-card sets --icon-button-surface (fb-auth-card does), or the fill
+        // would vanish into it.
         surface:
-          'rounded-[1.25rem] bg-card text-foreground border-[0.5px] border-line hover:rounded-xl',
+          'rounded-[1.25rem] bg-[var(--icon-button-surface,var(--color-card))] text-foreground border-[0.5px] border-line hover:rounded-xl',
         // Mirrors fb-button's `soft-destructive`: the destructive colours live
         // inside the variant so callers never layer competing `text-*` classes
         // on top of `default`'s `text-muted-foreground` (#406). The hover fill

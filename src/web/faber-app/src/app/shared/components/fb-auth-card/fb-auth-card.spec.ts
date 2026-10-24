@@ -19,4 +19,10 @@ describe('FbAuthCard', () => {
   it('should create', () => {
     expect(component).toBeTruthy();
   });
+
+  it('gives surface icon buttons a muted fill so they stand out from the card', () => {
+    const classes = (fixture.nativeElement as HTMLElement).className;
+
+    expect(classes).toContain('[--icon-button-surface:var(--color-muted)]');
+  });
 });
