@@ -3,6 +3,18 @@
     <div class="flex w-full items-center justify-between">
       <span class="font-serif text-4xl font-bold text-foreground">Sign up</span>
       <div class="flex items-center gap-1.5">
+        @if (choice.canGoBack()) {
+          <button
+            fb-icon-button
+            intent="surface"
+            size="lg"
+            type="button"
+            aria-label="Back to other sign-up options"
+            title="Back to other sign-up options"
+            (click)="choice.showOptions()">
+            <lucide-icon name="arrow-left" [size]="18" [strokeWidth]="2" aria-hidden="true" />
+          </button>
+        }
         <fb-theme-toggle />
         <a fb-icon-button intent="surface" size="lg" routerLink="/" aria-label="Go to home page">
           <lucide-icon name="x" [size]="18" [strokeWidth]="2" aria-hidden="true" />
@@ -14,20 +26,7 @@
     </p>
   </header>
 
-  @if (formShown()) {
-    @if (providersStore.hasKnownProviders()) {
-      <button
-        fb-button
-        variant="ghost"
-        size="sm"
-        type="button"
-        class="-mt-4 mb-4 -ml-3"
-        (click)="showOtherOptions()">
-        <lucide-icon name="arrow-left" [size]="16" [strokeWidth]="2" aria-hidden="true" />
-        Other options
-      </button>
-    }
-
+  @if (choice.formShown()) {
     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="flex flex-col gap-6">
       <fb-input formControlName="userName"        label="Username"         placeholder="LegendaryJohnDoe" autocomplete="username" />
       <fb-input formControlName="firstName"       label="First name"       placeholder="John"             autocomplete="given-name" />
@@ -51,17 +50,17 @@
         }
       </button>
     </form>
-  } @else if (providersStore.settled()) {
+  } @else if (choice.settled()) {
     <div class="flex flex-col gap-3">
       <app-social-sign-in divider="after" />
       <button
         data-email-option
         fb-button
-        variant="outline"
+        variant="primary"
         size="lg"
         type="button"
-        class="w-full"
-        (click)="showEmailForm()">
+        class="w-full font-bold tracking-[0.01em]"
+        (click)="choice.showForm()">
         <lucide-icon name="mail" [size]="20" [strokeWidth]="2" aria-hidden="true" />
         Sign up with email
       </button>

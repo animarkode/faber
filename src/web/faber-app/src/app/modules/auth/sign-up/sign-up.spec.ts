@@ -117,6 +117,8 @@ describe('SignUp email form', () => {
   const form = () => root().querySelector('form');
   const button = (text: string) =>
     Array.from(root().querySelectorAll('button')).find((b) => b.textContent?.trim() === text);
+  const backButton = () =>
+    root().querySelector<HTMLButtonElement>('header button[aria-label="Back to other sign-up options"]');
 
   async function render(store: ReturnType<typeof providersStore>): Promise<void> {
     await TestBed.configureTestingModule({
@@ -139,7 +141,7 @@ describe('SignUp email form', () => {
 
     expect(form()).not.toBeNull();
     expect(button('Sign up with email')).toBeUndefined();
-    expect(button('Other options')).toBeUndefined();
+    expect(backButton()).toBeNull();
   });
 
   it('should show neither the form nor the choice while providers load', async () => {
@@ -155,6 +157,13 @@ describe('SignUp email form', () => {
     expect(form()).toBeNull();
     expect(root().querySelector('app-social-sign-in')).not.toBeNull();
     expect(button('Sign up with email')).toBeDefined();
+    expect(backButton()).toBeNull();
+  });
+
+  it('should style the e-mail button as the primary action', async () => {
+    await render(providersStore(['google']));
+
+    expect(button('Sign up with email')!.className).toContain('before:bg-primary');
   });
 
   it('should replace the providers with the form and focus its first field', async () => {
@@ -166,6 +175,7 @@ describe('SignUp email form', () => {
     expect(form()).not.toBeNull();
     expect(root().querySelector('app-social-sign-in')).toBeNull();
     expect(document.activeElement).toBe(form()!.querySelector('input'));
+    expect(backButton()).not.toBeNull();
   });
 
   it('should return to the providers from the form', async () => {
@@ -173,7 +183,7 @@ describe('SignUp email form', () => {
     button('Sign up with email')!.click();
     await fixture.whenStable();
 
-    button('Other options')!.click();
+    backButton()!.click();
     await fixture.whenStable();
 
     expect(form()).toBeNull();

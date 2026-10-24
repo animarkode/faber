@@ -13,8 +13,17 @@ import { ExternalProvidersStore } from '../external-sign-in/external-providers-s
 import { ExternalSignInErrorStore } from '../external-sign-in/external-sign-in-error-store';
 import { expectNoAxeViolations } from '../../../shared/testing/axe';
 
+/** A settled providers store reporting the given aliases. */
+function providersStore(providers: string[], settled = true) {
+  return {
+    providers: signal(providers),
+    settled: signal(settled),
+    hasKnownProviders: signal(providers.length > 0),
+  };
+}
+
 /** Keeps the page's social buttons from issuing a providers request. */
-const noExternalProviders = { provide: ExternalProvidersStore, useValue: { providers: signal<string[]>([]) } };
+const noExternalProviders = { provide: ExternalProvidersStore, useValue: providersStore([]) };
 
 describe('SignIn', () => {
   let component: SignIn;
@@ -48,14 +57,6 @@ describe('SignIn', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
-  });
-
-  it('should place the social sign-in below the form', () => {
-    const root = fixture.nativeElement as HTMLElement;
-    const form = root.querySelector('form')!;
-    const social = root.querySelector('app-social-sign-in')!;
-
-    expect(form.compareDocumentPosition(social) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('should have loading false initially', () => {
@@ -150,4 +151,93 @@ describe('SignIn external sign-in errors', () => {
 
     await expectNoAxeViolations(fixture);
   }, 20000);
+});
+
+describe('SignIn email form', () => {
+  let fixture: ComponentFixture<SignIn>;
+
+  const root = () => fixture.nativeElement as HTMLElement;
+  const form = () => root().querySelector('form');
+  const button = (text: string) =>
+    Array.from(root().querySelectorAll('button')).find((b) => b.textContent?.trim() === text);
+  const backButton = () =>
+    root().querySelector<HTMLButtonElement>('header button[aria-label="Back to other sign-in options"]');
+  const createAccountLink = () =>
+    Array.from(root().querySelectorAll('a')).find((a) => a.textContent?.trim() === 'Create account');
+
+  async function render(store: ReturnType<typeof providersStore>): Promise<void> {
+    await TestBed.configureTestingModule({
+      imports: [SignIn],
+      providers: [
+        provideRouter([]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: AuthClient, useValue: { signIn: vi.fn() } },
+        { provide: ExternalProvidersStore, useValue: store },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(SignIn);
+    await fixture.whenStable();
+  }
+
+  it('should show the form straight away when no provider is available', async () => {
+    await render(providersStore([]));
+
+    expect(form()).not.toBeNull();
+    expect(button('Sign in with email')).toBeUndefined();
+    expect(backButton()).toBeNull();
+  });
+
+  it('should show neither the form nor the choice while providers load', async () => {
+    await render(providersStore([], false));
+
+    expect(form()).toBeNull();
+    expect(button('Sign in with email')).toBeUndefined();
+  });
+
+  it('should offer providers and a primary e-mail button instead of the form', async () => {
+    await render(providersStore(['google']));
+
+    expect(form()).toBeNull();
+    expect(root().querySelector('app-social-sign-in')).not.toBeNull();
+    expect(button('Sign in with email')!.className).toContain('before:bg-primary');
+    expect(backButton()).toBeNull();
+  });
+
+  it('should keep the create-account link reachable from the choice', async () => {
+    await render(providersStore(['google']));
+
+    expect(createAccountLink()).toBeDefined();
+  });
+
+  it('should replace the providers with the form and focus its first field', async () => {
+    await render(providersStore(['google']));
+
+    button('Sign in with email')!.click();
+    await fixture.whenStable();
+
+    expect(form()).not.toBeNull();
+    expect(root().querySelector('app-social-sign-in')).toBeNull();
+    expect(document.activeElement).toBe(form()!.querySelector('input'));
+    expect(backButton()).not.toBeNull();
+  });
+
+  it('should return to the providers from the header back button', async () => {
+    await render(providersStore(['google']));
+    button('Sign in with email')!.click();
+    await fixture.whenStable();
+
+    backButton()!.click();
+    await fixture.whenStable();
+
+    expect(form()).toBeNull();
+    expect(document.activeElement).toBe(button('Sign in with email'));
+  });
+
+  it('should have no AXE violations on the provider choice', { timeout: 20000 }, async () => {
+    await render(providersStore(['google', 'github']));
+
+    await expectNoAxeViolations(fixture);
+  });
 });
