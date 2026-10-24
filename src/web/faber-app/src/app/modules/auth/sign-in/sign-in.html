@@ -14,8 +14,6 @@
     </p>
   </header>
 
-  <app-social-sign-in />
-
   <form [formGroup]="form" (ngSubmit)="onSubmit()" class="flex flex-col gap-6">
     <fb-input formControlName="userName" label="Username"
               placeholder="JohnDoe" autocomplete="username" />
@@ -49,6 +47,8 @@
       }
     </button>
   </form>
+
+  <app-social-sign-in />
 </fb-auth-card>
 
 <fb-toast

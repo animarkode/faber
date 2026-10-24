@@ -50,6 +50,14 @@ describe('SignIn', () => {
     expect(component).toBeTruthy();
   });
 
+  it('should place the social sign-in below the form', () => {
+    const root = fixture.nativeElement as HTMLElement;
+    const form = root.querySelector('form')!;
+    const social = root.querySelector('app-social-sign-in')!;
+
+    expect(form.compareDocumentPosition(social) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it('should have loading false initially', () => {
     expect(component.loading()).toBe(false);
   });

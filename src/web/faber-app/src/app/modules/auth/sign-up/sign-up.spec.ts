@@ -54,6 +54,14 @@ describe('SignUp', () => {
     expect(component).toBeTruthy();
   });
 
+  it('should place the social sign-in below the form', () => {
+    const root = fixture.nativeElement as HTMLElement;
+    const form = root.querySelector('form')!;
+    const social = root.querySelector('app-social-sign-in')!;
+
+    expect(form.compareDocumentPosition(social) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+  });
+
   it('should not call signUp when form is invalid', () => {
     component.onSubmit();
     expect(mockAuthClient.signUp).not.toHaveBeenCalled();

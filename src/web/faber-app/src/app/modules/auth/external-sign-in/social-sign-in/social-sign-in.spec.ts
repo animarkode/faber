@@ -71,6 +71,13 @@ describe('SocialSignIn', () => {
     ]);
   });
 
+  it('should put the "or" divider above the provider buttons', async () => {
+    await render(['google']);
+
+    const block = root().querySelector('div')!;
+    expect(block.firstElementChild?.textContent?.trim()).toBe('or');
+  });
+
   it('should ignore unknown provider aliases', async () => {
     await render(['gitlab', 'google']);
 
