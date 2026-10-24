@@ -2,6 +2,7 @@ import { computed, Injectable } from '@angular/core';
 import { httpResource } from '@angular/common/http';
 import { API_ROUTES } from '../../../core/routes/api-routes';
 import { ExternalProvidersResponse } from './external-providers-response';
+import { isKnownProvider } from './social-providers';
 
 /**
  * The provider aliases the API offers, loaded once per app session so that
@@ -20,4 +21,13 @@ export class ExternalProvidersStore {
   readonly providers = computed<string[]>(() =>
     this.providersResource.status() === 'resolved' ? (this.providersResource.value()?.providers ?? []) : [],
   );
+
+  /** True once the request has finished, whether it succeeded or failed. */
+  readonly settled = computed(() => {
+    const status = this.providersResource.status();
+    return status === 'resolved' || status === 'error';
+  });
+
+  /** True when at least one reported alias has a button in the catalog. */
+  readonly hasKnownProviders = computed(() => this.providers().some(isKnownProvider));
 }

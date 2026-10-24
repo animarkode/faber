@@ -14,31 +14,59 @@
     </p>
   </header>
 
-  <form [formGroup]="form" (ngSubmit)="onSubmit()" class="flex flex-col gap-6">
-    <fb-input formControlName="userName"        label="Username"         placeholder="LegendaryJohnDoe" autocomplete="username" />
-    <fb-input formControlName="firstName"       label="First name"       placeholder="John"             autocomplete="given-name" />
-    <fb-input formControlName="lastName"        label="Last name"        placeholder="Doe"              autocomplete="family-name" />
-    <fb-input formControlName="email"           label="Email address"    placeholder="john@example.com" autocomplete="email" type="email" />
-    <fb-input formControlName="password"        label="Password"         placeholder="••••••••" autocomplete="new-password"  type="password" [showToggle]="true" />
-    <fb-input formControlName="confirmPassword" label="Confirm password" placeholder="••••••••" autocomplete="new-password"  type="password" [showToggle]="true" />
+  @if (formShown()) {
+    @if (providersStore.hasKnownProviders()) {
+      <button
+        fb-button
+        variant="ghost"
+        size="sm"
+        type="button"
+        class="-mt-4 mb-4 -ml-3"
+        (click)="showOtherOptions()">
+        <lucide-icon name="arrow-left" [size]="16" [strokeWidth]="2" aria-hidden="true" />
+        Other options
+      </button>
+    }
 
-    <button
-      fb-button
-      variant="primary"
-      size="lg"
-      type="submit"
-      [disabled]="loading()"
-      class="w-full font-bold tracking-[0.01em]">
-      @if (loading()) {
-        <span class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-e-transparent"
-              role="status" aria-label="Loading"></span>
-      } @else {
-        Sign up
-      }
-    </button>
-  </form>
+    <form [formGroup]="form" (ngSubmit)="onSubmit()" class="flex flex-col gap-6">
+      <fb-input formControlName="userName"        label="Username"         placeholder="LegendaryJohnDoe" autocomplete="username" />
+      <fb-input formControlName="firstName"       label="First name"       placeholder="John"             autocomplete="given-name" />
+      <fb-input formControlName="lastName"        label="Last name"        placeholder="Doe"              autocomplete="family-name" />
+      <fb-input formControlName="email"           label="Email address"    placeholder="john@example.com" autocomplete="email" type="email" />
+      <fb-input formControlName="password"        label="Password"         placeholder="••••••••" autocomplete="new-password"  type="password" [showToggle]="true" />
+      <fb-input formControlName="confirmPassword" label="Confirm password" placeholder="••••••••" autocomplete="new-password"  type="password" [showToggle]="true" />
 
-  <app-social-sign-in />
+      <button
+        fb-button
+        variant="primary"
+        size="lg"
+        type="submit"
+        [disabled]="loading()"
+        class="w-full font-bold tracking-[0.01em]">
+        @if (loading()) {
+          <span class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-e-transparent"
+                role="status" aria-label="Loading"></span>
+        } @else {
+          Sign up
+        }
+      </button>
+    </form>
+  } @else if (providersStore.settled()) {
+    <div class="flex flex-col gap-3">
+      <app-social-sign-in divider="after" />
+      <button
+        data-email-option
+        fb-button
+        variant="outline"
+        size="lg"
+        type="button"
+        class="w-full"
+        (click)="showEmailForm()">
+        <lucide-icon name="mail" [size]="20" [strokeWidth]="2" aria-hidden="true" />
+        Sign up with email
+      </button>
+    </div>
+  }
 </fb-auth-card>
 
 <fb-toast

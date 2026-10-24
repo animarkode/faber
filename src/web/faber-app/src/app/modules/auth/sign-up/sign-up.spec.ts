@@ -10,6 +10,16 @@ import { SignUp } from './sign-up';
 import { AuthClient } from '../auth-client';
 import { ExternalProvidersStore } from '../external-sign-in/external-providers-store';
 import { APP_ROUTES } from '../../../core/routes/app-routes';
+import { expectNoAxeViolations } from '../../../shared/testing/axe';
+
+/** A settled providers store reporting the given aliases. */
+function providersStore(providers: string[], settled = true) {
+  return {
+    providers: signal(providers),
+    settled: signal(settled),
+    hasKnownProviders: signal(providers.length > 0),
+  };
+}
 
 describe('SignUp', () => {
   let component: SignUp;
@@ -39,7 +49,7 @@ describe('SignUp', () => {
         provideHttpClient(),
         provideHttpClientTesting(),
         { provide: AuthClient, useValue: mockAuthClient },
-        { provide: ExternalProvidersStore, useValue: { providers: signal<string[]>([]) } },
+        { provide: ExternalProvidersStore, useValue: providersStore([]) },
       ],
     }).compileComponents();
 
@@ -52,14 +62,6 @@ describe('SignUp', () => {
 
   it('should create', () => {
     expect(component).toBeTruthy();
-  });
-
-  it('should place the social sign-in below the form', () => {
-    const root = fixture.nativeElement as HTMLElement;
-    const form = root.querySelector('form')!;
-    const social = root.querySelector('app-social-sign-in')!;
-
-    expect(form.compareDocumentPosition(social) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
   it('should not call signUp when form is invalid', () => {
@@ -105,5 +107,82 @@ describe('SignUp', () => {
     expect(component.form.controls.email.touched).toBe(true);
     expect(component.form.controls.password.touched).toBe(true);
     expect(component.form.controls.confirmPassword.touched).toBe(true);
+  });
+});
+
+describe('SignUp email form', () => {
+  let fixture: ComponentFixture<SignUp>;
+
+  const root = () => fixture.nativeElement as HTMLElement;
+  const form = () => root().querySelector('form');
+  const button = (text: string) =>
+    Array.from(root().querySelectorAll('button')).find((b) => b.textContent?.trim() === text);
+
+  async function render(store: ReturnType<typeof providersStore>): Promise<void> {
+    await TestBed.configureTestingModule({
+      imports: [SignUp],
+      providers: [
+        provideRouter([]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: AuthClient, useValue: { signUp: vi.fn() } },
+        { provide: ExternalProvidersStore, useValue: store },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(SignUp);
+    await fixture.whenStable();
+  }
+
+  it('should show the form straight away when no provider is available', async () => {
+    await render(providersStore([]));
+
+    expect(form()).not.toBeNull();
+    expect(button('Sign up with email')).toBeUndefined();
+    expect(button('Other options')).toBeUndefined();
+  });
+
+  it('should show neither the form nor the choice while providers load', async () => {
+    await render(providersStore([], false));
+
+    expect(form()).toBeNull();
+    expect(button('Sign up with email')).toBeUndefined();
+  });
+
+  it('should offer providers and an e-mail button instead of the form', async () => {
+    await render(providersStore(['google']));
+
+    expect(form()).toBeNull();
+    expect(root().querySelector('app-social-sign-in')).not.toBeNull();
+    expect(button('Sign up with email')).toBeDefined();
+  });
+
+  it('should replace the providers with the form and focus its first field', async () => {
+    await render(providersStore(['google']));
+
+    button('Sign up with email')!.click();
+    await fixture.whenStable();
+
+    expect(form()).not.toBeNull();
+    expect(root().querySelector('app-social-sign-in')).toBeNull();
+    expect(document.activeElement).toBe(form()!.querySelector('input'));
+  });
+
+  it('should return to the providers from the form', async () => {
+    await render(providersStore(['google']));
+    button('Sign up with email')!.click();
+    await fixture.whenStable();
+
+    button('Other options')!.click();
+    await fixture.whenStable();
+
+    expect(form()).toBeNull();
+    expect(document.activeElement).toBe(button('Sign up with email'));
+  });
+
+  it('should have no AXE violations on the provider choice', { timeout: 20000 }, async () => {
+    await render(providersStore(['google', 'github']));
+
+    await expectNoAxeViolations(fixture);
   });
 });

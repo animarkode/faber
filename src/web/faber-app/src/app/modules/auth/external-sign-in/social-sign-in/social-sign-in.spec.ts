@@ -78,6 +78,17 @@ describe('SocialSignIn', () => {
     expect(block.firstElementChild?.textContent?.trim()).toBe('or');
   });
 
+  it('should put the "or" divider below the buttons when asked', async () => {
+    fixture = TestBed.createComponent(SocialSignIn);
+    fixture.componentRef.setInput('divider', 'after');
+    fixture.detectChanges();
+    http.expectOne(API_ROUTES.auth.external.providers).flush({ providers: ['google'] });
+    await fixture.whenStable();
+
+    const block = root().querySelector('div')!;
+    expect(block.lastElementChild?.textContent?.trim()).toBe('or');
+  });
+
   it('should ignore unknown provider aliases', async () => {
     await render(['gitlab', 'google']);
 
