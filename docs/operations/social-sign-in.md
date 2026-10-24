@@ -208,6 +208,22 @@ ExternalSignIn__SuccessRedirectUrl=https://<APP-HOST>/auth/external/callback
 ExternalSignIn__FailureRedirectUrl=https://<APP-HOST>/auth/sign-in
 ```
 
+The API checks every token's `iss` against `Keycloak__Issuer`. Unless Keycloak's hostname is pinned, Keycloak stamps `iss` from the host a token is requested through. The API requests tokens, for password sign-in and for the social code exchange alike, through `Keycloak__BaseUrl`. Both must therefore name the same public Keycloak host:
+
+```text
+Keycloak__BaseUrl=https://<KEYCLOAK-HOST>
+```
+
+```text
+Keycloak__Issuer=https://<KEYCLOAK-HOST>/realms/faber
+```
+
+If the API has to reach Keycloak by an internal address instead, pin Keycloak's public hostname as a full URL on the Keycloak container, so that `iss` stays public whichever address the token is requested through:
+
+```text
+KC_HOSTNAME=https://<KEYCLOAK-HOST>
+```
+
 The Development values in `appsettings.Development.json` point at `localhost` and are for local runs only. `ExternalSignIn:Providers` (`google`, `github`) and `ExternalSignIn:StateLifetimeSeconds` (`300`, the time a user has to finish a sign-in) rarely need changing. Restart the API after changing any of them.
 
 ## 5. Verify
@@ -234,6 +250,7 @@ Final checklist, for both providers unless stated:
 - [ ] `account`, `account-console` and `security-admin-console` are disabled in realm `faber`.
 - [ ] `provider redirect only` has *Cookie*, *Identity Provider Redirector* and *Return to application*, all **Alternative**, and is the **Browser Flow** of `faber-api`.
 - [ ] The three `ExternalSignIn__*` variables carry the real hosts.
+- [ ] `Keycloak__BaseUrl` and `Keycloak__Issuer` name the same public Keycloak host, or Keycloak runs with `KC_HOSTNAME`.
 - [ ] `https://<API-HOST>/api/v1/auth/external/providers` lists the providers.
 - [ ] A sign-in with a test account lands signed in at the web app, and cancelling at the provider lands on the sign-in page with `?error=provider_denied`, with no Keycloak page in between.
 
