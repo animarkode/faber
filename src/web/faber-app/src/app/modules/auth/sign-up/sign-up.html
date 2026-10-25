@@ -1,7 +1,18 @@
 <fb-auth-card aria-label="Sign up">
-  <h1 class="mb-8 text-center font-serif text-4xl font-bold text-foreground">Sign up</h1>
+  <!-- Focusable from script only, so focus can land here when the form is replaced. -->
+  <h1 #heading tabindex="-1" class="mb-8 text-center font-serif text-4xl font-bold text-foreground outline-none">{{ title() }}</h1>
 
-  @if (choice.formShown()) {
+  @if (registered()) {
+    <button
+      fb-button
+      variant="primary"
+      size="lg"
+      type="button"
+      (click)="continueToSignIn()"
+      class="w-full font-bold tracking-[0.01em]">
+      Continue
+    </button>
+  } @else if (choice.formShown()) {
     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="flex flex-col gap-6">
       <fb-input formControlName="userName"        label="Username"         placeholder="LegendaryJohnDoe" autocomplete="username" />
       <fb-input formControlName="firstName"       label="First name"       placeholder="John"             autocomplete="given-name" />
@@ -39,7 +50,7 @@
     </button>
   }
 
-  @if (choice.firstView()) {
+  @if (choice.firstView() && !registered()) {
     <div class="mt-8 flex flex-col items-center gap-2.5">
       <p class="m-0 text-sm text-muted-foreground">Already have an account?</p>
       <a fb-button variant="menu" size="lg" class="w-full" [routerLink]="APP_ROUTES.auth.signIn">Sign in</a>

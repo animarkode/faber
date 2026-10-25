@@ -69,13 +69,51 @@ describe('SignUp', () => {
     expect(mockAuthClient.signUp).not.toHaveBeenCalled();
   });
 
-  it('should navigate to sign-in on successful registration', () => {
+  it('should stay on the page after registering, until Continue', () => {
     mockAuthClient.signUp.mockReturnValue(of({}));
 
     component.form.setValue(validForm);
     component.onSubmit();
 
-    expect(router.navigate).toHaveBeenCalledWith([APP_ROUTES.auth.signIn]);
+    expect(component.registered()).toBe(true);
+    expect(router.navigate).not.toHaveBeenCalled();
+  });
+
+  describe('after registering', () => {
+    const root = () => fixture.nativeElement as HTMLElement;
+
+    beforeEach(async () => {
+      mockAuthClient.signUp.mockReturnValue(of({}));
+      component.form.setValue(validForm);
+      component.onSubmit();
+      await fixture.whenStable();
+    });
+
+    it('should replace the form with a Check your email title and a Continue button only', () => {
+      expect(root().querySelector('form')).toBeNull();
+      expect(root().querySelector('h1')?.textContent?.trim()).toBe('Check your email');
+      expect(root().querySelector('p')).toBeNull();
+      expect(root().querySelectorAll('a').length).toBe(0);
+
+      const buttons = root().querySelectorAll('button');
+      expect(buttons.length).toBe(1);
+      expect(buttons[0].textContent?.trim()).toBe('Continue');
+      expect(buttons[0].className).toContain('before:bg-primary');
+    });
+
+    it('should move focus to the new title', () => {
+      expect(document.activeElement).toBe(root().querySelector('h1'));
+    });
+
+    it('should go to sign-in on Continue', () => {
+      root().querySelector('button')!.click();
+
+      expect(router.navigate).toHaveBeenCalledWith([APP_ROUTES.auth.signIn]);
+    });
+
+    it('should have no AXE violations', { timeout: 20000 }, async () => {
+      await expectNoAxeViolations(fixture);
+    });
   });
 
   it('should set error messages on registration error', () => {
