@@ -72,8 +72,9 @@ describe('VerifyEmail', () => {
     fixture.detectChanges();
     const root = fixture.nativeElement as HTMLElement;
 
-    const pill = root.querySelector('span.text-success-text')!;
-    expect(pill.className).toContain('bg-success-soft');
+    // White on the solid success fill: the pair contrast.spec keeps at AA.
+    const pill = root.querySelector('span.text-success-foreground')!;
+    expect(pill.className).toContain('bg-success-solid');
     expect(pill.className).not.toMatch(/bg-success\/\d/);
     expect(root.querySelector('p')).toBeNull();
 
@@ -93,9 +94,10 @@ describe('VerifyEmail', () => {
     // White on the solid destructive fill: the pair contrast.spec keeps at AA.
     const pill = root.querySelector('span.text-destructive-foreground')!;
     expect(pill.className).toContain('bg-destructive');
-    expect(pill.className).not.toMatch(/bg-destructive[\/-]/);
+    expect(pill.className).not.toMatch(/bg-destructive[/-]/);
     expect(root.querySelector('p')).toBeNull();
     expect(root.textContent).not.toContain('The link may have expired');
+    expect(root.querySelector('button')?.textContent?.trim()).toBe('Continue');
   });
 
   it('should keep the Verifying pill text AA-safe on the dark card fill', () => {

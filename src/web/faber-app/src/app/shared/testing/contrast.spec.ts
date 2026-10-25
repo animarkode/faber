@@ -178,16 +178,16 @@ describe('destructive button fill tokens (#370)', () => {
   });
 });
 
-describe('success soft fill (verify-email pill)', () => {
+describe('solid success fill (verify-email pill)', () => {
   describe.each(MODES)('$name mode', ({ tokens }) => {
-    it('success-text meets AA on success-soft', () => {
+    it('success-foreground meets AA on success-solid', () => {
       expect(
-        contrastRatio(color(tokens, '--color-success-text'), color(tokens, '--color-success-soft')),
+        contrastRatio(color(tokens, '--color-success-foreground'), color(tokens, '--color-success-solid')),
       ).toBeGreaterThanOrEqual(AA_NORMAL);
     });
 
-    it('success-soft is opaque, so the page background cannot show through', () => {
-      expect(tokens['--color-success-soft']).not.toMatch(/\//);
+    it('success-solid is opaque, so the page background cannot show through', () => {
+      expect(tokens['--color-success-solid']).not.toMatch(/\//);
     });
   });
 });
