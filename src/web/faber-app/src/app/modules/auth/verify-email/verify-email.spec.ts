@@ -65,12 +65,12 @@ describe('VerifyEmail', () => {
     expect(router.navigate).toHaveBeenCalledWith([APP_ROUTES.auth.signIn]);
   });
 
-  it('should keep the Verifying pill text AA-safe on the lighter dark muted fill', () => {
+  it('should keep the Verifying pill text AA-safe on the dark card fill', () => {
     mockAuthClient.verifyEmail.mockReturnValue(new Subject());
 
     const { fixture } = setup({ key: 'valid-key' });
 
-    const pill = fixture.nativeElement.querySelector('span.bg-muted');
+    const pill = fixture.nativeElement.querySelector('span.bg-card');
     expect(pill).toBeTruthy();
     expect(pill.className).toContain('dark:text-foreground');
   });

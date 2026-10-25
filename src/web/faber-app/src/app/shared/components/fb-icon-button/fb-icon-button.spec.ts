@@ -37,8 +37,7 @@ describe('FbIconButton', () => {
     it('uses the elevated card surface treatment', () => {
       const surfaceClasses = classes();
 
-      // A container may override the fill (fb-auth-card does); bg-card otherwise.
-      expect(surfaceClasses).toContain('bg-[var(--icon-button-surface,var(--color-card))]');
+      expect(surfaceClasses).toContain('bg-card');
       expect(surfaceClasses).toContain('text-foreground');
       expect(surfaceClasses).toContain('border-[0.5px]');
       expect(surfaceClasses).toContain('border-line');

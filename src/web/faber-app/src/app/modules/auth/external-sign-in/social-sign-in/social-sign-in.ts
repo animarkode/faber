@@ -16,7 +16,7 @@ interface SocialProviderLink {
 
 const GOOGLE_CLASSES =
   'border-[#747775] bg-white text-[#1F1F1F] dark:border-[#8E918F] dark:bg-[#131314] dark:text-[#E3E3E3]';
-const NEUTRAL_CLASSES = 'border-line bg-background text-foreground';
+const NEUTRAL_CLASSES = 'border-line bg-card text-foreground';
 
 @Component({
   selector: 'app-social-sign-in',

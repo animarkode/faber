@@ -20,9 +20,15 @@ describe('FbAuthCard', () => {
     expect(component).toBeTruthy();
   });
 
-  it('gives surface icon buttons a muted fill so they stand out from the card', () => {
+  it('has no card fill of its own', () => {
     const classes = (fixture.nativeElement as HTMLElement).className;
 
-    expect(classes).toContain('[--icon-button-surface:var(--color-muted)]');
+    expect(classes).not.toContain('bg-card');
+  });
+
+  it('fills its fields with the card colour so they stand out from the page', () => {
+    const classes = (fixture.nativeElement as HTMLElement).className;
+
+    expect(classes).toContain('[--color-input:var(--color-card)]');
   });
 });
