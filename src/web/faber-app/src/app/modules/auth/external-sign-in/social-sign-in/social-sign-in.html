@@ -7,7 +7,7 @@
     @for (link of links(); track link.id) {
       <a
         [href]="link.href"
-        class="inline-flex h-12 w-full items-center justify-center gap-3 rounded-full border border-line bg-card px-6 text-foreground text-base font-medium no-underline transition-colors hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+        class="inline-flex h-12 w-full items-center justify-center gap-2.5 rounded-full border border-[#747775] bg-white px-3 font-provider text-sm font-medium text-[#1F1F1F] dark:border-[#8E918F] dark:bg-[#131314] dark:text-[#E3E3E3] no-underline transition-colors hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
         @if (link.iconDark) {
           <img [ngSrc]="link.icon" width="20" height="20" alt="" class="dark:hidden" />
           <img [ngSrc]="link.iconDark" width="20" height="20" alt="" class="hidden dark:inline-block" />

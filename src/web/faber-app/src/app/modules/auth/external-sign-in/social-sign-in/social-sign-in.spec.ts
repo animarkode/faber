@@ -71,13 +71,18 @@ describe('SocialSignIn', () => {
     ]);
   });
 
-  it('should give every provider the same neutral surface', async () => {
+  it("should style every provider with Google's approved light and dark themes", async () => {
     await render(['google', 'github']);
 
     const [google, github] = links();
     expect(google.className).toBe(github.className);
-    expect(google.className).toContain('bg-card');
-    expect(google.className).toContain('border-line');
+    for (const token of [
+      'bg-white', 'border-[#747775]', 'text-[#1F1F1F]',
+      'dark:bg-[#131314]', 'dark:border-[#8E918F]', 'dark:text-[#E3E3E3]',
+      'font-provider', 'text-sm', 'font-medium',
+    ]) {
+      expect(google.className).toContain(token);
+    }
   });
 
   it('should put the "or" divider above the provider buttons', async () => {
