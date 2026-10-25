@@ -24,6 +24,20 @@ import { SocialSignIn } from '../external-sign-in/social-sign-in/social-sign-in'
 import { EmailFormChoice } from '../shared/email-form-choice';
 import { FbToast } from '../../../shared/components/fb-toast/fb-toast';
 
+/**
+ * The API's validation messages, which it groups by field:
+ * `{ "errors": { "username": ["Username already exists"] } }`.
+ */
+function validationMessages(err: HttpErrorResponse): string[] {
+  const errors: unknown = err.error?.errors;
+  if (!errors || typeof errors !== 'object') {
+    return [];
+  }
+  return Object.values(errors)
+    .flat()
+    .filter((message): message is string => typeof message === 'string');
+}
+
 @Component({
   selector: 'app-sign-up',
   imports: [ReactiveFormsModule, RouterLink, FbInput, FbAuthCard, FbButton, FbToast, LucideAngularModule, SocialSignIn],
@@ -84,8 +98,7 @@ export class SignUp {
         next: () => this.showConfirmation(),
         error: (err: HttpErrorResponse) => {
           this.invalidRegister.set(true);
-          const messages = err.error?.errors?.map((e: { errorMessage: string }) => e.errorMessage) ?? [];
-          this.errors.set(messages);
+          this.errors.set(validationMessages(err));
         },
       });
   }

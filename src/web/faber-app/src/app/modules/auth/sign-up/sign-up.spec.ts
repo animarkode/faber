@@ -117,8 +117,13 @@ describe('SignUp', () => {
   });
 
   it('should set error messages on registration error', () => {
+    // The shape FastEndpoints returns: messages grouped by field.
     const errorResponse = new HttpErrorResponse({
-      error: { errors: [{ errorMessage: 'Username taken' }, { errorMessage: 'Email exists' }] },
+      error: {
+        statusCode: 400,
+        message: 'One or more errors occurred!',
+        errors: { username: ['Username already exists'], email: ['Email already exists'] },
+      },
       status: 400,
     });
     mockAuthClient.signUp.mockReturnValue(throwError(() => errorResponse));
@@ -127,7 +132,18 @@ describe('SignUp', () => {
     component.onSubmit();
 
     expect(component.invalidRegister()).toBe(true);
-    expect(component.errors()).toEqual(['Username taken', 'Email exists']);
+    expect(component.errors()).toEqual(['Username already exists', 'Email already exists']);
+    expect(component.errorMessage()).toBe('Username already exists, Email already exists');
+  });
+
+  it('should fall back to a generic message when the error carries no field messages', () => {
+    mockAuthClient.signUp.mockReturnValue(throwError(() => new HttpErrorResponse({ status: 429 })));
+
+    component.form.setValue(validForm);
+    component.onSubmit();
+
+    expect(component.errors()).toEqual([]);
+    expect(component.errorMessage()).toBe('Sign-up failed. Try again.');
   });
 
   it('should detect password mismatch on confirmPassword control', () => {
