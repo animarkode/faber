@@ -32,17 +32,18 @@ describe('Auth', () => {
     expect(brand?.getAttribute('href')).toBe('/');
   });
 
-  it('should keep the theme toggle in the header on wider screens only', () => {
-    const wrapper = root().querySelector('header fb-theme-toggle')?.parentElement;
-
-    expect(wrapper?.className).toContain('max-sm:hidden');
+  it('should keep a single theme toggle, in the header', () => {
+    expect(root().querySelectorAll('fb-theme-toggle').length).toBe(1);
+    expect(root().querySelector('header fb-theme-toggle')).not.toBeNull();
   });
 
-  it('should move the theme toggle below the form on a phone', () => {
-    const footer = root().querySelector('footer');
+  it('should float the header so the content centres on the full height', () => {
+    const header = root().querySelector('header');
+    const main = root().querySelector('main');
 
-    expect(footer?.querySelector('fb-theme-toggle')).not.toBeNull();
-    expect(footer?.className).toContain('sm:hidden');
+    expect(header?.className).toContain('absolute');
+    expect(main?.className).toContain('min-h-full');
+    expect(main?.className).toContain('items-center');
   });
 
   it('should have no AXE violations', { timeout: 20000 }, async () => {

@@ -9,7 +9,7 @@ import { ChangeDetectionStrategy, Component } from '@angular/core';
     class:
       // No card fill: the form sits on the page background, so fields take
       // the card colour to stand out from it.
-      'relative block w-[min(100%,26rem)] [--color-input:var(--color-card)] p-[clamp(1.25rem,3vw,1.5rem)] max-sm:w-full max-sm:px-4 max-sm:pt-6 max-sm:pb-0',
+      'relative block w-[min(100%,26rem)] [--color-input:var(--color-card)] p-[clamp(1.25rem,3vw,1.5rem)] max-sm:w-full max-sm:px-4',
   },
 })
 export class FbAuthCard {}
