@@ -83,6 +83,20 @@ describe('VerifyEmail', () => {
     expect(router.navigate).toHaveBeenCalledWith([APP_ROUTES.auth.signIn]);
   });
 
+  it('should show an opaque not-verified pill without the problem description', () => {
+    mockAuthClient.verifyEmail.mockReturnValue(throwError(() => new Error('server error')));
+
+    const { fixture } = setup({ key: 'expired-key' });
+    fixture.detectChanges();
+    const root = fixture.nativeElement as HTMLElement;
+
+    const pill = root.querySelector('span.text-destructive-text')!;
+    expect(pill.className).toContain('bg-destructive-soft');
+    expect(pill.className).not.toMatch(/bg-destructive\/\d/);
+    expect(root.querySelector('p')).toBeNull();
+    expect(root.textContent).not.toContain('The link may have expired');
+  });
+
   it('should keep the Verifying pill text AA-safe on the dark card fill', () => {
     mockAuthClient.verifyEmail.mockReturnValue(new Subject());
 

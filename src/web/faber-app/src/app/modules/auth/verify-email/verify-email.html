@@ -11,11 +11,10 @@
 
   } @else if (error()) {
     <div class="flex flex-col items-center gap-4 text-center" role="alert">
-      <span class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-destructive/12 px-4 text-[0.95rem] font-bold tracking-[0.01em] text-destructive-text">
+      <span class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-destructive-soft px-4 text-[0.95rem] font-bold tracking-[0.01em] text-destructive-text">
         <lucide-icon name="x" [size]="16" [strokeWidth]="2.5" class="shrink-0" aria-hidden="true" />
         Not verified
       </span>
-      <p class="max-w-[30ch] text-[0.9rem] leading-relaxed text-muted-foreground">{{ error() }}</p>
       <button
         fb-button
         variant="primary"
