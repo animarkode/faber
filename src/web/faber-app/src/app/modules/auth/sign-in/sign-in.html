@@ -1,14 +1,7 @@
 <fb-auth-card aria-label="Sign in">
-  <header class="relative mb-8 flex w-full flex-col items-start gap-2.5 text-left">
-    <h1 class="m-0 font-serif text-4xl font-bold text-foreground">Sign in</h1>
-    <p class="max-w-[34ch] text-[0.96rem] leading-relaxed text-muted-foreground">
-      Welcome back. Enter your credentials to continue.
-    </p>
-  </header>
+  <h1 class="mb-8 text-center font-serif text-4xl font-bold text-foreground">Sign in</h1>
 
-  <!-- Wait for the providers so the buttons do not push the form down when they load. -->
-  @if (providersSettled()) {
-    <app-social-sign-in divider="after" />
+  @if (choice.formShown()) {
     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="flex flex-col gap-6">
       <fb-input formControlName="userName" label="Username"
                 placeholder="JohnDoe" autocomplete="username" />
@@ -16,16 +9,10 @@
       <fb-input formControlName="password" label="Password" type="password"
                 placeholder="••••••••" autocomplete="current-password" [showToggle]="true" />
 
-      <div class="-mt-2 flex items-center justify-between gap-4">
-        <a class="inline-flex items-center gap-1.5 text-sm font-semibold text-muted-foreground no-underline transition-colors hover:text-foreground hover:underline"
-           [routerLink]="APP_ROUTES.auth.forgotPassword">
-          Forgot password?
-        </a>
-        <a class="inline-flex items-center gap-1.5 text-sm font-semibold text-muted-foreground no-underline transition-colors hover:text-foreground hover:underline"
-           [routerLink]="APP_ROUTES.auth.signUp">
-          Create account
-        </a>
-      </div>
+      <a class="-mt-2 self-center text-sm font-semibold text-muted-foreground no-underline transition-colors hover:text-foreground hover:underline"
+         [routerLink]="APP_ROUTES.auth.forgotPassword">
+        Forgot password?
+      </a>
 
       <button
         fb-button
@@ -38,10 +25,29 @@
           <span class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-e-transparent"
                 role="status" aria-label="Loading"></span>
         } @else {
-          Sign in
+          Continue
         }
       </button>
     </form>
+  } @else if (choice.settled()) {
+    <app-social-sign-in divider="after" />
+    <button
+      fb-button
+      variant="primary"
+      size="lg"
+      type="button"
+      class="w-full font-bold tracking-[0.01em]"
+      (click)="choice.showForm()">
+      <lucide-icon name="at-sign" [size]="20" [strokeWidth]="2" aria-hidden="true" />
+      Continue with email
+    </button>
+  }
+
+  @if (choice.firstView()) {
+    <div class="mt-8 flex flex-col items-center gap-2.5">
+      <p class="m-0 text-sm text-muted-foreground">Don't have an account?</p>
+      <a fb-button variant="menu" size="lg" class="w-full" [routerLink]="APP_ROUTES.auth.signUp">Create account</a>
+    </div>
   }
 </fb-auth-card>
 

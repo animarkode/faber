@@ -36,6 +36,14 @@ describe('ExternalProvidersStore', () => {
 
     expect(store.settled()).toBe(true);
     expect(store.providers()).toEqual(['google']);
+    expect(store.hasKnownProviders()).toBe(true);
+  });
+
+  it('should report no known providers when only unknown aliases come back', async () => {
+    await respond({ providers: ['gitlab'] });
+
+    expect(store.settled()).toBe(true);
+    expect(store.hasKnownProviders()).toBe(false);
   });
 
   it('should settle without providers when the request fails', async () => {

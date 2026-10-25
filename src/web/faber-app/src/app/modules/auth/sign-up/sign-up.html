@@ -1,14 +1,7 @@
 <fb-auth-card aria-label="Sign up">
-  <header class="relative mb-8 flex w-full flex-col items-start gap-2.5 text-left">
-    <h1 class="m-0 font-serif text-4xl font-bold text-foreground">Sign up</h1>
-    <p class="max-w-[34ch] text-[0.96rem] leading-relaxed text-muted-foreground">
-      Create your account and start building your CV.
-    </p>
-  </header>
+  <h1 class="mb-8 text-center font-serif text-4xl font-bold text-foreground">Sign up</h1>
 
-  <!-- Wait for the providers so the buttons do not push the form down when they load. -->
-  @if (providersSettled()) {
-    <app-social-sign-in divider="after" />
+  @if (choice.formShown()) {
     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="flex flex-col gap-6">
       <fb-input formControlName="userName"        label="Username"         placeholder="LegendaryJohnDoe" autocomplete="username" />
       <fb-input formControlName="firstName"       label="First name"       placeholder="John"             autocomplete="given-name" />
@@ -28,15 +21,29 @@
           <span class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-e-transparent"
                 role="status" aria-label="Loading"></span>
         } @else {
-          Sign up
+          Continue
         }
       </button>
     </form>
+  } @else if (choice.settled()) {
+    <app-social-sign-in divider="after" />
+    <button
+      fb-button
+      variant="primary"
+      size="lg"
+      type="button"
+      class="w-full font-bold tracking-[0.01em]"
+      (click)="choice.showForm()">
+      <lucide-icon name="at-sign" [size]="20" [strokeWidth]="2" aria-hidden="true" />
+      Continue with email
+    </button>
+  }
 
-    <p class="mt-6 text-center text-sm text-muted-foreground">
-      Already have an account?
-      <a class="font-semibold text-foreground no-underline hover:underline" [routerLink]="APP_ROUTES.auth.signIn">Sign in</a>
-    </p>
+  @if (choice.firstView()) {
+    <div class="mt-8 flex flex-col items-center gap-2.5">
+      <p class="m-0 text-sm text-muted-foreground">Already have an account?</p>
+      <a fb-button variant="menu" size="lg" class="w-full" [routerLink]="APP_ROUTES.auth.signIn">Sign in</a>
+    </div>
   }
 </fb-auth-card>
 
