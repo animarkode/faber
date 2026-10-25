@@ -178,6 +178,20 @@ describe('destructive button fill tokens (#370)', () => {
   });
 });
 
+describe('success soft fill (verify-email pill)', () => {
+  describe.each(MODES)('$name mode', ({ tokens }) => {
+    it('success-text meets AA on success-soft', () => {
+      expect(
+        contrastRatio(color(tokens, '--color-success-text'), color(tokens, '--color-success-soft')),
+      ).toBeGreaterThanOrEqual(AA_NORMAL);
+    });
+
+    it('success-soft is opaque, so the page background cannot show through', () => {
+      expect(tokens['--color-success-soft']).not.toMatch(/\//);
+    });
+  });
+});
+
 describe('about-page GitHub button (#370)', () => {
   // bg-foreground / text-background at rest; hover is foreground at 90% over
   // the page background — both must stay AA in both themes.

@@ -29,13 +29,10 @@
 
   } @else if (verified()) {
     <div class="flex flex-col items-center gap-4 text-center" role="status">
-      <span class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-success/15 px-4 text-[0.95rem] font-bold tracking-[0.01em] text-success-text">
+      <span class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-success-soft px-4 text-[0.95rem] font-bold tracking-[0.01em] text-success-text">
         <lucide-icon name="check" [size]="16" [strokeWidth]="2.5" class="shrink-0" aria-hidden="true" />
         Email verified
       </span>
-      <p class="max-w-[30ch] text-[0.9rem] leading-relaxed text-muted-foreground">
-        Your email is confirmed. You can now sign in and start building.
-      </p>
       <button
         fb-button
         variant="primary"
@@ -43,7 +40,7 @@
         type="button"
         (click)="navigateToSignIn()"
         class="w-full font-bold tracking-[0.01em]">
-        Sign In
+        Continue
       </button>
     </div>
   }

@@ -65,6 +65,24 @@ describe('VerifyEmail', () => {
     expect(router.navigate).toHaveBeenCalledWith([APP_ROUTES.auth.signIn]);
   });
 
+  it('should show an opaque verified pill and a Continue button to sign-in, with no extra text', () => {
+    mockAuthClient.verifyEmail.mockReturnValue(of(null));
+
+    const { fixture, router } = setup({ key: 'valid-key' });
+    fixture.detectChanges();
+    const root = fixture.nativeElement as HTMLElement;
+
+    const pill = root.querySelector('span.text-success-text')!;
+    expect(pill.className).toContain('bg-success-soft');
+    expect(pill.className).not.toMatch(/bg-success\/\d/);
+    expect(root.querySelector('p')).toBeNull();
+
+    const button = root.querySelector<HTMLButtonElement>('button')!;
+    expect(button.textContent?.trim()).toBe('Continue');
+    button.click();
+    expect(router.navigate).toHaveBeenCalledWith([APP_ROUTES.auth.signIn]);
+  });
+
   it('should keep the Verifying pill text AA-safe on the dark card fill', () => {
     mockAuthClient.verifyEmail.mockReturnValue(new Subject());
 

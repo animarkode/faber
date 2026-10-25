@@ -49,6 +49,9 @@ body {
   --color-destructive-soft-hover: oklch(91% 0.05 25);
   --color-destructive-hover: oklch(52% 0.20 27);
   --color-success: oklch(56% 0.13 160);
+  /* Opaque soft success fill (verify-email pill) — an alpha tint lets the
+     dotted page background show through; the dark pair is in the .dark block. */
+  --color-success-soft: oklch(94.5% 0.03 160);
   --color-warning: oklch(64% 0.14 75);
   --color-info: oklch(57% 0.15 230);
 
@@ -125,6 +128,7 @@ body {
   --color-destructive-soft: oklch(37% 0.11 27);
   --color-destructive-soft-hover: oklch(32% 0.12 27);
   --color-destructive-hover: oklch(45% 0.17 27);
+  --color-success-soft: oklch(30% 0.05 160);
   /* Lighter status text on dark surfaces — fill tokens above are not overridden
      in dark mode, so the -text tokens carry the dark-mode contrast fix. */
   --color-destructive-text: oklch(77% 0.16 27);
