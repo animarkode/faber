@@ -18,7 +18,6 @@ function providersStore(providers: string[], settled = true) {
   return {
     providers: signal(providers),
     settled: signal(settled),
-    hasKnownProviders: signal(providers.length > 0),
   };
 }
 
@@ -153,15 +152,12 @@ describe('SignIn external sign-in errors', () => {
   }, 20000);
 });
 
-describe('SignIn email form', () => {
+describe('SignIn providers and form', () => {
   let fixture: ComponentFixture<SignIn>;
 
   const root = () => fixture.nativeElement as HTMLElement;
   const form = () => root().querySelector('form');
-  const button = (text: string) =>
-    Array.from(root().querySelectorAll('button')).find((b) => b.textContent?.trim() === text);
-  const backButton = () =>
-    root().querySelector<HTMLButtonElement>('header button[aria-label="Back to other sign-in options"]');
+  const providers = () => root().querySelector('app-social-sign-in');
   const createAccountLink = () =>
     Array.from(root().querySelectorAll('a')).find((a) => a.textContent?.trim() === 'Create account');
 
@@ -181,61 +177,33 @@ describe('SignIn email form', () => {
     await fixture.whenStable();
   }
 
-  it('should show the form straight away when no provider is available', async () => {
-    await render(providersStore([]));
-
-    expect(form()).not.toBeNull();
-    expect(button('Sign in with email')).toBeUndefined();
-    expect(backButton()).toBeNull();
-  });
-
-  it('should show neither the form nor the choice while providers load', async () => {
+  it('should show nothing below the header while providers load', async () => {
     await render(providersStore([], false));
 
     expect(form()).toBeNull();
-    expect(button('Sign in with email')).toBeUndefined();
+    expect(providers()).toBeNull();
   });
 
-  it('should offer providers and a primary e-mail button instead of the form', async () => {
+  it('should show the form without a provider to offer', async () => {
+    await render(providersStore([]));
+
+    expect(form()).not.toBeNull();
+  });
+
+  it('should show the providers above the form, with no extra step', async () => {
     await render(providersStore(['google']));
 
-    expect(form()).toBeNull();
-    expect(root().querySelector('app-social-sign-in')).not.toBeNull();
-    expect(button('Sign in with email')!.className).toContain('before:bg-primary');
-    expect(backButton()).toBeNull();
+    expect(form()).not.toBeNull();
+    expect(providers()!.compareDocumentPosition(form()!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it('should keep the create-account link reachable from the choice', async () => {
+  it('should keep the create-account link reachable', async () => {
     await render(providersStore(['google']));
 
     expect(createAccountLink()).toBeDefined();
   });
 
-  it('should replace the providers with the form and focus its first field', async () => {
-    await render(providersStore(['google']));
-
-    button('Sign in with email')!.click();
-    await fixture.whenStable();
-
-    expect(form()).not.toBeNull();
-    expect(root().querySelector('app-social-sign-in')).toBeNull();
-    expect(document.activeElement).toBe(form()!.querySelector('input'));
-    expect(backButton()).not.toBeNull();
-  });
-
-  it('should return to the providers from the header back button', async () => {
-    await render(providersStore(['google']));
-    button('Sign in with email')!.click();
-    await fixture.whenStable();
-
-    backButton()!.click();
-    await fixture.whenStable();
-
-    expect(form()).toBeNull();
-    expect(document.activeElement).toBe(button('Sign in with email'));
-  });
-
-  it('should have no AXE violations on the provider choice', { timeout: 20000 }, async () => {
+  it('should have no AXE violations with providers and form', { timeout: 20000 }, async () => {
     await render(providersStore(['google', 'github']));
 
     await expectNoAxeViolations(fixture);

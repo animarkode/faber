@@ -3,26 +3,19 @@ import { NonNullableFormBuilder, ReactiveFormsModule, Validators } from '@angula
 import type { HttpErrorResponse } from '@angular/common/http';
 import { Router, RouterLink } from '@angular/router';
 import { finalize } from 'rxjs';
-import { ArrowLeft, LUCIDE_ICONS, LucideAngularModule, LucideIconProvider, Mail, X } from 'lucide-angular';
 import { AuthClient } from '../auth-client';
 import { APP_ROUTES } from '../../../core/routes/app-routes';
 import { passwordMatchValidator } from '../shared/validators/password-match.validator';
 import { FbInput } from '../../../shared/components/fb-input/fb-input';
 import { FbAuthCard } from '../../../shared/components/fb-auth-card/fb-auth-card';
 import { FbButton } from '../../../shared/components/fb-button/fb-button';
-import { FbIconButton } from '../../../shared/components/fb-icon-button/fb-icon-button';
+import { ExternalProvidersStore } from '../external-sign-in/external-providers-store';
 import { SocialSignIn } from '../external-sign-in/social-sign-in/social-sign-in';
-import { EmailFormChoice } from '../shared/email-form-choice';
 import { FbToast } from '../../../shared/components/fb-toast/fb-toast';
-import { FbThemeToggle } from '../../../shared/components/fb-theme-toggle/fb-theme-toggle';
 
 @Component({
   selector: 'app-sign-up',
-  imports: [ReactiveFormsModule, RouterLink, FbInput, FbAuthCard, FbButton, FbIconButton, FbThemeToggle, FbToast, LucideAngularModule, SocialSignIn],
-  providers: [
-    EmailFormChoice,
-    { provide: LUCIDE_ICONS, multi: true, useValue: new LucideIconProvider({ X, Mail, ArrowLeft }) },
-  ],
+  imports: [ReactiveFormsModule, RouterLink, FbInput, FbAuthCard, FbButton, FbToast, SocialSignIn],
   templateUrl: './sign-up.html',
   changeDetection: ChangeDetectionStrategy.OnPush,
   host: { class: 'flex w-full justify-center' },
@@ -31,7 +24,8 @@ export class SignUp {
   private readonly router = inject(Router);
   private readonly authClient = inject(AuthClient);
   private readonly fb = inject(NonNullableFormBuilder);
-  protected readonly choice = inject(EmailFormChoice);
+  /** False until the providers request finishes; the page holds its content until then. */
+  protected readonly providersSettled = inject(ExternalProvidersStore).settled;
 
   readonly form = this.fb.group(
     {

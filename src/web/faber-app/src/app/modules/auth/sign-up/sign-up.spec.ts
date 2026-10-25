@@ -17,7 +17,6 @@ function providersStore(providers: string[], settled = true) {
   return {
     providers: signal(providers),
     settled: signal(settled),
-    hasKnownProviders: signal(providers.length > 0),
   };
 }
 
@@ -110,15 +109,14 @@ describe('SignUp', () => {
   });
 });
 
-describe('SignUp email form', () => {
+describe('SignUp providers and form', () => {
   let fixture: ComponentFixture<SignUp>;
 
   const root = () => fixture.nativeElement as HTMLElement;
   const form = () => root().querySelector('form');
-  const button = (text: string) =>
-    Array.from(root().querySelectorAll('button')).find((b) => b.textContent?.trim() === text);
-  const backButton = () =>
-    root().querySelector<HTMLButtonElement>('header button[aria-label="Back to other sign-up options"]');
+  const providers = () => root().querySelector('app-social-sign-in');
+  const signInLink = () =>
+    Array.from(root().querySelectorAll('a')).find((a) => a.textContent?.trim() === 'Sign in');
 
   async function render(store: ReturnType<typeof providersStore>): Promise<void> {
     await TestBed.configureTestingModule({
@@ -136,61 +134,33 @@ describe('SignUp email form', () => {
     await fixture.whenStable();
   }
 
-  it('should show the form straight away when no provider is available', async () => {
-    await render(providersStore([]));
-
-    expect(form()).not.toBeNull();
-    expect(button('Sign up with email')).toBeUndefined();
-    expect(backButton()).toBeNull();
-  });
-
-  it('should show neither the form nor the choice while providers load', async () => {
+  it('should show nothing below the header while providers load', async () => {
     await render(providersStore([], false));
 
     expect(form()).toBeNull();
-    expect(button('Sign up with email')).toBeUndefined();
+    expect(providers()).toBeNull();
   });
 
-  it('should offer providers and an e-mail button instead of the form', async () => {
-    await render(providersStore(['google']));
-
-    expect(form()).toBeNull();
-    expect(root().querySelector('app-social-sign-in')).not.toBeNull();
-    expect(button('Sign up with email')).toBeDefined();
-    expect(backButton()).toBeNull();
-  });
-
-  it('should style the e-mail button as the primary action', async () => {
-    await render(providersStore(['google']));
-
-    expect(button('Sign up with email')!.className).toContain('before:bg-primary');
-  });
-
-  it('should replace the providers with the form and focus its first field', async () => {
-    await render(providersStore(['google']));
-
-    button('Sign up with email')!.click();
-    await fixture.whenStable();
+  it('should show the form without a provider to offer', async () => {
+    await render(providersStore([]));
 
     expect(form()).not.toBeNull();
-    expect(root().querySelector('app-social-sign-in')).toBeNull();
-    expect(document.activeElement).toBe(form()!.querySelector('input'));
-    expect(backButton()).not.toBeNull();
   });
 
-  it('should return to the providers from the form', async () => {
+  it('should show the providers above the form, with no extra step', async () => {
     await render(providersStore(['google']));
-    button('Sign up with email')!.click();
-    await fixture.whenStable();
 
-    backButton()!.click();
-    await fixture.whenStable();
-
-    expect(form()).toBeNull();
-    expect(document.activeElement).toBe(button('Sign up with email'));
+    expect(form()).not.toBeNull();
+    expect(providers()!.compareDocumentPosition(form()!) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 
-  it('should have no AXE violations on the provider choice', { timeout: 20000 }, async () => {
+  it('should link back to sign-in', async () => {
+    await render(providersStore(['google']));
+
+    expect(signInLink()).toBeDefined();
+  });
+
+  it('should have no AXE violations with providers and form', { timeout: 20000 }, async () => {
     await render(providersStore(['google', 'github']));
 
     await expectNoAxeViolations(fixture);

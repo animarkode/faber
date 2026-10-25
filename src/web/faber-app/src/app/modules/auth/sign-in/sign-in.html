@@ -1,32 +1,14 @@
 <fb-auth-card aria-label="Sign in">
   <header class="relative mb-8 flex w-full flex-col items-start gap-2.5 text-left">
-    <div class="flex w-full items-center justify-between">
-      <span class="font-serif text-4xl font-bold text-foreground">Sign in</span>
-      <div class="flex items-center gap-1.5">
-        @if (choice.canGoBack()) {
-          <button
-            fb-icon-button
-            intent="surface"
-            size="lg"
-            type="button"
-            aria-label="Back to other sign-in options"
-            title="Back to other sign-in options"
-            (click)="choice.showOptions()">
-            <lucide-icon name="arrow-left" [size]="18" [strokeWidth]="2" aria-hidden="true" />
-          </button>
-        }
-        <fb-theme-toggle />
-        <a fb-icon-button intent="surface" size="lg" routerLink="/" aria-label="Go to home page">
-          <lucide-icon name="x" [size]="18" [strokeWidth]="2" aria-hidden="true" />
-        </a>
-      </div>
-    </div>
+    <h1 class="m-0 font-serif text-4xl font-bold text-foreground">Sign in</h1>
     <p class="max-w-[34ch] text-[0.96rem] leading-relaxed text-muted-foreground">
       Welcome back. Enter your credentials to continue.
     </p>
   </header>
 
-  @if (choice.formShown()) {
+  <!-- Wait for the providers so the buttons do not push the form down when they load. -->
+  @if (providersSettled()) {
+    <app-social-sign-in divider="after" />
     <form [formGroup]="form" (ngSubmit)="onSubmit()" class="flex flex-col gap-6">
       <fb-input formControlName="userName" label="Username"
                 placeholder="JohnDoe" autocomplete="username" />
@@ -60,25 +42,6 @@
         }
       </button>
     </form>
-  } @else if (choice.settled()) {
-    <div class="flex flex-col gap-3">
-      <app-social-sign-in divider="after" />
-      <button
-        data-email-option
-        fb-button
-        variant="primary"
-        size="lg"
-        type="button"
-        class="w-full font-bold tracking-[0.01em]"
-        (click)="choice.showForm()">
-        <lucide-icon name="mail" [size]="20" [strokeWidth]="2" aria-hidden="true" />
-        Sign in with email
-      </button>
-      <p class="mt-3 text-center text-sm text-muted-foreground">
-        Don't have an account?
-        <a class="font-semibold text-foreground no-underline hover:underline" [routerLink]="APP_ROUTES.auth.signUp">Create account</a>
-      </p>
-    </div>
   }
 </fb-auth-card>
 

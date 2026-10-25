@@ -1,7 +1,20 @@
-<main class="dotted-background h-dvh overflow-y-auto overscroll-none">
-  <div class="relative flex min-h-full items-center justify-center p-6 max-sm:p-0 md:p-8">
-    <div class="relative z-10 flex w-full max-w-[80rem] flex-col items-center">
-      <router-outlet />
+<div class="dotted-background flex h-dvh flex-col overflow-y-auto overscroll-none">
+  <header class="flex items-center justify-between px-10 py-6 max-sm:px-4 max-sm:py-3">
+    <a [routerLink]="APP_ROUTES.home"
+       class="font-display text-2xl font-semibold whitespace-nowrap text-foreground no-underline max-sm:text-xl">
+      microcivi.com
+    </a>
+    <div class="max-sm:hidden">
+      <fb-theme-toggle />
     </div>
-  </div>
-</main>
+  </header>
+
+  <main class="flex flex-1 justify-center px-6 sm:items-center max-sm:px-0">
+    <router-outlet />
+  </main>
+
+  <!-- On a phone the toggle moves out of the header, below the form. -->
+  <footer class="flex justify-center pt-6 pb-8 sm:hidden">
+    <fb-theme-toggle />
+  </footer>
+</div>
