@@ -14,6 +14,8 @@ const buttonVariants = cva(
         destructive: 'before:bg-destructive text-destructive-foreground hover:before:bg-destructive-hover hover:before:scale-[0.975]',
         'soft-destructive': 'before:bg-destructive-soft text-destructive-text hover:before:bg-destructive-soft-hover hover:before:scale-[0.975]',
         link: 'text-primary underline-offset-4 hover:underline p-0 h-auto',
+        // Same look and hover as the links in the app navbar.
+        menu: 'before:bg-surface text-foreground/80 hover:before:scale-[0.955] hover:before:bg-[color-mix(in_oklch,var(--color-surface)_80%,var(--color-foreground))] focus-visible:before:scale-[0.955] focus-visible:before:bg-[color-mix(in_oklch,var(--color-surface)_80%,var(--color-foreground))]',
       },
       size: {
         sm: 'h-8 px-3 text-sm',
