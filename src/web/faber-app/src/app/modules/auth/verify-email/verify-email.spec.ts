@@ -83,16 +83,17 @@ describe('VerifyEmail', () => {
     expect(router.navigate).toHaveBeenCalledWith([APP_ROUTES.auth.signIn]);
   });
 
-  it('should show an opaque not-verified pill without the problem description', () => {
+  it('should show a solid red not-verified pill without the problem description', () => {
     mockAuthClient.verifyEmail.mockReturnValue(throwError(() => new Error('server error')));
 
     const { fixture } = setup({ key: 'expired-key' });
     fixture.detectChanges();
     const root = fixture.nativeElement as HTMLElement;
 
-    const pill = root.querySelector('span.text-destructive-text')!;
-    expect(pill.className).toContain('bg-destructive-soft');
-    expect(pill.className).not.toMatch(/bg-destructive\/\d/);
+    // White on the solid destructive fill: the pair contrast.spec keeps at AA.
+    const pill = root.querySelector('span.text-destructive-foreground')!;
+    expect(pill.className).toContain('bg-destructive');
+    expect(pill.className).not.toMatch(/bg-destructive[\/-]/);
     expect(root.querySelector('p')).toBeNull();
     expect(root.textContent).not.toContain('The link may have expired');
   });
