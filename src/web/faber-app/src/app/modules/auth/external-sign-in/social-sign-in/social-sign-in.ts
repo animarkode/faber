@@ -10,13 +10,7 @@ interface SocialProviderLink {
   href: string;
   icon: string;
   iconDark?: string;
-  /** Brand-specific surface, border and text colours. */
-  classes: string;
 }
-
-const GOOGLE_CLASSES =
-  'border-[#747775] bg-white text-[#1F1F1F] dark:border-[#8E918F] dark:bg-[#131314] dark:text-[#E3E3E3]';
-const NEUTRAL_CLASSES = 'border-line bg-card text-foreground';
 
 @Component({
   selector: 'app-social-sign-in',
@@ -43,7 +37,6 @@ export class SocialSignIn {
       href: API_ROUTES.auth.external.start(provider.id),
       icon: provider.icon,
       iconDark: provider.iconDark,
-      classes: provider.id === 'google' ? GOOGLE_CLASSES : NEUTRAL_CLASSES,
     }));
   });
 }

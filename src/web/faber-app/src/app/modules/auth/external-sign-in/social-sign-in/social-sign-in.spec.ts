@@ -71,6 +71,15 @@ describe('SocialSignIn', () => {
     ]);
   });
 
+  it('should give every provider the same neutral surface', async () => {
+    await render(['google', 'github']);
+
+    const [google, github] = links();
+    expect(google.className).toBe(github.className);
+    expect(google.className).toContain('bg-card');
+    expect(google.className).toContain('border-line');
+  });
+
   it('should put the "or" divider above the provider buttons', async () => {
     await render(['google']);
 
