@@ -1,0 +1,341 @@
+{
+  "realm": "faber",
+  "displayName": "Faber",
+  "enabled": true,
+  "sslRequired": "external",
+
+  "registrationAllowed": true,
+  "registrationEmailAsUsername": true,
+  "loginWithEmailAllowed": true,
+  "duplicateEmailsAllowed": false,
+  "editUsernameAllowed": false,
+  "verifyEmail": true,
+  "resetPasswordAllowed": true,
+  "rememberMe": true,
+
+  "passwordPolicy": "length(8) and maxLength(128) and notEmail(undefined) and notUsername(undefined)",
+
+  "bruteForceProtected": true,
+  "permanentLockout": false,
+  "maxTemporaryLockouts": 0,
+  "bruteForceStrategy": "MULTIPLE",
+  "failureFactor": 5,
+  "waitIncrementSeconds": 60,
+  "maxFailureWaitSeconds": 900,
+  "minimumQuickLoginWaitSeconds": 60,
+  "quickLoginCheckMilliSeconds": 1000,
+  "maxDeltaTimeSeconds": 43200,
+
+  "accessTokenLifespan": 300,
+  "ssoSessionIdleTimeout": 1800,
+  "ssoSessionMaxLifespan": 36000,
+  "ssoSessionIdleTimeoutRememberMe": 604800,
+  "ssoSessionMaxLifespanRememberMe": 2592000,
+  "revokeRefreshToken": true,
+  "refreshTokenMaxReuse": 0,
+  "offlineSessionIdleTimeout": 2592000,
+  "offlineSessionMaxLifespanEnabled": true,
+  "offlineSessionMaxLifespan": 5184000,
+
+  "eventsEnabled": true,
+  "eventsExpiration": 7776000,
+  "adminEventsEnabled": true,
+  "adminEventsDetailsEnabled": false,
+
+  "webAuthnPolicyRpEntityName": "Faber",
+  "webAuthnPolicyPasswordlessRpEntityName": "Faber",
+  "webAuthnPolicyPasswordlessUserVerificationRequirement": "required",
+
+  "smtpServer": {
+    "host": "$(env:KC_SMTP_HOST)",
+    "port": "$(env:KC_SMTP_PORT)",
+    "from": "$(env:KC_SMTP_FROM)",
+    "fromDisplayName": "Faber",
+    "auth": "$(env:KC_SMTP_AUTH:-false)",
+    "user": "$(env:KC_SMTP_USER:-)",
+    "password": "$(env:KC_SMTP_PASSWORD:-)",
+    "ssl": "$(env:KC_SMTP_SSL:-false)",
+    "starttls": "$(env:KC_SMTP_STARTTLS:-false)"
+  },
+
+  "roles": {
+    "realm": [
+      { "name": "regular", "description": "Default plan" },
+      { "name": "premium", "description": "Paid plan" },
+      {
+        "name": "default-roles-faber",
+        "description": "${role_default-roles}",
+        "composite": true,
+        "composites": {
+          "realm": ["offline_access", "uma_authorization", "regular"],
+          "client": { "account": ["view-profile", "manage-account"] }
+        }
+      }
+    ]
+  },
+
+  "clients": [
+    {
+      "clientId": "faber-api",
+      "name": "Faber",
+      "description": "The Faber API, which signs web users in as a backend-for-frontend.",
+      "enabled": true,
+      "protocol": "openid-connect",
+      "publicClient": false,
+      "clientAuthenticatorType": "client-secret",
+      "standardFlowEnabled": true,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false,
+      "serviceAccountsEnabled": false,
+      "frontchannelLogout": false,
+      "consentRequired": false,
+      "fullScopeAllowed": true,
+      "rootUrl": "$(env:FABER_APP_URL)",
+      "baseUrl": "$(env:FABER_APP_URL)",
+      "redirectUris": ["$(env:FABER_APP_URL)/api/v1/auth/callback"],
+      "webOrigins": [],
+      "attributes": {
+        "pkce.code.challenge.method": "S256",
+        "post.logout.redirect.uris": "$(env:FABER_APP_URL)",
+        "backchannel.logout.url": "$(env:FABER_BACKCHANNEL_LOGOUT_URL)",
+        "backchannel.logout.session.required": "true",
+        "backchannel.logout.revoke.offline.tokens": "true",
+        "use.refresh.tokens": "true",
+        "standard.token.exchange.enabled": "false",
+        "oauth2.device.authorization.grant.enabled": "false",
+        "oidc.ciba.grant.enabled": "false"
+      },
+      "defaultClientScopes": ["web-origins", "acr", "profile", "roles", "basic", "email"],
+      "optionalClientScopes": ["address", "phone", "offline_access", "microprofile-jwt"],
+      "protocolMappers": [
+        {
+          "name": "faber-api-audience",
+          "protocol": "openid-connect",
+          "protocolMapper": "oidc-audience-mapper",
+          "consentRequired": false,
+          "config": {
+            "included.client.audience": "faber-api",
+            "access.token.claim": "true",
+            "id.token.claim": "false",
+            "introspection.token.claim": "true",
+            "lightweight.claim": "false"
+          }
+        }
+      ]
+    },
+    { "clientId": "account", "enabled": true },
+    { "clientId": "account-console", "enabled": true },
+    { "clientId": "security-admin-console", "enabled": false },
+    { "clientId": "admin-cli", "directAccessGrantsEnabled": false }
+  ],
+
+  "identityProviders": [
+    {
+      "alias": "google",
+      "displayName": "Google",
+      "providerId": "google",
+      "enabled": $(env:GOOGLE_ENABLED:-false),
+      "trustEmail": true,
+      "storeToken": false,
+      "addReadTokenRoleOnCreate": false,
+      "linkOnly": false,
+      "hideOnLogin": false,
+      "firstBrokerLoginFlowAlias": "faber first broker login",
+      "config": {
+        "clientId": "$(env:GOOGLE_CLIENT_ID:-unset)",
+        "clientSecret": "$(env:GOOGLE_CLIENT_SECRET:-unset)",
+        "defaultScope": "openid profile email",
+        "syncMode": "IMPORT",
+        "filteredByClaim": "true",
+        "claimFilterName": "email_verified",
+        "claimFilterValue": "true",
+        "guiOrder": "1"
+      }
+    },
+    {
+      "alias": "github",
+      "displayName": "GitHub",
+      "providerId": "github",
+      "enabled": $(env:GITHUB_ENABLED:-false),
+      "trustEmail": true,
+      "storeToken": false,
+      "addReadTokenRoleOnCreate": false,
+      "linkOnly": false,
+      "hideOnLogin": false,
+      "firstBrokerLoginFlowAlias": "faber first broker login",
+      "config": {
+        "clientId": "$(env:GITHUB_CLIENT_ID:-unset)",
+        "clientSecret": "$(env:GITHUB_CLIENT_SECRET:-unset)",
+        "defaultScope": "user:email",
+        "syncMode": "IMPORT",
+        "guiOrder": "2"
+      }
+    }
+  ],
+
+  "requiredActions": [
+    {
+      "alias": "UPDATE_EMAIL",
+      "name": "Update Email",
+      "providerId": "UPDATE_EMAIL",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 70,
+      "config": {}
+    },
+    {
+      "alias": "delete_account",
+      "name": "Delete Account",
+      "providerId": "delete_account",
+      "enabled": false,
+      "defaultAction": false,
+      "priority": 60,
+      "config": {}
+    }
+  ],
+
+  "authenticatorConfig": [
+    {
+      "alias": "faber review profile config",
+      "config": { "update.profile.on.first.login": "missing" }
+    },
+    {
+      "alias": "faber create unique user config",
+      "config": { "require.password.update.after.registration": "false" }
+    },
+    {
+      "alias": "faber reauthentication conditional credential",
+      "config": { "credentials": "webauthn-passwordless" }
+    }
+  ],
+
+  "authenticationFlows": [
+    {
+      "alias": "faber first broker login",
+      "description": "First sign-in through Google or GitHub: create the user when the e-mail is new; otherwise link only after the person re-authenticates to the existing account.",
+      "providerId": "basic-flow",
+      "topLevel": true,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "idp-review-profile",
+          "authenticatorConfig": "faber review profile config",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false
+        },
+        {
+          "flowAlias": "faber user creation or linking",
+          "authenticatorFlow": true,
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "userSetupAllowed": false
+        }
+      ]
+    },
+    {
+      "alias": "faber user creation or linking",
+      "description": "Create the user when the e-mail is unique, otherwise handle the existing account.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "idp-create-user-if-unique",
+          "authenticatorConfig": "faber create unique user config",
+          "authenticatorFlow": false,
+          "requirement": "ALTERNATIVE",
+          "priority": 10,
+          "userSetupAllowed": false
+        },
+        {
+          "flowAlias": "faber handle existing account",
+          "authenticatorFlow": true,
+          "requirement": "ALTERNATIVE",
+          "priority": 20,
+          "userSetupAllowed": false
+        }
+      ]
+    },
+    {
+      "alias": "faber handle existing account",
+      "description": "An account with this e-mail exists: confirm the link, then prove ownership by signing in to it.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "idp-confirm-link",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false
+        },
+        {
+          "flowAlias": "faber verify existing account by re-authentication",
+          "authenticatorFlow": true,
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "userSetupAllowed": false
+        }
+      ]
+    },
+    {
+      "alias": "faber verify existing account by re-authentication",
+      "description": "Sign in to the existing account with its password or another linked provider, plus 2FA when set up. No e-mail-link alternative.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "idp-username-password-form",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false
+        },
+        {
+          "flowAlias": "faber reauthentication conditional 2fa",
+          "authenticatorFlow": true,
+          "requirement": "CONDITIONAL",
+          "priority": 20,
+          "userSetupAllowed": false
+        }
+      ]
+    },
+    {
+      "alias": "faber reauthentication conditional 2fa",
+      "description": "Ask for the second factor the user has set up, unless a passkey was used.",
+      "providerId": "basic-flow",
+      "topLevel": false,
+      "builtIn": false,
+      "authenticationExecutions": [
+        {
+          "authenticator": "conditional-user-configured",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 10,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "conditional-credential",
+          "authenticatorConfig": "faber reauthentication conditional credential",
+          "authenticatorFlow": false,
+          "requirement": "REQUIRED",
+          "priority": 20,
+          "userSetupAllowed": false
+        },
+        {
+          "authenticator": "auth-otp-form",
+          "authenticatorFlow": false,
+          "requirement": "ALTERNATIVE",
+          "priority": 30,
+          "userSetupAllowed": false
+        }
+      ]
+    }
+  ],
+
+  "firstBrokerLoginFlow": "faber first broker login"
+}

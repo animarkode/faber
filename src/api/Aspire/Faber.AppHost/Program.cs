@@ -1,6 +1,5 @@
 using Faber.AppHost;
 using Faber.AppHost.Vault;
-using Microsoft.Extensions.Configuration;
 using Projects;
 
 var builder = DistributedApplication.CreateBuilder(args);
@@ -64,8 +63,10 @@ var keycloakUser = builder.AddParameter("keycloak-admin")
 var keycloakPass = builder.AddParameter("keycloak-password", secret: true)
     .WithDescription("Password for that Keycloak admin.");
 
-// Built from infra/keycloak/Dockerfile: the stock image plus Faber's own flow steps.
-var keycloak = builder.AddDockerfile("keycloak", keycloakDir)
+// The stock image: sign-in pages, account console and flows are all Keycloak's own. The realm is
+// not imported here; keycloak-config applies infra/keycloak/config on every start instead.
+var keycloak = builder.AddContainer("keycloak", "keycloak/keycloak", "26.8.1")
+    .WithImageRegistry("quay.io")
     .WithHttpEndpoint(port: 8080, targetPort: 8080, name: "keycloak-http")
     .WithHttpEndpoint(port: 9000, targetPort: 9000, name: "keycloak-management")
     .WithHttpHealthCheck(path: "/health/ready", endpointName: "keycloak-management")
@@ -78,9 +79,31 @@ var keycloak = builder.AddDockerfile("keycloak", keycloakDir)
     .WithEnvironment("KC_DB_SCHEMA", keycloakSchema)
     .WithEnvironment("KC_DB_USERNAME", postgresUser)
     .WithEnvironment("KC_DB_PASSWORD", postgresPass)
-    .WithBindMount(Path.Combine(keycloakDir, "realm-export.json"), "/opt/keycloak/data/import/realm-export.json", isReadOnly: true)
     .WaitForCompletion(migrations)
-    .WithArgs("start-dev", "--import-realm");
+    .WithArgs("start-dev");
+
+var mailpit = builder.AddMailPit("mailpit", smtpPort: 1025);
+
+// Applies the realm as code (users and their data are left alone). The web app and the API share
+// one origin in dev, because the Angular dev server proxies /api; Keycloak reaches the API's
+// back-channel logout endpoint on the host.
+var keycloakConfig = builder.AddContainer("keycloak-config", "adorsys/keycloak-config-cli", "6.5.1-26.1.0")
+    .WithBindMount(Path.Combine(keycloakDir, "config"), "/config", isReadOnly: true)
+    .WithEnvironment("KEYCLOAK_URL", "http://keycloak:8080")
+    .WithEnvironment("KEYCLOAK_USER", keycloakUser)
+    .WithEnvironment("KEYCLOAK_PASSWORD", keycloakPass)
+    .WithEnvironment("KEYCLOAK_AVAILABILITYCHECK_ENABLED", "true")
+    .WithEnvironment("IMPORT_FILES_LOCATIONS", "/config/*")
+    .WithEnvironment("IMPORT_VARSUBSTITUTION_ENABLED", "true")
+    .WithEnvironment("FABER_APP_URL", "http://localhost:4200")
+    .WithEnvironment("FABER_BACKCHANNEL_LOGOUT_URL", "http://host.docker.internal:5020/api/v1/auth/backchannel-logout")
+    .WithEnvironment("KC_SMTP_HOST", "mailpit")
+    .WithEnvironment("KC_SMTP_PORT", "1025")
+    .WithEnvironment("KC_SMTP_FROM", "no-reply@faber.local")
+    .WithSocialProvider(builder, "google")
+    .WithSocialProvider(builder, "github")
+    .WaitFor(keycloak)
+    .WaitFor(mailpit);
 
 var bootstrap = builder.AddProject<Faber_Bootstrap>("bootstrap")
     .WithEnvironment("Bootstrap__KeycloakAddress", keycloak.GetEndpoint("keycloak-http"))
@@ -91,19 +114,10 @@ var bootstrap = builder.AddProject<Faber_Bootstrap>("bootstrap")
     .WithEnvironment("Bootstrap__VaultAddress", vault.GetEndpoint("vault-http"))
     .WithEnvironment("Bootstrap__VaultToken", vaultToken)
     .WithEnvironment("Bootstrap__VaultMountPoint", "secrets")
-    .WaitFor(keycloak)
+    .WaitForCompletion(keycloakConfig)
     .WaitFor(vault);
 
-var mailpit = builder.AddMailPit("mailpit", smtpPort: 1025);
-
-// Aspire.AppHost.Sdk's <ProjectReference> to Faber.Api is metadata-only (it only feeds the
-// generated Projects.Faber_Api type) — it doesn't expose Faber.Api's compiled types here, so
-// this can't just reference Faber.Api.Http.CorsExtensions.LanModeEnvVar. Keep this literal in
-// sync with that constant, and with the "LAN_MODE" key in both launchSettings.json "lan" profiles.
-const string lanModeEnvVar = "LAN_MODE";
-var lanMode = builder.Configuration.GetValue<bool>(lanModeEnvVar);
-
-var faberApi = builder.AddProject<Faber_Api>("faberapi", options => { options.LaunchProfileName = lanMode ? "lan" : null; })
+var faberApi = builder.AddProject<Faber_Api>("faberapi")
     .WaitFor(redis)
     .WaitFor(faberDb)
     .WaitForCompletion(migrations)
@@ -115,25 +129,6 @@ var faberApi = builder.AddProject<Faber_Api>("faberapi", options => { options.La
     .WithEnvironment("VAULT_TOKEN", vaultToken)
     .WithReference(redis)
     .WithReference(faberDb);
-
-// Aspire's DCP proxies a project's "http" endpoint through a loopback-only listener by
-// default, so a LAN device could reach the Angular dev server but never the API behind it.
-// isProxied:false makes DCP expose Kestrel's own socket instead of interposing a
-// loopback-bound proxy in front of it.
-//
-// Aspire generates Kestrel__Endpoints__http__Url (lowercase "http") for this endpoint. Set
-// that exact generated key after constructing the resource so it binds Kestrel to all LAN
-// interfaces without creating a second, case-insensitively conflicting configuration key.
-if (lanMode)
-{
-    faberApi.WithEndpoint("http", e =>
-    {
-        e.IsProxied = false;
-        e.TargetHost = "0.0.0.0";
-    });
-
-    faberApi.WithEnvironment("Kestrel__Endpoints__http__Url", "http://0.0.0.0:5020");
-}
 
 faberApi.WithUrls(context =>
     {

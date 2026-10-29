@@ -33,43 +33,33 @@ public class AppHostModelTests
         var faberDb = builder.Resources.Single(resource => resource.Name == "faberdb");
         var migrations = builder.Resources.Single(resource => resource.Name == "migrations");
         var keycloak = builder.Resources.Single(resource => resource.Name == "keycloak");
+        var keycloakConfig = builder.Resources.Single(resource => resource.Name == "keycloak-config");
         var vault = builder.Resources.Single(resource => resource.Name == "vault");
         var bootstrap = builder.Resources.Single(resource => resource.Name == "bootstrap");
         var api = builder.Resources.Single(resource => resource.Name == "faberapi");
 
         migrations.ShouldWaitFor(faberDb, WaitType.WaitUntilHealthy);
         keycloak.ShouldWaitFor(migrations, WaitType.WaitForCompletion);
-        bootstrap.ShouldWaitFor(keycloak, WaitType.WaitUntilHealthy);
+        keycloakConfig.ShouldWaitFor(keycloak, WaitType.WaitUntilHealthy);
+        bootstrap.ShouldWaitFor(keycloakConfig, WaitType.WaitForCompletion);
         bootstrap.ShouldWaitFor(vault, WaitType.WaitUntilHealthy);
         api.ShouldWaitFor(migrations, WaitType.WaitForCompletion);
         api.ShouldWaitFor(bootstrap, WaitType.WaitForCompletion);
     }
 
     [Fact]
-    public async Task KeycloakRealmImport_ShouldBeConfiguredInApplicationModel()
+    public async Task Keycloak_ShouldRunTheStockImageWithoutRealmImport()
     {
         var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.Faber_AppHost>(
             TestConfiguration,
             TestContext.Current.CancellationToken);
         var keycloak = builder.Resources.Single(resource => resource.Name == "keycloak");
 
-        var importMount = keycloak.Annotations
-            .OfType<ContainerMountAnnotation>()
-            .Single(mount => mount.Target == "/opt/keycloak/data/import/realm-export.json");
-
-        importMount.Type.ShouldBe(ContainerMountType.BindMount);
-        importMount.IsReadOnly.ShouldBeTrue();
-        var expectedSource = Path.GetFullPath(Path.Combine(
-            builder.AppHostDirectory,
-            "..",
-            "..",
-            "..",
-            "..",
-            "infra",
-            "keycloak",
-            "realm-export.json"));
-        importMount.Source.ShouldNotBeNull();
-        Path.GetFullPath(importMount.Source!).ShouldBe(expectedSource);
+        var image = keycloak.Annotations.OfType<ContainerImageAnnotation>().Single();
+        image.Registry.ShouldBe("quay.io");
+        image.Image.ShouldBe("keycloak/keycloak");
+        image.Tag.ShouldBe("26.8.1");
+        keycloak.Annotations.OfType<ContainerMountAnnotation>().ShouldBeEmpty();
 
         var configuration = await ExecutionConfigurationBuilder
             .Create(keycloak)
@@ -81,7 +71,7 @@ public class AppHostModelTests
                 TestContext.Current.CancellationToken);
 
         configuration.Exception.ShouldBeNull();
-        configuration.Arguments.Select(argument => argument.Value).ShouldBe(["start-dev", "--import-realm"]);
+        configuration.Arguments.Select(argument => argument.Value).ShouldBe(["start-dev"]);
 
         var environment = configuration.EnvironmentVariables.ToDictionary(variable => variable.Key, variable => variable.Value);
         environment["KC_DB"].ShouldBe("postgres");
@@ -91,6 +81,67 @@ public class AppHostModelTests
         // and has reviewed once, in Program.cs.
         var faberDb = builder.Resources.OfType<PostgresDatabaseResource>().Single();
         environment["KC_DB_URL"].ShouldEndWith($"/{faberDb.DatabaseName}");
+    }
+
+    [Fact]
+    public async Task KeycloakConfig_ShouldApplyTheRealmConfigurationFromTheRepository()
+    {
+        var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.Faber_AppHost>(
+            TestConfiguration,
+            TestContext.Current.CancellationToken);
+        var keycloakConfig = builder.Resources.Single(resource => resource.Name == "keycloak-config");
+
+        var mount = keycloakConfig.Annotations.OfType<ContainerMountAnnotation>().Single();
+        mount.Type.ShouldBe(ContainerMountType.BindMount);
+        mount.IsReadOnly.ShouldBeTrue();
+        mount.Target.ShouldBe("/config");
+        var expectedSource = Path.GetFullPath(Path.Combine(
+            builder.AppHostDirectory, "..", "..", "..", "..", "infra", "keycloak", "config"));
+        Path.GetFullPath(mount.Source!).ShouldBe(expectedSource);
+
+        var environment = await GetDeclaredEnvironmentAsync(keycloakConfig);
+        environment["IMPORT_FILES_LOCATIONS"].ShouldBe("/config/*");
+        environment["IMPORT_VARSUBSTITUTION_ENABLED"].ShouldBe("true");
+        environment["FABER_APP_URL"].ShouldBe("http://localhost:4200");
+        environment["FABER_BACKCHANNEL_LOGOUT_URL"]
+            .ShouldBe("http://host.docker.internal:5020/api/v1/auth/backchannel-logout");
+        environment["KC_SMTP_HOST"].ShouldBe("mailpit");
+    }
+
+    [Fact]
+    public async Task SocialProviders_WithoutCredentials_ShouldBeDisabled()
+    {
+        var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.Faber_AppHost>(
+            TestConfiguration,
+            TestContext.Current.CancellationToken);
+        var keycloakConfig = builder.Resources.Single(resource => resource.Name == "keycloak-config");
+
+        var environment = await GetDeclaredEnvironmentAsync(keycloakConfig);
+
+        environment["GOOGLE_ENABLED"].ShouldBe("false");
+        environment["GITHUB_ENABLED"].ShouldBe("false");
+        environment.Keys.ShouldNotContain("GOOGLE_CLIENT_SECRET");
+        environment.Keys.ShouldNotContain("GITHUB_CLIENT_SECRET");
+    }
+
+    [Fact]
+    public async Task SocialProvider_WithCredentials_ShouldBeEnabled()
+    {
+        var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.Faber_AppHost>(
+            [
+                .. TestConfiguration,
+                "--Parameters:google-client-id=test-google-id",
+                "--Parameters:google-client-secret=test-google-secret"
+            ],
+            TestContext.Current.CancellationToken);
+        var keycloakConfig = builder.Resources.Single(resource => resource.Name == "keycloak-config");
+
+        var environment = await GetDeclaredEnvironmentAsync(keycloakConfig);
+
+        environment["GOOGLE_ENABLED"].ShouldBe("true");
+        environment["GITHUB_ENABLED"].ShouldBe("false");
+        environment.Keys.ShouldContain("GOOGLE_CLIENT_ID");
+        environment.Keys.ShouldContain("GOOGLE_CLIENT_SECRET");
     }
 
     [Fact]

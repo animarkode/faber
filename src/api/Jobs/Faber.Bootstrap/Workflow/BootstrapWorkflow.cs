@@ -12,6 +12,7 @@ public sealed class BootstrapWorkflow(
 
     public async Task RunAsync(CancellationToken cancellationToken)
     {
+        await keycloak.EnablePasskeysAsync(cancellationToken);
         var clientSecret = await keycloak.GetClientSecretAsync(cancellationToken);
         await vault.EnsureKvV2MountAsync(cancellationToken);
         await vault.WriteSecretAsync("keycloak", new Dictionary<string, string>

@@ -98,6 +98,38 @@ public class BootstrapTests
     }
 
     [Fact]
+    public async Task EnablePasskeys_ShouldTurnPasskeysOnAndKeepTheRestOfTheRealm()
+    {
+        string? putBody = null;
+        var handler = new StubHttpMessageHandler(async request =>
+        {
+            if (request.RequestUri!.AbsolutePath.EndsWith("/token", StringComparison.Ordinal))
+            {
+                return Json(HttpStatusCode.OK, """{"access_token":"admin-token"}""");
+            }
+
+            request.Headers.Authorization!.ToString().ShouldBe("Bearer admin-token");
+            request.RequestUri.AbsolutePath.ShouldBe("/admin/realms/faber");
+            if (request.Method == HttpMethod.Get)
+            {
+                return Json(HttpStatusCode.OK, """{"realm":"faber","verifyEmail":true,"webAuthnPolicyPasswordlessPasskeysEnabled":false}""");
+            }
+
+            request.Method.ShouldBe(HttpMethod.Put);
+            putBody = await request.Content!.ReadAsStringAsync(TestContext.Current.CancellationToken);
+            return Json(HttpStatusCode.NoContent, string.Empty);
+        });
+
+        await CreateKeycloakClient(handler).EnablePasskeysAsync(TestContext.Current.CancellationToken);
+
+        putBody.ShouldNotBeNull();
+        using var document = JsonDocument.Parse(putBody);
+        document.RootElement.GetProperty("webAuthnPolicyPasswordlessPasskeysEnabled").GetBoolean().ShouldBeTrue();
+        document.RootElement.GetProperty("webAuthnPolicyPasswordlessMediation").GetString().ShouldBe("conditional");
+        document.RootElement.GetProperty("verifyEmail").GetBoolean().ShouldBeTrue();
+    }
+
+    [Fact]
     public async Task RepeatedBootstrap_ShouldWriteOnlyTheKeycloakSecretIdempotently()
     {
         var storedSecrets = new Dictionary<string, string>();
@@ -182,6 +214,13 @@ public class BootstrapTests
         if (request.RequestUri.Query.Length > 0)
         {
             return Task.FromResult(Json(HttpStatusCode.OK, """[{"id":"generated-id","clientId":"faber-api"}]"""));
+        }
+
+        if (request.RequestUri.AbsolutePath == "/admin/realms/faber")
+        {
+            return Task.FromResult(request.Method == HttpMethod.Get
+                ? Json(HttpStatusCode.OK, """{"realm":"faber"}""")
+                : Json(HttpStatusCode.NoContent, string.Empty));
         }
 
         // Regenerated on every call; this stub returns the same value both times a real
