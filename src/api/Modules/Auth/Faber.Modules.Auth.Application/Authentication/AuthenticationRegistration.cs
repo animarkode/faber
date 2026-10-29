@@ -29,9 +29,7 @@ internal static class AuthenticationRegistration
             .AddPolicyScheme(AuthSchemes.Default, "Session or bearer", o =>
             {
                 o.ForwardDefaultSelector = context =>
-                    context.Request.Headers.Authorization.ToString().StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase)
-                        ? AuthSchemes.Bearer
-                        : AuthSchemes.Session;
+                    AuthSchemes.IsBearerRequest(context.Request) ? AuthSchemes.Bearer : AuthSchemes.Session;
             })
             .AddCookie(AuthSchemes.Session)
             .AddOpenIdConnect(AuthSchemes.Keycloak, _ => { })

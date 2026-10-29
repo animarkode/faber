@@ -29,4 +29,13 @@ public static class AuthSchemes
     public const string CsrfHeaderName = "X-CSRF";
 
     public const string CallbackPath = "/api/v1/auth/callback";
+
+    /// <summary>
+    /// Whether a request is a bearer call. The one test both the scheme selector and the CSRF check use, so
+    /// no request can be treated as bearer by one and as cookie-authenticated by the other.
+    /// </summary>
+    public static bool IsBearerRequest(Microsoft.AspNetCore.Http.HttpRequest request)
+    {
+        return request.Headers.Authorization.ToString().StartsWith("Bearer ", StringComparison.OrdinalIgnoreCase);
+    }
 }

@@ -49,6 +49,20 @@ public class SessionTests(WebApp app)
     }
 
     [Fact]
+    public async Task CookieRequest_WithANonBearerAuthorizationHeader_StillNeedsTheCsrfHeader()
+    {
+        var (client, _) = await app.SignInAsync(app.Users[0], ct: TestContext.Current.CancellationToken);
+        using var _client = client;
+        client.DefaultRequestHeaders.Remove("X-CSRF");
+        client.DefaultRequestHeaders.Authorization = new System.Net.Http.Headers.AuthenticationHeaderValue("Basic", "eDp5");
+
+        using var response = await client.GetAsync("api/v1/auth/user", TestContext.Current.CancellationToken);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.Forbidden,
+            "only a bearer token switches the request off the session; anything else still rides on the cookie");
+    }
+
+    [Fact]
     public async Task ExpiredAccessToken_ShouldBeRefreshedOnTheServer()
     {
         var (client, _) = await app.SignInAsync(app.Users[1], ct: TestContext.Current.CancellationToken);

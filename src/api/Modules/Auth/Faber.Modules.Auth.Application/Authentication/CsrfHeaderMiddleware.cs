@@ -26,7 +26,7 @@ public sealed class CsrfHeaderMiddleware(RequestDelegate next)
         var request = context.Request;
         var needsHeader = request.Path.StartsWithSegments(Api)
                           && request.Cookies.ContainsKey(AuthSchemes.SessionCookieName)
-                          && request.Headers.Authorization.Count == 0
+                          && !AuthSchemes.IsBearerRequest(request)
                           && !Navigations.Any(path => request.Path.Equals(path, StringComparison.OrdinalIgnoreCase));
 
         if (needsHeader && request.Headers[AuthSchemes.CsrfHeaderName] != "1")
