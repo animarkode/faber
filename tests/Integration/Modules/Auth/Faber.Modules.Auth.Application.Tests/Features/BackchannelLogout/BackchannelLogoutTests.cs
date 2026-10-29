@@ -1,4 +1,5 @@
 using System.Net;
+using Faber.Testing.Shared.Data;
 using Shouldly;
 
 namespace Faber.Modules.Auth.Application.Tests.Features.BackchannelLogout;
@@ -9,7 +10,9 @@ public class BackchannelLogoutTests(WebApp app)
     [Fact]
     public async Task SessionEndedInKeycloak_ShouldEndTheWebSessionImmediately()
     {
-        var user = app.Users[2];
+        // A user of its own, so the one Keycloak session deleted below is this browser's.
+        var user = new TestUserFaker(4242).Generate();
+        await app.Keycloak.Admin.CreateUserAsync(user, ct: TestContext.Current.CancellationToken);
         var (client, _) = await app.SignInAsync(user, ct: TestContext.Current.CancellationToken);
         using var _client = client;
         var userId = (await app.Keycloak.Admin.FindUserIdAsync(user.Email, TestContext.Current.CancellationToken))!;

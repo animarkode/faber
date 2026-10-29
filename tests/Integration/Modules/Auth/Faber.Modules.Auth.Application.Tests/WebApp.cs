@@ -41,6 +41,18 @@ public class WebApp : AppFixture<Program>
 
     public List<TestUser> Users { get; } = RegisteredUsersData.Generate();
 
+    /// <summary>A second realm in the same Keycloak that plays Google or GitHub.</summary>
+    public static readonly StandInIdentityProvider StandIn = new(
+        Alias: "standin",
+        Realm: "standin",
+        ClientId: "faber-broker",
+        ClientSecret: "broker-secret",
+        Username: "provider.user",
+        Password: "provider-password-1",
+        Email: "provider.user@standin.test",
+        FirstName: "Stan",
+        LastName: "Din");
+
     /// <summary>A client that behaves like a browser tab on the web app: cookies on, redirects off.</summary>
     public HttpClient CreateBrowserClient()
     {
@@ -87,6 +99,8 @@ public class WebApp : AppFixture<Program>
 
         await Task.WhenAll(_postgres.StartAsync(), _vault.StartAsync());
         _keycloak = await FaberKeycloak.StartAsync(_network, AppOrigin.ToString().TrimEnd('/'), _relay.ContainerUrl);
+        await _keycloak.Container.AddStandInIdentityProviderAsync(
+            FaberKeycloak.AdminUsername, FaberKeycloak.AdminPassword, FaberKeycloak.Realm, StandIn);
 
         var vaultAddress = $"http://{_vault.Hostname}:{_vault.GetMappedPublicPort(8200)}";
         Environment.SetEnvironmentVariable("VAULT_TOKEN", VaultToken);

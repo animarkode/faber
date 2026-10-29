@@ -14,6 +14,8 @@ namespace Faber.Testing.Shared.Http;
 /// </remarks>
 public sealed partial class KeycloakLoginDriver(HttpClient apiClient) : IDisposable
 {
+    private Uri? _currentPage;
+
     private readonly HttpClient _keycloak = new(new KeycloakCookieJar(new HttpClientHandler
     {
         AllowAutoRedirect = false,
@@ -66,6 +68,7 @@ public sealed partial class KeycloakLoginDriver(HttpClient apiClient) : IDisposa
     /// <summary>Loads a Keycloak page, following Keycloak's own redirects.</summary>
     public async Task<string> GetPageAsync(Uri url, CancellationToken ct = default)
     {
+        _currentPage = url;
         using var response = await _keycloak.GetAsync(url, ct);
         if (response.StatusCode is HttpStatusCode.Redirect or HttpStatusCode.Found or HttpStatusCode.SeeOther)
         {
@@ -103,6 +106,45 @@ public sealed partial class KeycloakLoginDriver(HttpClient apiClient) : IDisposa
         return await apiClient.GetAsync(location.PathAndQuery, ct);
     }
 
+    /// <summary>
+    /// Follows Keycloak's redirects after a submitted form. Ends either at the API (its response is returned)
+    /// or on another Keycloak page (its HTML is returned), as a browser would show it.
+    /// </summary>
+    public async Task<(string? Page, HttpResponseMessage? ApiResponse)> FollowAsync(HttpResponseMessage response,
+        CancellationToken ct = default)
+    {
+        while (true)
+        {
+            var location = response.Headers.Location;
+            if (location is null)
+            {
+                return (await response.Content.ReadAsStringAsync(ct), null);
+            }
+
+            if (location.IsAbsoluteUri && location.Host == apiClient.BaseAddress!.Host)
+            {
+                return (null, await apiClient.GetAsync(location.PathAndQuery, ct));
+            }
+
+            response = await _keycloak.GetAsync(location.IsAbsoluteUri ? location : new Uri(response.RequestMessage!.RequestUri!, location), ct);
+        }
+    }
+
+    /// <summary>Follows the link with the given id on the page last loaded, as a click would.</summary>
+    public Task<string> ClickAsync(string page, string linkId, CancellationToken ct = default)
+    {
+        return GetPageAsync(new Uri(_currentPage!, LinkHref(page, linkId)), ct);
+    }
+
+    /// <summary>The decoded <c>href</c> (possibly relative) of the link with the given id on a Keycloak page.</summary>
+    public static string LinkHref(string page, string linkId)
+    {
+        var link = AnchorTag().Matches(page).FirstOrDefault(m => m.Value.Contains($"id=\"{linkId}\"", StringComparison.Ordinal))
+            ?? throw new InvalidOperationException($"Link '{linkId}' not found on the Keycloak page.");
+
+        return WebUtility.HtmlDecode(HrefAttribute().Match(link.Value).Groups[1].Value);
+    }
+
     /// <summary>The decoded <c>action</c> of the form with the given id on a Keycloak page.</summary>
     public static Uri FormAction(string page, string formId)
     {
@@ -121,13 +163,20 @@ public sealed partial class KeycloakLoginDriver(HttpClient apiClient) : IDisposa
     /// </summary>
     private sealed class KeycloakCookieJar(HttpMessageHandler inner) : DelegatingHandler(inner)
     {
-        private readonly Dictionary<string, string> _cookies = new(StringComparer.Ordinal);
+        // Keyed by name and path: each Keycloak realm sets same-named cookies under its own path.
+        private readonly Dictionary<(string Name, string Path), string> _cookies = [];
 
         protected override async Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken ct)
         {
-            if (_cookies.Count > 0)
+            var requestPath = request.RequestUri!.AbsolutePath;
+            var matching = _cookies
+                .Where(c => requestPath.StartsWith(c.Key.Path, StringComparison.Ordinal))
+                .OrderByDescending(c => c.Key.Path.Length)
+                .Select(c => $"{c.Key.Name}={c.Value}")
+                .ToList();
+            if (matching.Count > 0)
             {
-                request.Headers.Add("Cookie", string.Join("; ", _cookies.Select(c => $"{c.Key}={c.Value}")));
+                request.Headers.Add("Cookie", string.Join("; ", matching));
             }
 
             var response = await base.SendAsync(request, ct);
@@ -135,24 +184,41 @@ public sealed partial class KeycloakLoginDriver(HttpClient apiClient) : IDisposa
             {
                 foreach (var setCookie in setCookies)
                 {
-                    var pair = setCookie.Split(';', 2)[0];
-                    var separator = pair.IndexOf('=');
-                    var (name, value) = (pair[..separator].Trim(), pair[(separator + 1)..]);
-                    var expired = setCookie.Contains("Max-Age=0", StringComparison.OrdinalIgnoreCase) || value.Length == 0;
-                    if (expired)
-                    {
-                        _cookies.Remove(name);
-                    }
-                    else
-                    {
-                        _cookies[name] = value;
-                    }
+                    Store(setCookie);
                 }
             }
 
             return response;
         }
+
+        private void Store(string setCookie)
+        {
+            var parts = setCookie.Split(';', StringSplitOptions.TrimEntries);
+            var separator = parts[0].IndexOf('=');
+            var name = parts[0][..separator];
+            var value = parts[0][(separator + 1)..];
+            var path = parts.Skip(1)
+                .Where(p => p.StartsWith("Path=", StringComparison.OrdinalIgnoreCase))
+                .Select(p => p[5..])
+                .FirstOrDefault() ?? "/";
+            var expired = value.Length == 0 || parts.Any(p => p.Equals("Max-Age=0", StringComparison.OrdinalIgnoreCase));
+
+            if (expired)
+            {
+                _cookies.Remove((name, path));
+            }
+            else
+            {
+                _cookies[(name, path)] = value;
+            }
+        }
     }
+
+    [GeneratedRegex("<a[^>]*>", RegexOptions.IgnoreCase)]
+    private static partial Regex AnchorTag();
+
+    [GeneratedRegex("href=\"([^\"]+)\"", RegexOptions.IgnoreCase)]
+    private static partial Regex HrefAttribute();
 
     [GeneratedRegex("<form[^>]*>", RegexOptions.IgnoreCase)]
     private static partial Regex FormTag();
