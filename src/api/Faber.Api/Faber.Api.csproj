@@ -11,22 +11,18 @@
     <ItemGroup>
         <PackageReference Include="FastEndpoints" Version="8.3.0" />
         <PackageReference Include="FastEndpoints.Swagger" Version="8.3.0" />
-        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.31" />
         <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.20">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="10.10.0" />
         <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.12" />
-        <PackageReference Include="Microsoft.IdentityModel.Tokens" Version="8.22.0" />
         <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="9.0.0"/>
-        <PackageReference Include="Refit" Version="15.2.0" />
         <PackageReference Include="Scalar.AspNetCore" Version="2.17.3" />
         <PackageReference Include="Scrutor" Version="7.0.0" />
         <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
         <PackageReference Include="StackExchange.Redis" Version="3.1.31" />
         <PackageReference Include="Microsoft.Playwright" Version="1.62.0" />
-        <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="8.22.0"/>
     </ItemGroup>
 
     <ItemGroup>

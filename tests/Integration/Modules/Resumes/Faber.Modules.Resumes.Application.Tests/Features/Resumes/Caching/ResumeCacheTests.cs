@@ -29,7 +29,7 @@ public class ResumeCacheTests(WebApp app) : TestBase
     public async Task GetResume_RepeatCall_ShouldServeCachedValue()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var (_, primedResponse) = await app.Client
@@ -52,7 +52,7 @@ public class ResumeCacheTests(WebApp app) : TestBase
     public async Task GetAllResumes_RepeatCall_ShouldServeCachedValue()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var (_, primedResponse) = await app.Client
@@ -75,7 +75,7 @@ public class ResumeCacheTests(WebApp app) : TestBase
     public async Task UpdateTitle_AfterCachedRead_ShouldReturnFreshResume()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         await app.Client
@@ -100,7 +100,7 @@ public class ResumeCacheTests(WebApp app) : TestBase
     public async Task UpdateTitle_AfterCachedList_ShouldReturnFreshList()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         await app.Client
@@ -125,7 +125,7 @@ public class ResumeCacheTests(WebApp app) : TestBase
     public async Task CreateSkill_AfterCachedRead_ShouldInvalidateResumeAndList()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         await app.Client
@@ -160,7 +160,7 @@ public class ResumeCacheTests(WebApp app) : TestBase
     public async Task DeleteExperience_AfterCachedRead_ShouldInvalidateResume()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var createExperienceRequest = new CreateExperienceRequestFaker(resume.Id).Generate();
@@ -195,7 +195,7 @@ public class ResumeCacheTests(WebApp app) : TestBase
     public async Task DeleteResume_AfterCachedList_ShouldDropItFromList()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var (_, primedResponse) = await app.Client
@@ -222,7 +222,7 @@ public class ResumeCacheTests(WebApp app) : TestBase
     public async Task CreateResume_AfterCachedList_ShouldAppearInList()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
 
         await app.Client
             .WithAuthToken(accessToken)

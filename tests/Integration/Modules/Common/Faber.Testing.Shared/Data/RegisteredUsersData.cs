@@ -1,29 +1,25 @@
 using System.Collections;
-using System.Collections.Generic;
-using System.Linq;
-using Faber.Modules.Users.PublicApi.Contracts;
 using Xunit;
 
 namespace Faber.Testing.Shared.Data;
 
-public class RegisteredUsersData : IEnumerable<TheoryDataRow<CreateUserRequest, string>>
+/// <summary>The users every test fixture creates in Keycloak, generated from a fixed seed.</summary>
+public class RegisteredUsersData : IEnumerable<TheoryDataRow<TestUser>>
 {
     private const int Seed = 12345;
     private const int Count = 5;
 
-    public IEnumerator<TheoryDataRow<CreateUserRequest, string>> GetEnumerator()
+    public IEnumerator<TheoryDataRow<TestUser>> GetEnumerator()
     {
-        return Generate().Select(t => new TheoryDataRow<CreateUserRequest, string>(t.User, t.Password)).GetEnumerator();
+        return Generate().Select(user => new TheoryDataRow<TestUser>(user)).GetEnumerator();
     }
 
     IEnumerator IEnumerable.GetEnumerator() => GetEnumerator();
 
-    public static List<(CreateUserRequest User, string Password)> Generate()
+    public static List<TestUser> Generate()
     {
-        var faker = new CreateUserRequestFaker(Seed);
+        var faker = new TestUserFaker(Seed);
 
-        return Enumerable.Range(0, Count)
-            .Select(_ => (faker.Generate(), faker.Password()))
-            .ToList();
+        return Enumerable.Range(0, Count).Select(_ => faker.Generate()).ToList();
     }
 }

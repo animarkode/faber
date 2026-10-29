@@ -34,7 +34,7 @@ public class UpdateCourseTests(WebApp app) : TestBase
     public async Task UpdateCourse_ShouldModifyFields()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var createRequest = new CreateCourseRequestFaker(resume.Id).Generate();
@@ -74,7 +74,7 @@ public class UpdateCourseTests(WebApp app) : TestBase
     public async Task NonExistentCourse_ShouldReturnForbidden()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
 
         var course = new CreateCourseRequestFaker(Guid.NewGuid()).Generate();
 
@@ -98,7 +98,7 @@ public class UpdateCourseTests(WebApp app) : TestBase
     public async Task CrossUserUpdateCourse_ShouldReturnForbidden()
     {
         var ct = TestContext.Current.CancellationToken;
-        var userAToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var userAToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, userAToken, ct: ct);
 
         var createRequest = new CreateCourseRequestFaker(resume.Id).Generate();
@@ -107,7 +107,7 @@ public class UpdateCourseTests(WebApp app) : TestBase
             .WithAuthToken(userAToken)
             .POSTAsync<CreateCourseEndpoint, CreateCourseRequest, CreateCourseResponse>(createRequest);
 
-        var userBToken = await ResumesTestHelper.SignInAsUserAsync(app.Client, 1, ct);
+        var userBToken = await ResumesTestHelper.SignInAsUserAsync(app, 1, ct);
 
         var updated = new CreateCourseRequestFaker(resume.Id, 62002).Generate();
 
@@ -132,7 +132,7 @@ public class UpdateCourseTests(WebApp app) : TestBase
     public async Task UpdateCourse_WithInvalidData_ShouldReturnBadRequest(UpdateCourseRequest invalidRequest)
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var createRequest = new CreateCourseRequestFaker(resume.Id).Generate();
@@ -155,7 +155,7 @@ public class UpdateCourseTests(WebApp app) : TestBase
     public async Task UpdateCourse_WithUnsafeDescription_ShouldPersistSanitizedHtml()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var createRequest = new CreateCourseRequestFaker(resume.Id).Generate();

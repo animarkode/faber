@@ -18,7 +18,7 @@ public class GetAllResumesTests(WebApp app) : TestBase
     public async Task GetAllResumes_ShouldReturnUserResumes()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
 
         var createRequest = new CreateResumeRequest("en-us");
 

@@ -14,6 +14,7 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\Aspire\Faber.ServiceDefaults\Faber.ServiceDefaults.csproj"/>
+        <ProjectReference Include="..\..\Modules\Auth\Faber.Modules.Auth.Infrastructure\Faber.Modules.Auth.Infrastructure.csproj"/>
         <ProjectReference Include="..\..\Modules\Resumes\Faber.Modules.Resumes.Infrastructure\Faber.Modules.Resumes.Infrastructure.csproj"/>
     </ItemGroup>
 

@@ -20,7 +20,7 @@ public class CreateSkillTests(WebApp app) : TestBase
     public async Task CreateSkill_ShouldReturnCreated(CreateSkillRequest request)
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var createRequest = request with { ResumeId = resume.Id };
@@ -41,7 +41,7 @@ public class CreateSkillTests(WebApp app) : TestBase
     public async Task CreateSkillForNonExistentResume_ShouldReturnForbidden()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
 
         var request = new CreateSkillRequestFaker(Guid.NewGuid()).Generate();
 
@@ -59,7 +59,7 @@ public class CreateSkillTests(WebApp app) : TestBase
         CreateSkillRequest invalidRequest)
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
         
         var createRequest = invalidRequest with { ResumeId = resume.Id };

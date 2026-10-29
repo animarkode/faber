@@ -20,7 +20,7 @@ public class CreateLinkTests(WebApp app) : TestBase
     public async Task CreateLink_ShouldReturnCreated(CreateLinkRequest request)
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var createRequest = request with { ResumeId = resume.Id };
@@ -41,7 +41,7 @@ public class CreateLinkTests(WebApp app) : TestBase
     public async Task CreateLinkForNonExistentResume_ShouldReturnForbidden()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
 
         var request = new CreateLinkRequestFaker(Guid.NewGuid()).Generate();
 
@@ -59,7 +59,7 @@ public class CreateLinkTests(WebApp app) : TestBase
         CreateLinkRequest invalidRequest)
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
         
         var createRequest = invalidRequest with { ResumeId = resume.Id };

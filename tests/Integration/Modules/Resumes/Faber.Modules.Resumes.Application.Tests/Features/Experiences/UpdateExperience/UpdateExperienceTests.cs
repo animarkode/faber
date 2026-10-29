@@ -34,7 +34,7 @@ public class UpdateExperienceTests(WebApp app) : TestBase
     public async Task UpdateExperience_ShouldModifyFields()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var createRequest = new CreateExperienceRequestFaker(resume.Id).Generate();
@@ -70,7 +70,7 @@ public class UpdateExperienceTests(WebApp app) : TestBase
     public async Task NonExistentExperience_ShouldReturnForbidden()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
 
         var eh = new CreateExperienceRequestFaker(Guid.NewGuid()).Generate();
         var httpResponse = await app.Client
@@ -88,7 +88,7 @@ public class UpdateExperienceTests(WebApp app) : TestBase
     public async Task CrossUserUpdateExperience_ShouldReturnForbidden()
     {
         var ct = TestContext.Current.CancellationToken;
-        var userAToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var userAToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, userAToken, ct: ct);
 
         var createRequest = new CreateExperienceRequestFaker(resume.Id).Generate();
@@ -98,7 +98,7 @@ public class UpdateExperienceTests(WebApp app) : TestBase
             .POSTAsync<CreateExperienceEndpoint, CreateExperienceRequest,
                 CreateExperienceResponse>(createRequest);
 
-        var userBToken = await ResumesTestHelper.SignInAsUserAsync(app.Client, 1, ct);
+        var userBToken = await ResumesTestHelper.SignInAsUserAsync(app, 1, ct);
 
         var updated = new CreateExperienceRequestFaker(resume.Id, seed: 32002).Generate();
         var httpResponse = await app.Client
@@ -118,7 +118,7 @@ public class UpdateExperienceTests(WebApp app) : TestBase
         UpdateExperienceRequest invalidRequest)
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var createRequest = new CreateExperienceRequestFaker(resume.Id).Generate();
@@ -142,7 +142,7 @@ public class UpdateExperienceTests(WebApp app) : TestBase
     public async Task UpdateExperience_WithUnsafeDescription_ShouldPersistSanitizedHtml()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var createRequest = new CreateExperienceRequestFaker(resume.Id).Generate();

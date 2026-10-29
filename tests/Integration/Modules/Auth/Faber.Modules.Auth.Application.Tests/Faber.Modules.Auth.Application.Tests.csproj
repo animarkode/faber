@@ -1,0 +1,38 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+    <PropertyGroup>
+        <TargetFramework>net8.0</TargetFramework>
+        <ImplicitUsings>enable</ImplicitUsings>
+        <Nullable>enable</Nullable>
+
+        <OutputType>Exe</OutputType>
+        <IsPackable>false</IsPackable>
+        <IsTestProject>true</IsTestProject>
+    </PropertyGroup>
+
+    <ItemGroup>
+        <PackageReference Include="Bogus" Version="35.6.5" />
+        <PackageReference Include="coverlet.collector" Version="10.0.1">
+            <PrivateAssets>all</PrivateAssets>
+            <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+        </PackageReference>
+        <PackageReference Include="FastEndpoints.Testing" Version="8.3.0" />
+        <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" Version="9.10.0" />
+        <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.0" />
+        <PackageReference Include="Shouldly" Version="4.3.0"/>
+        <PackageReference Include="Testcontainers.Keycloak" Version="4.15.0" />
+        <PackageReference Include="Testcontainers.PostgreSql" Version="4.15.0" />
+        <PackageReference Include="xunit.v3" Version="4.0.0" />
+    </ItemGroup>
+
+    <ItemGroup>
+        <Using Include="Xunit"/>
+    </ItemGroup>
+
+    <ItemGroup>
+        <ProjectReference Include="..\..\..\..\..\src\api\Faber.Api\Faber.Api.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\src\api\Modules\Auth\Faber.Modules.Auth.Application\Faber.Modules.Auth.Application.csproj"/>
+        <ProjectReference Include="..\..\Common\Faber.Testing.Shared\Faber.Testing.Shared.csproj" />
+    </ItemGroup>
+
+</Project>

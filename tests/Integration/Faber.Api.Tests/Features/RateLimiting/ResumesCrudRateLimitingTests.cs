@@ -2,7 +2,6 @@ using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
 using Faber.Api.Tests.Features.RateLimiting.Data;
-using Faber.Modules.Auth.Application.Features.SignIn;
 using Faber.Testing.Shared.Http;
 using FastEndpoints.Testing;
 using Shouldly;
@@ -36,25 +35,15 @@ public class ResumesCrudRateLimitingTests(WebApp app) : TestBase
         return client;
     }
 
+    // A Keycloak access token for one of the reserved accounts. The client IP is no longer spent on a
+    // sign-in request (Keycloak issues the token), but each caller keeps its reserved octet.
     private async Task<string> SignInAsync(int userIndex, string clientIp)
     {
-        var (user, password) = RateLimitingUsersData.Generate()[userIndex];
+        _ = clientIp;
+        var user = RateLimitingUsersData.Generate()[userIndex];
+        var tokens = await app.Keycloak.GetTokensAsync(user.Email, user.Password, TestContext.Current.CancellationToken);
 
-        using var client = CreateClientWithIp(clientIp);
-
-        var response = await client.PostAsJsonAsync(
-            SignInUri,
-            new SignInRequest(user.Username, password),
-            TestContext.Current.CancellationToken);
-
-        response.StatusCode.ShouldBe(HttpStatusCode.OK);
-
-        var signIn = await response.Content.ReadFromJsonAsync<SignInResponse>(
-            TestContext.Current.CancellationToken);
-
-        signIn.ShouldNotBeNull();
-
-        return signIn.AccessToken;
+        return tokens["access_token"]!.GetValue<string>();
     }
 
     // Listing resumes is the cheapest authenticated Resumes call: it carries no ResumeOwnerPolicy,

@@ -22,7 +22,7 @@ public class CreatePersonTests(WebApp app) : TestBase
     public async Task CreatePerson_ShouldReturnCreated(CreatePersonRequest request)
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var createRequest = request with { ResumeId = resume.Id };
@@ -44,7 +44,7 @@ public class CreatePersonTests(WebApp app) : TestBase
     public async Task CreatePersonForNonExistentResume_ShouldReturnForbidden()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
 
         var request = new CreatePersonRequestFaker(Guid.NewGuid()).Generate();
 
@@ -62,7 +62,7 @@ public class CreatePersonTests(WebApp app) : TestBase
         CreatePersonRequest invalidRequest)
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var createRequest = invalidRequest with { ResumeId = resume.Id };
@@ -79,7 +79,7 @@ public class CreatePersonTests(WebApp app) : TestBase
     public async Task CreatePerson_ShouldReturnConflict_WhenPersonAlreadyExists()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
         var request = new CreatePersonRequestFaker(resume.Id).Generate();
 
@@ -101,7 +101,7 @@ public class CreatePersonTests(WebApp app) : TestBase
     public async Task CreatePerson_WithName_ShouldSnapshotFullNameIntoResumeTitle()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
         var request = new CreatePersonRequestFaker(resume.Id).Generate() with
         {
@@ -127,7 +127,7 @@ public class CreatePersonTests(WebApp app) : TestBase
     public async Task CreatePerson_WithMaximumLengthNames_ShouldTruncateResumeTitleToItsLimit()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
         var request = new CreatePersonRequestFaker(resume.Id).Generate() with
         {

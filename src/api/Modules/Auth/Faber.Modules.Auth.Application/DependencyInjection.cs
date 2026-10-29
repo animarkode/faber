@@ -1,11 +1,55 @@
+using Faber.Modules.Auth.Application.Authentication;
+using Faber.Modules.Auth.Application.Features.BackchannelLogout;
+using Faber.Modules.Auth.Application.Options;
+using Faber.Modules.Auth.Application.Sessions;
+using Faber.Modules.Auth.Infrastructure.Database;
+using Faber.Modules.Vault.PublicApi;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Faber.Modules.Auth.Application;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddAuthModule(this IServiceCollection services)
+    /// <summary>The application name all API instances share, so each can read the others' cookies and sessions.</summary>
+    private const string DataProtectionApplicationName = "Faber";
+
+    public static async Task AddAuthModuleAsync(this IServiceCollection services, IConfiguration configuration)
     {
-        return services;
+        services.ConfigureOptions<KeycloakOptionsSetup>();
+        services.TryAddSingleton(TimeProvider.System);
+
+        var connectionString = configuration.GetConnectionString("faberdb");
+        if (string.IsNullOrEmpty(connectionString))
+        {
+            var vault = services.BuildServiceProvider().GetRequiredService<IVaultModuleApi>();
+            connectionString = await vault.GetDatabaseConnectionStringAsync();
+        }
+
+        services.AddDbContext<AuthDbContext>(o => o
+            .UseNpgsql(connectionString, npgsql =>
+                npgsql.MigrationsHistoryTable(DbConstants.MigrationsHistoryTableName, DbConstants.SchemaName))
+            .UseSnakeCaseNamingConvention());
+
+        services.AddDataProtection()
+            .SetApplicationName(DataProtectionApplicationName)
+            .PersistKeysToDbContext<AuthDbContext>();
+
+        services.AddSingleton<PostgresTicketStore>();
+        services.AddScoped<SessionRefresher>();
+        services.AddScoped<LogoutTokenValidator>();
+        services.AddHttpClient<KeycloakTokenClient>(client => client.Timeout = TimeSpan.FromSeconds(10));
+
+        services.AddFaberAuthentication();
+    }
+
+    /// <summary>Requires the CSRF header on cookie-authenticated API calls. Call before authentication.</summary>
+    public static IApplicationBuilder UseFaberCsrfProtection(this IApplicationBuilder app)
+    {
+        return app.UseMiddleware<CsrfHeaderMiddleware>();
     }
 }

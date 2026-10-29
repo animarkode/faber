@@ -23,6 +23,7 @@
     <ItemGroup>
         <ProjectReference Include="..\..\..\src\api\Aspire\Faber.AppHost\Faber.AppHost.csproj"/>
         <ProjectReference Include="..\..\..\src\api\Jobs\Faber.Migrations\Faber.Migrations.csproj"/>
+        <ProjectReference Include="..\..\..\src\api\Modules\Auth\Faber.Modules.Auth.Infrastructure\Faber.Modules.Auth.Infrastructure.csproj"/>
         <ProjectReference Include="..\..\..\src\api\Modules\Resumes\Faber.Modules.Resumes.Infrastructure\Faber.Modules.Resumes.Infrastructure.csproj"/>
     </ItemGroup>
 

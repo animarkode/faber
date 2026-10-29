@@ -20,7 +20,7 @@ public class CreateLanguageTests(WebApp app) : TestBase
     public async Task CreateLanguage_ShouldReturnCreated(CreateLanguageRequest request)
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var createRequest = request with { ResumeId = resume.Id };
@@ -41,7 +41,7 @@ public class CreateLanguageTests(WebApp app) : TestBase
     public async Task CreateLanguageForNonExistentResume_ShouldReturnForbidden()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
 
         var request = new CreateLanguageRequestFaker(Guid.NewGuid()).Generate();
 
@@ -59,7 +59,7 @@ public class CreateLanguageTests(WebApp app) : TestBase
         CreateLanguageRequest invalidRequest)
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
         
         var createRequest = invalidRequest with { ResumeId = resume.Id };

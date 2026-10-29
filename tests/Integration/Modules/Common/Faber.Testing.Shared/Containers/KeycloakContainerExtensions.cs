@@ -54,7 +54,7 @@ public static class KeycloakContainerExtensions
     /// The stand-in realm gets one confidential client, which the broker realm authenticates with, and one
     /// enabled user with a password, a verified e-mail and a full name, so neither realm has a reason to show
     /// a profile page. The provider mirrors the brokering settings of the real providers: trusted e-mail, the
-    /// <c>create or link account</c> flow and <c>IMPORT</c> sync mode.
+    /// <c>faber first broker login</c> flow, the <c>email_verified</c> essential-claim filter and <c>IMPORT</c> sync mode.
     /// </para>
     /// <para>
     /// The provider's URLs are split by who calls them. The authorization URL is followed by the "browser" (the
@@ -126,7 +126,7 @@ public static class KeycloakContainerExtensions
 
     /// <summary>
     /// Registers one more identity provider alias in <paramref name="brokerRealm"/> that points at the same
-    /// stand-in realm, with the same settings and the same <c>idp_email_verified</c> mapper, so one stand-in
+    /// stand-in realm, with the same settings, so one stand-in
     /// user can be brokered through two different providers.
     /// </summary>
     /// <param name="container">A started Keycloak container that already hosts the stand-in realm.</param>
@@ -248,7 +248,7 @@ public static class KeycloakContainerExtensions
                 "-s", "providerId=oidc",
                 "-s", "enabled=true",
                 "-s", "trustEmail=true",
-                "-s", "firstBrokerLoginFlowAlias=create or link account",
+                "-s", "firstBrokerLoginFlowAlias=faber first broker login",
                 "-s", $"config.clientId={provider.ClientId}",
                 "-s", $"config.clientSecret={provider.ClientSecret}",
                 "-s", "config.clientAuthMethod=client_secret_post",
@@ -259,16 +259,11 @@ public static class KeycloakContainerExtensions
                 "-s", "config.disableUserInfo=true",
                 "-s", $"config.jwksUrl={internalRealmUrl}/protocol/openid-connect/certs",
                 "-s", "config.useJwksUrl=true",
-                "-s", "config.validateSignature=true"],
-            cancellationToken);
-
-        // Mirrors the realm's google-email-verified mapper: the API's linking rule reads this attribute.
-        await ExecuteAsync(container,
-            [Kcadm, "create", $"identity-provider/instances/{provider.Alias}/mappers", "-r", brokerRealm,
-                "-s", $"name={provider.Alias}-email-verified",
-                "-s", $"identityProviderAlias={provider.Alias}",
-                "-s", "identityProviderMapper=oidc-user-attribute-idp-mapper",
-                "-s", "config={\"syncMode\":\"FORCE\",\"claim\":\"email_verified\",\"user.attribute\":\"idp_email_verified\"}"],
+                "-s", "config.validateSignature=true",
+                // Mirrors the google provider: refuse a sign-in whose e-mail the provider has not verified.
+                "-s", "config.filteredByClaim=true",
+                "-s", "config.claimFilterName=email_verified",
+                "-s", "config.claimFilterValue=true"],
             cancellationToken);
     }
 

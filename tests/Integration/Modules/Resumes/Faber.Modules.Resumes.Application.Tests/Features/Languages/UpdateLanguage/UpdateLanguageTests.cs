@@ -34,7 +34,7 @@ public class UpdateLanguageTests(WebApp app) : TestBase
     public async Task UpdateLanguage_ShouldModifyFields()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var createRequest = new CreateLanguageRequestFaker(resume.Id).Generate();
@@ -68,7 +68,7 @@ public class UpdateLanguageTests(WebApp app) : TestBase
     public async Task NonExistentLanguage_ShouldReturnForbidden()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
 
         var lang = new CreateLanguageRequestFaker(Guid.NewGuid()).Generate();
         var updateResponse = await app.Client
@@ -84,7 +84,7 @@ public class UpdateLanguageTests(WebApp app) : TestBase
     public async Task CrossUserUpdateLanguage_ShouldReturnForbidden()
     {
         var ct = TestContext.Current.CancellationToken;
-        var userAToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var userAToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, userAToken, ct: ct);
 
         var createRequest = new CreateLanguageRequestFaker(resume.Id).Generate();
@@ -93,7 +93,7 @@ public class UpdateLanguageTests(WebApp app) : TestBase
             .WithAuthToken(userAToken)
             .POSTAsync<CreateLanguageEndpoint, CreateLanguageRequest, CreateLanguageResponse>(createRequest);
 
-        var userBToken = await ResumesTestHelper.SignInAsUserAsync(app.Client, 1, ct);
+        var userBToken = await ResumesTestHelper.SignInAsUserAsync(app, 1, ct);
 
         var updated = new CreateLanguageRequestFaker(resume.Id, seed: 52002).Generate();
         var httpResponse = await app.Client
@@ -111,7 +111,7 @@ public class UpdateLanguageTests(WebApp app) : TestBase
     public async Task UpdateLanguage_WithInvalidData_ShouldReturnBadRequest(UpdateLanguageRequest invalidRequest)
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var createRequest = new CreateLanguageRequestFaker(resume.Id).Generate();

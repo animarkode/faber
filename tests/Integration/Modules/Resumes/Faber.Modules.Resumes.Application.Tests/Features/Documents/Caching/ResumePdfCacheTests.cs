@@ -28,7 +28,7 @@ public class ResumePdfCacheTests(WebApp app) : TestBase
     public async Task DownloadDocument_Twice_ShouldRenderOnce()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         await app.Client
@@ -53,7 +53,7 @@ public class ResumePdfCacheTests(WebApp app) : TestBase
     public async Task GenerateAfterDownload_ShouldReuseRenderedPdf()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         await app.Client
@@ -81,7 +81,7 @@ public class ResumePdfCacheTests(WebApp app) : TestBase
     public async Task DownloadDocument_AfterPersonUpdate_ShouldRenderAgain()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var (_, person) = await app.Client
@@ -127,7 +127,7 @@ public class ResumePdfCacheTests(WebApp app) : TestBase
     public async Task DownloadDocument_AfterSkillCreate_ShouldRenderAgain()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         await app.Client

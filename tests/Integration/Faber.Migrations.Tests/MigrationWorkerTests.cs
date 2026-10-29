@@ -1,4 +1,5 @@
 using Faber.Migrations;
+using Faber.Modules.Auth.Infrastructure.Database;
 using Faber.Modules.Resumes.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -11,6 +12,7 @@ using Microsoft.Extensions.Options;
 using Npgsql;
 using Shouldly;
 using Testcontainers.PostgreSql;
+using AuthDbConst = Faber.Modules.Auth.Infrastructure.Database.DbConstants;
 using ResumesDbConst = Faber.Modules.Resumes.Infrastructure.Database.DbConstants;
 
 namespace Faber.Migrations.Tests;
@@ -86,7 +88,7 @@ public class MigrationWorkerTests : IAsyncLifetime
     public async ValueTask DisposeAsync() => await _postgres.DisposeAsync();
 
     [Fact]
-    public async Task RunWorker_AppliesResumesMigrations()
+    public async Task RunWorker_AppliesMigrationsForBothContexts()
     {
         var connStr = _postgres.GetConnectionString();
 
@@ -99,10 +101,14 @@ public class MigrationWorkerTests : IAsyncLifetime
         var resumesRows = await QueryCount(conn,
             $"SELECT COUNT(*) FROM \"{ResumesDbConst.SchemaName}\".\"{ResumesDbConst.MigrationsHistoryTableName}\"", ct);
         resumesRows.ShouldBeGreaterThan(0, "ResumesDbContext migration history should have rows");
+
+        var authRows = await QueryCount(conn,
+            $"SELECT COUNT(*) FROM \"{AuthDbConst.SchemaName}\".\"{AuthDbConst.MigrationsHistoryTableName}\"", ct);
+        authRows.ShouldBeGreaterThan(0, "AuthDbContext migration history should have rows");
     }
 
     [Fact]
-    public async Task RunWorker_InDevelopment_AppliesResumesMigrations()
+    public async Task RunWorker_InDevelopment_AppliesMigrationsForBothContexts()
     {
         var connStr = _postgres.GetConnectionString();
         var ct = TestContext.Current.CancellationToken;
@@ -115,6 +121,10 @@ public class MigrationWorkerTests : IAsyncLifetime
         var resumesRows = await QueryCount(conn,
             $"SELECT COUNT(*) FROM \"{ResumesDbConst.SchemaName}\".\"{ResumesDbConst.MigrationsHistoryTableName}\"", ct);
         resumesRows.ShouldBeGreaterThan(0, "Development must run ResumesDbContext migrations");
+
+        var authRows = await QueryCount(conn,
+            $"SELECT COUNT(*) FROM \"{AuthDbConst.SchemaName}\".\"{AuthDbConst.MigrationsHistoryTableName}\"", ct);
+        authRows.ShouldBeGreaterThan(0, "Development must run AuthDbContext migrations");
     }
 
     [Fact]
@@ -167,8 +177,9 @@ public class MigrationWorkerTests : IAsyncLifetime
                     $"""
                      CREATE ROLE limited_migrator LOGIN PASSWORD 'limited';
                      REVOKE CREATE ON DATABASE "{admin.Database}" FROM PUBLIC;
-                     GRANT USAGE ON SCHEMA "{ResumesDbConst.SchemaName}" TO limited_migrator;
-                     GRANT SELECT ON "{ResumesDbConst.SchemaName}"."{ResumesDbConst.MigrationsHistoryTableName}"
+                     GRANT USAGE ON SCHEMA "{ResumesDbConst.SchemaName}", "{AuthDbConst.SchemaName}" TO limited_migrator;
+                     GRANT SELECT ON "{ResumesDbConst.SchemaName}"."{ResumesDbConst.MigrationsHistoryTableName}",
+                                     "{AuthDbConst.SchemaName}"."{AuthDbConst.MigrationsHistoryTableName}"
                            TO limited_migrator;
                      """, ct);
             }
@@ -356,6 +367,12 @@ file static class HostBuilderExtensions
                     ResumesDbConst.SchemaName))
             .UseSnakeCaseNamingConvention());
 
+        builder.Services.AddDbContext<AuthDbContext>(o => o
+            .UseNpgsql(connectionString, npgsql =>
+                npgsql.MigrationsHistoryTable(
+                    AuthDbConst.MigrationsHistoryTableName,
+                    AuthDbConst.SchemaName))
+            .UseSnakeCaseNamingConvention());
 
         return builder;
     }

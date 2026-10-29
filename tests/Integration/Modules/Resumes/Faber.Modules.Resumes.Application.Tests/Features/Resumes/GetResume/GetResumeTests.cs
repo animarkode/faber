@@ -32,7 +32,7 @@ public class GetResumeTests(WebApp app) : TestBase
     public async Task GetResume_ShouldReturnCreatedResume()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
 
         var createRequest = new CreateResumeRequest("en-us");
 
@@ -56,7 +56,7 @@ public class GetResumeTests(WebApp app) : TestBase
     public async Task NonExistentResume_ShouldReturnForbidden()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
 
         var getRequest = new GetResumeRequest(Guid.NewGuid());
 
@@ -72,10 +72,10 @@ public class GetResumeTests(WebApp app) : TestBase
     public async Task CrossUserGet_ShouldReturnForbidden()
     {
         var ct = TestContext.Current.CancellationToken;
-        var userAToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var userAToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, userAToken, ct: ct);
 
-        var userBToken = await ResumesTestHelper.SignInAsUserAsync(app.Client, 1, ct);
+        var userBToken = await ResumesTestHelper.SignInAsUserAsync(app, 1, ct);
 
         var (httpResponse, _) = await app.Client
             .WithAuthToken(userBToken)

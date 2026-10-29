@@ -43,33 +43,7 @@ public static class DependencyInjection
         if (string.IsNullOrEmpty(connectionString))
         {
             var vaultModuleApi = services.BuildServiceProvider().GetRequiredService<IVaultModuleApi>();
-
-            var host = await vaultModuleApi.GetSecretValueAsync(
-                VaultConstants.Paths.Database,
-                VaultConstants.DefaultMountPoint,
-                VaultConstants.Keys.Database.Host);
-
-            var port = await vaultModuleApi.GetSecretValueAsync(
-                VaultConstants.Paths.Database,
-                VaultConstants.DefaultMountPoint,
-                VaultConstants.Keys.Database.Port);
-
-            var name = await vaultModuleApi.GetSecretValueAsync(
-                VaultConstants.Paths.Database,
-                VaultConstants.DefaultMountPoint,
-                VaultConstants.Keys.Database.Name);
-
-            var username = await vaultModuleApi.GetSecretValueAsync(
-                VaultConstants.Paths.Database,
-                VaultConstants.DefaultMountPoint,
-                VaultConstants.Keys.Database.Username);
-
-            var password = await vaultModuleApi.GetSecretValueAsync(
-                VaultConstants.Paths.Database,
-                VaultConstants.DefaultMountPoint,
-                VaultConstants.Keys.Database.Password);
-
-            connectionString = $"Host={host};Port={port};Database={name};Username={username};Password={password}";
+            connectionString = await vaultModuleApi.GetDatabaseConnectionStringAsync();
         }
 
         services.AddDbContext<ResumesDbContext>((sp, o) => o

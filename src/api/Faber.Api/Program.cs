@@ -11,8 +11,6 @@ using Faber.Modules.Vault.Application;
 using Faber.ServiceDefaults;
 using FastEndpoints;
 using FastEndpoints.Swagger;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using Serilog;
 
@@ -36,36 +34,15 @@ builder.Services
     });
 
 builder.Services
-    .AddAuthModule()
     .AddDocumentsModule()
     .AddVaultModule(builder.Environment, builder.Configuration);
 
+await builder.Services.AddAuthModuleAsync(builder.Configuration);
 await builder.Services.AddResumesModuleAsync(builder.Configuration);
 
 builder.Services.AddApiReadinessChecks();
 
 builder.Services.AddFaberCaching(builder.Configuration);
-
-builder.Services
-    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(o =>
-    {
-        o.Authority = builder.Configuration["Keycloak:Issuer"];
-        o.Audience = builder.Configuration["Keycloak:Audience"];
-        o.RequireHttpsMetadata = false;
-        o.MapInboundClaims = false;
-
-        o.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidIssuer = builder.Configuration["Keycloak:Issuer"],
-            ValidateAudience = true,
-            ValidAudience = builder.Configuration["Keycloak:Audience"],
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ClockSkew = TimeSpan.Zero
-        };
-    });
 
 builder.Services.AddExceptionHandler<OperationCanceledExceptionHandler>();
 builder.Services.AddExceptionHandler<ValidationExceptionHandler>();
@@ -83,6 +60,8 @@ var app = builder.Build();
 app.MapDefaultEndpoints();
 
 app.UseForwardedHeaders();
+
+app.UseFaberSecurityHeaders(app.Environment);
 
 app
     .UseExceptionHandler()
@@ -120,6 +99,8 @@ if (app.Environment.IsProduction())
         context => context.Connection.LocalPort != 7107,
         branch => branch.UseHttpsRedirection());
 }
+
+app.UseFaberCsrfProtection();
 
 app.UseAuthentication();
 

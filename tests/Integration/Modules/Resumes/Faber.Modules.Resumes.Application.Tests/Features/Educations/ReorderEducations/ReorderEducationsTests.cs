@@ -34,7 +34,7 @@ public class ReorderEducationsTests(WebApp app) : TestBase
     public async Task ReorderEducations_ShouldPersistNewOrder()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var ids = await CreateEducationsAsync(accessToken, resume.Id, 3);
@@ -62,7 +62,7 @@ public class ReorderEducationsTests(WebApp app) : TestBase
     public async Task MismatchedIds_ShouldReturnNotFound()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var ids = await CreateEducationsAsync(accessToken, resume.Id, 2);
@@ -82,7 +82,7 @@ public class ReorderEducationsTests(WebApp app) : TestBase
     public async Task EmptyOrderedIds_ShouldReturnBadRequest()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var httpResponse = await app.Client
@@ -98,7 +98,7 @@ public class ReorderEducationsTests(WebApp app) : TestBase
     public async Task DuplicateOrderedIds_ShouldReturnBadRequest()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var duplicate = Guid.NewGuid();
@@ -116,12 +116,12 @@ public class ReorderEducationsTests(WebApp app) : TestBase
     public async Task CrossUserReorder_ShouldReturnForbidden()
     {
         var ct = TestContext.Current.CancellationToken;
-        var userAToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var userAToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, userAToken, ct: ct);
 
         var ids = await CreateEducationsAsync(userAToken, resume.Id, 2);
 
-        var userBToken = await ResumesTestHelper.SignInAsUserAsync(app.Client, 1, ct);
+        var userBToken = await ResumesTestHelper.SignInAsUserAsync(app, 1, ct);
 
         var httpResponse = await app.Client
             .WithAuthToken(userBToken)

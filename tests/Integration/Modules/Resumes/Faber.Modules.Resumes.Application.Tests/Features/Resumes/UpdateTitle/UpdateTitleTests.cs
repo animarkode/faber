@@ -33,7 +33,7 @@ public class UpdateTitleTests(WebApp app) : TestBase
     public async Task UpdateTitle_ShouldModifyTitle()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var updateRequest = new UpdateTitleRequest(resume.Id, "My Custom Title");
@@ -56,7 +56,7 @@ public class UpdateTitleTests(WebApp app) : TestBase
     public async Task NonExistentResume_ShouldReturnForbidden()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
 
         var httpResponse = await app.Client
             .WithAuthToken(accessToken)
@@ -71,7 +71,7 @@ public class UpdateTitleTests(WebApp app) : TestBase
     public async Task TitleLongerThan100Characters_ShouldReturnBadRequest()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var updateRequest = new UpdateTitleRequest(resume.Id, new string('a', 101));
@@ -89,7 +89,7 @@ public class UpdateTitleTests(WebApp app) : TestBase
     public async Task WhitespaceTitle_ShouldPersistAsEmptyFallbackValue()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var updateResponse = await app.Client

@@ -1,3 +1,4 @@
+using Faber.Modules.Auth.Infrastructure.Database;
 using Faber.Modules.Resumes.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Infrastructure;
@@ -27,6 +28,7 @@ public class MigrationWorker(
             if (succeeded)
             {
                 succeeded &= await TryMigrateAsync<ResumesDbContext>("ResumesDbContext", stoppingToken);
+                succeeded &= await TryMigrateAsync<AuthDbContext>("AuthDbContext", stoppingToken);
             }
         }
         catch (Exception ex)

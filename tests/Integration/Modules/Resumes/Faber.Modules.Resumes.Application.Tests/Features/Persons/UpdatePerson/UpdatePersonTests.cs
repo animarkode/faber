@@ -38,7 +38,7 @@ public class UpdatePersonTests(WebApp app) : TestBase
     public async Task UpdatePerson_ShouldModifyFields()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var createRequest = new CreatePersonRequestFaker(resume.Id).Generate();
@@ -85,7 +85,7 @@ public class UpdatePersonTests(WebApp app) : TestBase
     public async Task NonExistentPerson_ShouldReturnNotFound()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var person = new CreatePersonRequestFaker(resume.Id).Generate();
@@ -105,7 +105,7 @@ public class UpdatePersonTests(WebApp app) : TestBase
     public async Task CrossUserUpdatePerson_ShouldReturnForbidden()
     {
         var ct = TestContext.Current.CancellationToken;
-        var userAToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var userAToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, userAToken, ct: ct);
 
         var createRequest = new CreatePersonRequestFaker(resume.Id).Generate();
@@ -114,7 +114,7 @@ public class UpdatePersonTests(WebApp app) : TestBase
             .WithAuthToken(userAToken)
             .POSTAsync<CreatePersonEndpoint, CreatePersonRequest, CreatePersonResponse>(createRequest);
 
-        var userBToken = await ResumesTestHelper.SignInAsUserAsync(app.Client, 1, ct);
+        var userBToken = await ResumesTestHelper.SignInAsUserAsync(app, 1, ct);
 
         var updated = new CreatePersonRequestFaker(resume.Id, seed: 12002).Generate();
         var httpResponse = await app.Client
@@ -134,7 +134,7 @@ public class UpdatePersonTests(WebApp app) : TestBase
     public async Task UpdatePerson_WithInvalidData_ShouldReturnBadRequest(UpdatePersonRequest invalidRequest)
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var createRequest = new CreatePersonRequestFaker(resume.Id).Generate();
@@ -156,7 +156,7 @@ public class UpdatePersonTests(WebApp app) : TestBase
     public async Task FirstNameUpdate_ShouldSnapshotFullNameIntoResumeTitle()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var createRequest = new CreatePersonRequestFaker(resume.Id).Generate() with
@@ -202,7 +202,7 @@ public class UpdatePersonTests(WebApp app) : TestBase
     public async Task SecondNameUpdate_ShouldLeaveResumeTitleUnchanged()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var createRequest = new CreatePersonRequestFaker(resume.Id).Generate() with
@@ -254,7 +254,7 @@ public class UpdatePersonTests(WebApp app) : TestBase
     public async Task ManualTitleUpdateThenNameUpdate_ShouldLeaveManualTitleUnchanged()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var createRequest = new CreatePersonRequestFaker(resume.Id).Generate();
@@ -300,7 +300,7 @@ public class UpdatePersonTests(WebApp app) : TestBase
     public async Task NameUpdateWithBlankNames_ShouldLeaveResumeTitleNull()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var createRequest = new CreatePersonRequestFaker(resume.Id).Generate() with

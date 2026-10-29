@@ -1,7 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
-using Faber.Modules.Auth.Application.Features.SignIn;
 using Faber.Testing.Shared.Data;
 using Faber.Testing.Shared.Http;
 using FastEndpoints.Testing;
@@ -26,17 +25,16 @@ public class RateLimitingTests(WebApp app) : TestBase
         return client;
     }
 
-    // Global-anonymous probe. `Me` carries no named rate limiting policy — epic #331 designates it
-    // as baseline-only — so these tests exercise the global anonymous limiter itself. Sign-out used
-    // to play this role but now carries auth-session. Without a bearer token there is no `sub`
-    // claim, so the request lands on the IP partition, and a deterministic 401 comes back:
+    // Global-anonymous probe. `user` carries no named rate limiting policy — epic #331 designated its
+    // predecessor `me` as baseline-only — so these tests exercise the global anonymous limiter itself.
+    // Without a session or bearer token there is no `sub` claim, so the request lands on the IP partition, and a deterministic 401 comes back:
     // UseFaberRateLimiting runs before UseAuthorization, so an exhausted budget still yields 429
     // rather than 401.
     private static async Task<HttpResponseMessage> GetAnonymousProbeAsync(
         HttpClient client,
         string? forwardedFor = null)
     {
-        using var request = new HttpRequestMessage(HttpMethod.Get, MeUri);
+        using var request = new HttpRequestMessage(HttpMethod.Get, UserUri);
 
         if (forwardedFor is not null)
         {
@@ -46,23 +44,11 @@ public class RateLimitingTests(WebApp app) : TestBase
         return await client.SendAsync(request, TestContext.Current.CancellationToken);
     }
 
-    private async Task<string> SignInAsync(string username, string password, string clientIp)
+    private async Task<string> SignInAsync(TestUser user)
     {
-        using var client = CreateClientWithIp(clientIp);
+        var tokens = await app.Keycloak.GetTokensAsync(user.Email, user.Password, TestContext.Current.CancellationToken);
 
-        var response = await client.PostAsJsonAsync(
-            SignInUri,
-            new SignInRequest(username, password),
-            TestContext.Current.CancellationToken);
-
-        response.StatusCode.ShouldBe(HttpStatusCode.OK);
-
-        var signInResponse = await response.Content.ReadFromJsonAsync<SignInResponse>(
-            TestContext.Current.CancellationToken);
-
-        signInResponse.ShouldNotBeNull();
-
-        return signInResponse.AccessToken;
+        return tokens["access_token"]!.GetValue<string>();
     }
 
     [Fact]
@@ -78,24 +64,15 @@ public class RateLimitingTests(WebApp app) : TestBase
         options.GlobalAnonymous.SegmentsPerWindow.ShouldBe(TestSegmentsPerWindow);
         options.GlobalAuthenticated.WindowSeconds.ShouldBe(TestWindowSeconds);
         options.GlobalAuthenticated.SegmentsPerWindow.ShouldBe(TestSegmentsPerWindow);
-        options.AuthStrict.PermitLimit.ShouldBe(AuthStrictPermitLimit);
-        options.AuthStrict.WindowSeconds.ShouldBe(TestWindowSeconds);
-        options.AuthStrict.SegmentsPerWindow.ShouldBe(TestSegmentsPerWindow);
-        options.AuthPasswordReset.PermitLimit.ShouldBe(AuthPasswordResetPermitLimit);
-        options.AuthPasswordReset.WindowSeconds.ShouldBe(TestWindowSeconds);
-        options.AuthPasswordReset.SegmentsPerWindow.ShouldBe(TestSegmentsPerWindow);
-        options.AuthRefresh.PermitLimit.ShouldBe(AuthRefreshPermitLimit);
-        options.AuthRefresh.WindowSeconds.ShouldBe(TestWindowSeconds);
-        options.AuthRefresh.SegmentsPerWindow.ShouldBe(TestSegmentsPerWindow);
+        options.AuthExternal.PermitLimit.ShouldBe(AuthExternalPermitLimit);
+        options.AuthExternal.WindowSeconds.ShouldBe(TestWindowSeconds);
+        options.AuthExternal.SegmentsPerWindow.ShouldBe(TestSegmentsPerWindow);
         options.AuthSession.PermitLimit.ShouldBe(AuthSessionPermitLimit);
         options.AuthSession.WindowSeconds.ShouldBe(TestWindowSeconds);
         options.AuthSession.SegmentsPerWindow.ShouldBe(TestSegmentsPerWindow);
         options.AuthenticatedDefault.PermitLimit.ShouldBe(AuthenticatedDefaultPermitLimit);
         options.AuthenticatedDefault.WindowSeconds.ShouldBe(TestWindowSeconds);
         options.AuthenticatedDefault.SegmentsPerWindow.ShouldBe(TestSegmentsPerWindow);
-        options.UserLookup.PermitLimit.ShouldBe(UserLookupPermitLimit);
-        options.UserLookup.WindowSeconds.ShouldBe(TestWindowSeconds);
-        options.UserLookup.SegmentsPerWindow.ShouldBe(TestSegmentsPerWindow);
     }
 
     [Fact]
@@ -190,26 +167,24 @@ public class RateLimitingTests(WebApp app) : TestBase
     public async Task AuthenticatedUsers_ShouldHaveIsolatedPartitions()
     {
         var users = RegisteredUsersData.Generate();
-        var (firstUser, firstPassword) = users[0];
-        var (secondUser, secondPassword) = users[1];
 
-        var firstToken = await SignInAsync(firstUser.Username, firstPassword, "203.0.113.30");
-        var secondToken = await SignInAsync(secondUser.Username, secondPassword, "203.0.113.31");
+        var firstToken = await SignInAsync(users[0]);
+        var secondToken = await SignInAsync(users[1]);
 
         using var firstClient = CreateClientWithIp("203.0.113.32").WithAuthToken(firstToken);
         using var secondClient = CreateClientWithIp("203.0.113.32").WithAuthToken(secondToken);
 
         for (var i = 0; i < AuthenticatedPermitLimit; i++)
         {
-            var allowed = await firstClient.GetAsync(MeUri, TestContext.Current.CancellationToken);
+            var allowed = await firstClient.GetAsync(UserUri, TestContext.Current.CancellationToken);
             allowed.StatusCode.ShouldBe(HttpStatusCode.OK);
         }
 
-        var rejected = await firstClient.GetAsync(MeUri, TestContext.Current.CancellationToken);
+        var rejected = await firstClient.GetAsync(UserUri, TestContext.Current.CancellationToken);
         rejected.StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
 
         // Same IP, different user id => separate partition, still allowed.
-        var secondUserResponse = await secondClient.GetAsync(MeUri, TestContext.Current.CancellationToken);
+        var secondUserResponse = await secondClient.GetAsync(UserUri, TestContext.Current.CancellationToken);
         secondUserResponse.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 }
