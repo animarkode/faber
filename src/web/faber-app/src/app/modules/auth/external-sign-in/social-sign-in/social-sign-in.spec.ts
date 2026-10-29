@@ -71,6 +71,38 @@ describe('SocialSignIn', () => {
     ]);
   });
 
+  it("should style every provider with Google's approved light and dark themes", async () => {
+    await render(['google', 'github']);
+
+    const [google, github] = links();
+    expect(google.className).toBe(github.className);
+    for (const token of [
+      'bg-white', 'border-[#747775]', 'text-[#1F1F1F]',
+      'dark:bg-[#131314]', 'dark:border-[#8E918F]', 'dark:text-[#E3E3E3]',
+      'font-provider', 'text-sm', 'font-medium',
+    ]) {
+      expect(google.className).toContain(token);
+    }
+  });
+
+  it('should put the "or" divider above the provider buttons', async () => {
+    await render(['google']);
+
+    const block = root().querySelector('div')!;
+    expect(block.firstElementChild?.textContent?.trim()).toBe('or');
+  });
+
+  it('should put the "or" divider below the buttons when asked', async () => {
+    fixture = TestBed.createComponent(SocialSignIn);
+    fixture.componentRef.setInput('divider', 'after');
+    fixture.detectChanges();
+    http.expectOne(API_ROUTES.auth.external.providers).flush({ providers: ['google'] });
+    await fixture.whenStable();
+
+    const block = root().querySelector('div')!;
+    expect(block.lastElementChild?.textContent?.trim()).toBe('or');
+  });
+
   it('should ignore unknown provider aliases', async () => {
     await render(['gitlab', 'google']);
 

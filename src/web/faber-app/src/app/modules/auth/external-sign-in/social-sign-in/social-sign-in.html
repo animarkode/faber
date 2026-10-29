@@ -1,10 +1,13 @@
 @if (links().length > 0) {
-  <div class="mb-6 flex flex-col gap-3">
+  <div class="flex flex-col gap-3" [class.mt-3]="divider() === 'before'">
+    @if (divider() === 'before') {
+      <ng-container [ngTemplateOutlet]="or" />
+    }
+
     @for (link of links(); track link.id) {
       <a
         [href]="link.href"
-        [class]="link.classes"
-        class="inline-flex h-12 w-full items-center justify-center gap-3 rounded-full border px-6 text-base font-medium no-underline transition-colors hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
+        class="inline-flex h-12 w-full items-center justify-center gap-2.5 rounded-full border border-[#747775] bg-white px-3 font-provider text-sm font-medium text-[#1F1F1F] dark:border-[#8E918F] dark:bg-[#131314] dark:text-[#E3E3E3] no-underline transition-colors hover:opacity-90 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ring">
         @if (link.iconDark) {
           <img [ngSrc]="link.icon" width="20" height="20" alt="" class="dark:hidden" />
           <img [ngSrc]="link.iconDark" width="20" height="20" alt="" class="hidden dark:inline-block" />
@@ -15,10 +18,16 @@
       </a>
     }
 
-    <div class="mt-3 flex items-center gap-3 text-sm text-muted-foreground">
-      <span class="h-px flex-1 bg-line" aria-hidden="true"></span>
-      <span>or</span>
-      <span class="h-px flex-1 bg-line" aria-hidden="true"></span>
-    </div>
+    @if (divider() === 'after') {
+      <ng-container [ngTemplateOutlet]="or" />
+    }
   </div>
 }
+
+<ng-template #or>
+  <div class="my-3 flex items-center gap-3 text-sm text-muted-foreground">
+    <span class="h-px flex-1 bg-line" aria-hidden="true"></span>
+    <span>or</span>
+    <span class="h-px flex-1 bg-line" aria-hidden="true"></span>
+  </div>
+</ng-template>

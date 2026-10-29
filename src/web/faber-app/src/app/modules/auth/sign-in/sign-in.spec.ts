@@ -13,8 +13,17 @@ import { ExternalProvidersStore } from '../external-sign-in/external-providers-s
 import { ExternalSignInErrorStore } from '../external-sign-in/external-sign-in-error-store';
 import { expectNoAxeViolations } from '../../../shared/testing/axe';
 
+/** A settled providers store reporting the given aliases. */
+function providersStore(providers: string[], settled = true) {
+  return {
+    providers: signal(providers),
+    settled: signal(settled),
+    hasKnownProviders: signal(providers.length > 0),
+  };
+}
+
 /** Keeps the page's social buttons from issuing a providers request. */
-const noExternalProviders = { provide: ExternalProvidersStore, useValue: { providers: signal<string[]>([]) } };
+const noExternalProviders = { provide: ExternalProvidersStore, useValue: providersStore([]) };
 
 describe('SignIn', () => {
   let component: SignIn;
@@ -142,4 +151,110 @@ describe('SignIn external sign-in errors', () => {
 
     await expectNoAxeViolations(fixture);
   }, 20000);
+});
+
+describe('SignIn provider choice and email form', () => {
+  let fixture: ComponentFixture<SignIn>;
+
+  const root = () => fixture.nativeElement as HTMLElement;
+  const form = () => root().querySelector('form');
+  const providers = () => root().querySelector('app-social-sign-in');
+  const button = (text: string) =>
+    Array.from(root().querySelectorAll('button')).find((b) => b.textContent?.trim() === text);
+  const accountLink = () =>
+    Array.from(root().querySelectorAll('a')).find((a) => a.textContent?.trim() === 'Create account');
+  const accountQuestion = () =>
+    Array.from(root().querySelectorAll('p')).find((p) => p.textContent?.trim() === "Don't have an account?");
+
+  async function render(store: ReturnType<typeof providersStore>): Promise<void> {
+    await TestBed.configureTestingModule({
+      imports: [SignIn],
+      providers: [
+        provideRouter([]),
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: AuthClient, useValue: { signIn: vi.fn() } },
+        { provide: ExternalProvidersStore, useValue: store },
+      ],
+    }).compileComponents();
+
+    fixture = TestBed.createComponent(SignIn);
+    await fixture.whenStable();
+  }
+
+  async function chooseEmail(): Promise<void> {
+    button('Continue with email')!.click();
+    await fixture.whenStable();
+  }
+
+  it('should show nothing below the heading while providers load', async () => {
+    await render(providersStore([], false));
+
+    expect(form()).toBeNull();
+    expect(providers()).toBeNull();
+    expect(accountLink()).toBeUndefined();
+  });
+
+  it('should show the form straight away when no provider is available', async () => {
+    await render(providersStore([]));
+
+    expect(form()).not.toBeNull();
+    expect(button('Continue with email')).toBeUndefined();
+    expect(accountLink()).toBeDefined();
+  });
+
+  it('should offer providers and a primary e-mail button instead of the form', async () => {
+    await render(providersStore(['google']));
+
+    expect(form()).toBeNull();
+    expect(providers()).not.toBeNull();
+    expect(button('Continue with email')!.className).toContain('before:bg-primary');
+    expect(button('Continue with email')!.querySelector('lucide-icon[name="at-sign"]')).not.toBeNull();
+  });
+
+  it('should show the account question with a menu-style button on the choice', async () => {
+    await render(providersStore(['google']));
+
+    expect(accountQuestion()).toBeDefined();
+    expect(accountLink()!.className).toContain('before:bg-surface');
+    expect(accountLink()!.className).toContain('h-12');
+  });
+
+  it('should replace the providers with the form and focus its first field', async () => {
+    await render(providersStore(['google']));
+
+    await chooseEmail();
+
+    expect(form()).not.toBeNull();
+    expect(providers()).toBeNull();
+    expect(document.activeElement).toBe(form()!.querySelector('input'));
+  });
+
+  it('should drop the account question once the form replaces the choice', async () => {
+    await render(providersStore(['google']));
+
+    await chooseEmail();
+
+    expect(accountLink()).toBeUndefined();
+    expect(accountQuestion()).toBeUndefined();
+  });
+
+  it('should label the submit button Continue', async () => {
+    await render(providersStore([]));
+
+    expect(form()!.querySelector('button[type="submit"]')!.textContent?.trim()).toBe('Continue');
+  });
+
+  it('should have no AXE violations on the provider choice', { timeout: 20000 }, async () => {
+    await render(providersStore(['google', 'github']));
+
+    await expectNoAxeViolations(fixture);
+  });
+
+  it('should have no AXE violations on the email form', { timeout: 20000 }, async () => {
+    await render(providersStore(['google', 'github']));
+    await chooseEmail();
+
+    await expectNoAxeViolations(fixture);
+  });
 });

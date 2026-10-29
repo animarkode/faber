@@ -40,4 +40,15 @@ describe('FbButton', () => {
       expect(classes).not.toMatch(/bg-destructive\/\d/);
     });
   });
+
+  it('menu matches the navbar links: surface fill that shrinks and darkens on hover', async () => {
+    fixture.componentRef.setInput('variant', 'menu');
+    await fixture.whenStable();
+    const classes = (fixture.nativeElement as HTMLElement).className;
+
+    expect(classes).toContain('before:bg-surface');
+    expect(classes).toContain('text-foreground/80');
+    expect(classes).toContain('hover:before:scale-[0.955]');
+    expect(classes).toContain('hover:before:bg-[color-mix(in_oklch,var(--color-surface)_80%,var(--color-foreground))]');
+  });
 });

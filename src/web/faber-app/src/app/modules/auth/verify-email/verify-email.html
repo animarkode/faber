@@ -1,22 +1,9 @@
 <fb-auth-card aria-label="Verify email">
-  <header class="relative mb-8 flex w-full flex-col items-start gap-2.5 text-left">
-    <div class="flex w-full items-center justify-between">
-      <span class="font-serif text-4xl font-bold text-foreground">Verify email</span>
-      <div class="flex items-center gap-1.5">
-        <fb-theme-toggle />
-        <a fb-icon-button intent="surface" size="lg" routerLink="/" aria-label="Go to home page">
-          <lucide-icon name="x" [size]="18" [strokeWidth]="2" aria-hidden="true" />
-        </a>
-      </div>
-    </div>
-    <p class="max-w-[34ch] text-[0.96rem] leading-relaxed text-muted-foreground">
-      Confirm your email address to activate your account.
-    </p>
-  </header>
+  <h1 class="mb-8 text-center font-serif text-4xl font-bold text-foreground">Verify email</h1>
 
   @if (verifying()) {
     <div class="flex flex-col items-center gap-4 text-center" role="status" aria-live="polite">
-      <span class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-muted px-4 text-[0.95rem] font-bold tracking-[0.01em] text-muted-foreground dark:text-foreground">
+      <span class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-card px-4 text-[0.95rem] font-bold tracking-[0.01em] text-muted-foreground dark:text-foreground">
         <span class="inline-block h-4 w-4 animate-spin rounded-full border-2 border-solid border-current border-e-transparent" aria-hidden="true"></span>
         Verifying…
       </span>
@@ -24,11 +11,10 @@
 
   } @else if (error()) {
     <div class="flex flex-col items-center gap-4 text-center" role="alert">
-      <span class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-destructive/12 px-4 text-[0.95rem] font-bold tracking-[0.01em] text-destructive-text">
+      <span class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-destructive px-4 text-[0.95rem] font-bold tracking-[0.01em] text-destructive-foreground">
         <lucide-icon name="x" [size]="16" [strokeWidth]="2.5" class="shrink-0" aria-hidden="true" />
         Not verified
       </span>
-      <p class="max-w-[30ch] text-[0.9rem] leading-relaxed text-muted-foreground">{{ error() }}</p>
       <button
         fb-button
         variant="primary"
@@ -36,19 +22,16 @@
         type="button"
         (click)="navigateToSignIn()"
         class="w-full font-bold tracking-[0.01em]">
-        Go to Sign In
+        Continue
       </button>
     </div>
 
   } @else if (verified()) {
     <div class="flex flex-col items-center gap-4 text-center" role="status">
-      <span class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-success/15 px-4 text-[0.95rem] font-bold tracking-[0.01em] text-success-text">
+      <span class="inline-flex min-h-12 w-full items-center justify-center gap-2 rounded-full bg-success-solid px-4 text-[0.95rem] font-bold tracking-[0.01em] text-success-foreground">
         <lucide-icon name="check" [size]="16" [strokeWidth]="2.5" class="shrink-0" aria-hidden="true" />
         Email verified
       </span>
-      <p class="max-w-[30ch] text-[0.9rem] leading-relaxed text-muted-foreground">
-        Your email is confirmed. You can now sign in and start building.
-      </p>
       <button
         fb-button
         variant="primary"
@@ -56,7 +39,7 @@
         type="button"
         (click)="navigateToSignIn()"
         class="w-full font-bold tracking-[0.01em]">
-        Sign In
+        Continue
       </button>
     </div>
   }

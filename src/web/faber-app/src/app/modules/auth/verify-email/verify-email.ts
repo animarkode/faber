@@ -1,17 +1,15 @@
 import { ChangeDetectionStrategy, Component, DestroyRef, inject, OnInit, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { Check, LUCIDE_ICONS, LucideAngularModule, LucideIconProvider, X } from 'lucide-angular';
 import { AuthClient } from '../auth-client';
 import { APP_ROUTES } from '../../../core/routes/app-routes';
 import { FbAuthCard } from '../../../shared/components/fb-auth-card/fb-auth-card';
 import { FbButton } from '../../../shared/components/fb-button/fb-button';
-import { FbIconButton } from '../../../shared/components/fb-icon-button/fb-icon-button';
-import { FbThemeToggle } from '../../../shared/components/fb-theme-toggle/fb-theme-toggle';
 
 @Component({
   selector: 'app-verify-email',
-  imports: [RouterLink, FbAuthCard, FbButton, FbIconButton, FbThemeToggle, LucideAngularModule],
+  imports: [FbAuthCard, FbButton, LucideAngularModule],
   providers: [{ provide: LUCIDE_ICONS, multi: true, useValue: new LucideIconProvider({ X, Check }) }],
   templateUrl: './verify-email.html',
   changeDetection: ChangeDetectionStrategy.OnPush,

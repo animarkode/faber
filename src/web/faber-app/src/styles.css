@@ -49,6 +49,11 @@ body {
   --color-destructive-soft-hover: oklch(91% 0.05 25);
   --color-destructive-hover: oklch(52% 0.20 27);
   --color-success: oklch(56% 0.13 160);
+  /* Solid success fill with white text (verify-email pill), the green
+     counterpart of destructive + destructive-foreground. --color-success is
+     too light for white text, so it stays the tint base. Same in both themes. */
+  --color-success-solid: oklch(50% 0.13 160);
+  --color-success-foreground: oklch(98% 0.01 264);
   --color-warning: oklch(64% 0.14 75);
   --color-info: oklch(57% 0.15 230);
 
@@ -81,6 +86,8 @@ body {
   --font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
   /* Editorial headings, resume names, dialog titles — Playfair Display variable (wght 700–900) */
   --font-serif: 'Playfair Display', ui-serif, Georgia, serif;
+  /* Social sign-in buttons only — Google's branding guidelines require Google Sans Medium (wght 500) */
+  --font-provider: 'Google Sans', ui-sans-serif, system-ui, sans-serif;
 
   /* Builder brand accent tokens */
   --color-brand-yellow: #F5B400;

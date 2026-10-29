@@ -110,6 +110,12 @@ describe('FbInput', () => {
     expect(input?.placeholder).toBe('Enter email');
   });
 
+  it('should use 16px text on a phone so iOS Safari does not zoom in on focus', () => {
+    hostFixture.detectChanges();
+    const input = hostFixture.nativeElement.querySelector('input');
+    expect(input?.className).toContain('max-sm:text-base');
+  });
+
   // --- CVA: value binding ---
 
   it('should display value set via writeValue', async () => {

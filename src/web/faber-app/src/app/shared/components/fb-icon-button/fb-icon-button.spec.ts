@@ -43,6 +43,13 @@ describe('FbIconButton', () => {
       expect(surfaceClasses).toContain('border-line');
     });
 
+    it('keeps its hairline border visible', () => {
+      // `border-none` also sets Tailwind v4's `--tw-border-style: none`, which
+      // `border-[0.5px]` reads back, so the outline vanished and the card-on-card
+      // button (and its hover radius change) became invisible.
+      expect(classes()).not.toContain('border-none');
+    });
+
     it('contracts its rounded corners on hover', () => {
       expect(classes()).toContain('rounded-[1.25rem]');
       expect(classes()).toContain('hover:rounded-xl');

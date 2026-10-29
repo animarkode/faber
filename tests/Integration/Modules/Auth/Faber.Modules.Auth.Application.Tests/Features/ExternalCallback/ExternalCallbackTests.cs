@@ -6,6 +6,7 @@ using Faber.Modules.Auth.Application.Features.Shared.Requests;
 using Faber.Modules.Auth.Application.Tests.Features.Me;
 using Faber.Modules.Auth.Application.Tests.Features.Refresh;
 using Faber.Modules.Auth.Application.Tests.Features.Shared;
+using Faber.Modules.Auth.Application.Tests.Features.SignOut;
 using Faber.Modules.Auth.Domain.Enums;
 using Faber.Modules.Common.PublicApi;
 using Faber.Modules.Identity.PublicApi;
@@ -197,6 +198,30 @@ public class ExternalCallbackTests(WebApp app) : TestBase
             ct);
 
         me.StatusCode.ShouldBe(HttpStatusCode.OK);
+    }
+
+    [Fact]
+    public async Task StandInSessionSignOut_ShouldRevokeTheRefreshToken()
+    {
+        var ct = TestContext.Current.CancellationToken;
+        var webHeaders = new Dictionary<string, string>
+        {
+            { RefreshConstants.ClientTypeHeader, nameof(ClientType.Web) }
+        };
+        var (callbackUrl, stateCookie) = await AuthenticateWithStandInAsync(app);
+        using var callback = await GetAsync(app, callbackUrl, stateCookie);
+        var refreshCookie = new Cookie(
+            CookieConstants.RefreshTokenKey,
+            CookieValue(callback, CookieConstants.RefreshTokenKey).ShouldNotBeNull());
+        var request = new RefreshTokenRequest(null, nameof(ClientType.Web));
+        using var client = CreateClient(app);
+
+        var signOut = await client.PostWithCookiesAsync(SignOutConstants.RequestUri, request, refreshCookie, webHeaders, ct);
+        var (refresh, _) = await client.PostWithCookiesAsync<RefreshTokenRequest, RefreshResponse>(
+            RefreshConstants.RequestUri, request, refreshCookie, webHeaders, ct);
+
+        signOut.StatusCode.ShouldBe(HttpStatusCode.NoContent);
+        refresh.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
     }
 
     [Fact]
