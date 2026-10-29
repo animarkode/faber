@@ -1,14 +1,8 @@
 import { Routes } from '@angular/router';
 import { authGuard } from './core/auth/guards/auth-guard';
-import { notAuthGuard } from './core/auth/guards/not-auth-guard';
 import { ResumesStore } from './modules/resumes/resumes-store';
 
 export const routes: Routes = [
-  {
-    path: 'auth',
-    loadChildren: () => import('./modules/auth/auth.routes').then(m => m.authRoutes),
-    canActivate: [notAuthGuard],
-  },
   {
     path: 'resumes/:id',
     loadComponent: () => import('./modules/resumes/builder/builder').then(m => m.Builder),

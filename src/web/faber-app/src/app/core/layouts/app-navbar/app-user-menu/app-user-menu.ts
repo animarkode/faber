@@ -1,7 +1,7 @@
 import { ChangeDetectionStrategy, Component, inject, input, output } from '@angular/core';
 import { Router, RouterLink } from '@angular/router';
 import { User } from '../../../auth/contracts/user';
-import { AuthClient } from '../../../../modules/auth/auth-client';
+import { AuthClient } from '../../../auth/auth-client';
 import { APP_ROUTES } from '../../../routes/app-routes';
 
 @Component({
@@ -22,10 +22,9 @@ export class AppUserMenu {
 
   logout(): void {
     this.closed.emit();
-    this.authClient.signOut().subscribe(() => {
-      this.router
-        .navigateByUrl(APP_ROUTES.auth.signIn, { skipLocationChange: true })
-        .then(() => this.router.navigate([APP_ROUTES.home]));
+    this.authClient.signOut().subscribe({
+      complete: () => this.router.navigateByUrl(APP_ROUTES.home),
+      error: () => this.router.navigateByUrl(APP_ROUTES.home),
     });
   }
 }

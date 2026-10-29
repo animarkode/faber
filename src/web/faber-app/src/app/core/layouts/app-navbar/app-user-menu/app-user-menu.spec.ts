@@ -3,7 +3,7 @@ import { provideRouter } from '@angular/router';
 import { of } from 'rxjs';
 
 import { AppUserMenu } from './app-user-menu';
-import { AuthClient } from '../../../../modules/auth/auth-client';
+import { AuthClient } from '../../../auth/auth-client';
 import { User } from '../../../auth/contracts/user';
 import { APP_ROUTES } from '../../../routes/app-routes';
 import { expectNoAxeViolations } from '../../../../shared/testing/axe';
@@ -14,10 +14,12 @@ describe('AppUserMenu', () => {
 
   const mockUser: User = {
     id: '1',
-    username: 'jdoe',
+    email: 'john@example.com',
     firstName: 'John',
     lastName: 'Doe',
-    email: 'john@example.com',
+    name: 'John Doe',
+    roles: ['regular'],
+    accountUrl: 'https://keycloak.example/realms/faber/account',
   };
 
   const mockAuthClient = {

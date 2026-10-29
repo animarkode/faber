@@ -16,7 +16,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter } from 'rxjs';
 import { LucideAngularModule } from 'lucide-angular';
 import { AuthStore } from '../../auth/auth-store';
-import { AuthClient } from '../../../modules/auth/auth-client';
+import { API_ROUTES } from '../../routes/api-routes';
 import { APP_ROUTES } from '../../routes/app-routes';
 import { FbSpinner } from '../../../shared/components/fb-spinner/fb-spinner';
 import { FbInitials } from '../../../shared/components/fb-initials/fb-initials';
@@ -39,6 +39,9 @@ import { AppUserMenu } from './app-user-menu/app-user-menu';
 export class AppNavbar implements OnInit {
   protected readonly authStore = inject(AuthStore);
   protected readonly routes = APP_ROUTES;
+  /** Full-page navigations through the API to Keycloak's own sign-in and registration pages. */
+  protected readonly signInUrl = API_ROUTES.auth.login();
+  protected readonly signUpUrl = API_ROUTES.auth.register;
 
   isUserMenuDropdownVisible = signal(false);
   isDrawerOpen = signal(false);
@@ -58,7 +61,6 @@ export class AppNavbar implements OnInit {
     return rect ? window.innerWidth - rect.right : 0;
   });
 
-  private readonly authClient = inject(AuthClient);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly elementRef = inject(ElementRef);
@@ -133,13 +135,5 @@ export class AppNavbar implements OnInit {
 
   closeDrawer(): void {
     this.isDrawerOpen.set(false);
-  }
-
-  logout(): void {
-    this.authClient.signOut().subscribe(() => {
-      this.router
-        .navigateByUrl(APP_ROUTES.auth.signIn, { skipLocationChange: true })
-        .then(() => this.router.navigate([APP_ROUTES.home]));
-    });
   }
 }

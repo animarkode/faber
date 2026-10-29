@@ -64,11 +64,10 @@
             },
             "development": {
               "buildTarget": "faber-app:build:development"
-            },
-            "lan": {
-              "buildTarget": "faber-app:build:development",
-              "host": "0.0.0.0"
             }
+          },
+          "options": {
+            "proxyConfig": "proxy.conf.json"
           },
           "defaultConfiguration": "development"
         },

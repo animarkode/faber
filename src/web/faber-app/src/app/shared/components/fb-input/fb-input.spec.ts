@@ -2,7 +2,6 @@ import { ComponentFixture, TestBed } from '@angular/core/testing';
 import { Component } from '@angular/core';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { FbInput } from './fb-input';
-import { passwordMatchValidator } from '../../../modules/auth/shared/validators/password-match.validator';
 import { expectNoAxeViolations } from '../../testing/axe';
 
 @Component({
@@ -29,13 +28,11 @@ class TestHost {
   imports: [FbInput, ReactiveFormsModule],
 })
 class MismatchHost {
-  form = new FormGroup(
-    {
-      password: new FormControl('abc12345'),
-      confirmPassword: new FormControl('different'),
-    },
-    { validators: passwordMatchValidator('password', 'confirmPassword') },
-  );
+  // A cross-field confirm check reports its failure as a `mismatch` error on the confirm control.
+  form = new FormGroup({
+    password: new FormControl('abc12345'),
+    confirmPassword: new FormControl('different', () => ({ mismatch: true })),
+  });
 }
 
 @Component({

@@ -5,7 +5,7 @@ import { EMPTY, of } from 'rxjs';
 
 import { AppShell } from './app-shell';
 import { AuthStore } from '../../auth/auth-store';
-import { AuthClient } from '../../../modules/auth/auth-client';
+import { AuthClient } from '../../auth/auth-client';
 
 describe('AppShell', () => {
   let component: AppShell;
