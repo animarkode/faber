@@ -1,4 +1,4 @@
-namespace Faber.Modules.Identity.PublicApi;
+namespace Faber.Modules.Auth.PublicApi;
 
 public static class JwtClaimTypes
 {

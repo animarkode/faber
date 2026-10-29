@@ -1,6 +1,6 @@
 # Production health probes
 
-The API container listens for internal HTTP probes on port 7107. The container healthcheck and deployment smoke check should request `http://<api-container>:7107/ready` over the container network and require **HTTP 200**. A 503 means at least one required readiness check failed: the Identity or Resumes PostgreSQL context, Vault health and token access, or the configured Keycloak realm. The response does not disclose dependency details.
+The API container listens for internal HTTP probes on port 7107. The container healthcheck and deployment smoke check should request `http://<api-container>:7107/ready` over the container network and require **HTTP 200**. A 503 means at least one required readiness check failed: the Resumes PostgreSQL context, Vault health and token access, or the configured Keycloak realm. The response does not disclose dependency details.
 
 `http://<api-container>:7107/alive` is the liveness probe. It requires HTTP 200 and remains independent of those dependencies. Use readiness to decide when traffic may be routed; use liveness to detect a stalled API process. Allow for dependency startup and brief outages in the healthcheck's retry and start period settings.
 

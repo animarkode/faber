@@ -1,9 +1,8 @@
 using System.Text.Json;
 using System.Text.Json.Serialization;
-using Faber.Modules.Identity.PublicApi;
+using Faber.Modules.Auth.PublicApi;
 using Faber.Modules.Resumes.Application.Options;
 using Faber.Modules.Resumes.Infrastructure.Database;
-using Faber.Modules.Users.Domain.Enums;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;

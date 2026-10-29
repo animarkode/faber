@@ -15,9 +15,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\Common\Faber.Modules.Common.PublicApi\Faber.Modules.Common.PublicApi.csproj"/>
-        <ProjectReference Include="..\..\Identity\Faber.Modules.Identity.PublicApi\Faber.Modules.Identity.PublicApi.csproj"/>
-        <ProjectReference Include="..\..\Users\Faber.Modules.Users.PublicApi\Faber.Modules.Users.PublicApi.csproj"/>
-        <ProjectReference Include="..\Faber.Modules.Auth.Domain\Faber.Modules.Auth.Domain.csproj"/>
         <ProjectReference Include="..\Faber.Modules.Auth.PublicApi\Faber.Modules.Auth.PublicApi.csproj"/>
     </ItemGroup>
 

@@ -1,5 +1,5 @@
 using Faber.Modules.Common.PublicApi.RateLimiting;
-using Faber.Modules.Identity.PublicApi;
+using Faber.Modules.Auth.PublicApi;
 using Faber.Modules.Resumes.Application.Features.Resumes.Shared;
 using Faber.Modules.Resumes.Application.Groups;
 using FastEndpoints;

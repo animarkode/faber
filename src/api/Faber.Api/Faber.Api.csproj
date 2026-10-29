@@ -33,10 +33,6 @@
         <ProjectReference Include="..\Aspire\Faber.ServiceDefaults\Faber.ServiceDefaults.csproj"/>
         <ProjectReference Include="..\Modules\Auth\Faber.Modules.Auth.Application\Faber.Modules.Auth.Application.csproj"/>
         <ProjectReference Include="..\Modules\Common\Faber.Modules.Common.PublicApi\Faber.Modules.Common.PublicApi.csproj"/>
-        <ProjectReference Include="..\Modules\Identity\Faber.Modules.Identity.Application\Faber.Modules.Identity.Application.csproj"/>
-        <ProjectReference Include="..\Modules\Notifications\Faber.Modules.Notifications.Application\Faber.Modules.Notifications.Application.csproj"/>
-        <ProjectReference Include="..\Modules\Notifications\Faber.Modules.Notifications.PublicApi\Faber.Modules.Notifications.PublicApi.csproj"/>
-        <ProjectReference Include="..\Modules\Users\Faber.Modules.Users.Application\Faber.Modules.Users.Application.csproj"/>
         <ProjectReference Include="..\Modules\Vault\Faber.Modules.Vault.Application\Faber.Modules.Vault.Application.csproj"/>
         <ProjectReference Include="..\Modules\Documents\Faber.Modules.Documents.Application\Faber.Modules.Documents.Application.csproj"/>
         <ProjectReference Include="..\Modules\Resumes\Faber.Modules.Resumes.Application\Faber.Modules.Resumes.Application.csproj"/>

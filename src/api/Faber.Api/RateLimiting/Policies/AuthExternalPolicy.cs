@@ -6,10 +6,10 @@ using Microsoft.Extensions.Options;
 namespace Faber.Api.RateLimiting.Policies;
 
 /// <summary>
-/// <c>auth-external</c>: bounded per-IP sliding window for the anonymous external sign-in redirect and
-/// callback endpoints. They get their own budget rather than sharing <c>auth-strict</c> so that failed
-/// password attempts from an address cannot reject a callback returning from the provider, which would
-/// waste its single-use authorization code.
+/// <c>auth-external</c>: bounded per-IP sliding window for the anonymous sign-in and registration
+/// redirects and the OIDC callback. They get their own budget, separate from the global anonymous
+/// baseline, so ordinary page traffic from a shared address cannot reject a callback returning from
+/// Keycloak and waste its single-use authorization code.
 /// </summary>
 public sealed class AuthExternalPolicy(IOptions<RateLimitingOptions> options) : IRateLimiterPolicy<string>
 {

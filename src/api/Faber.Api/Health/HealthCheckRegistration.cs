@@ -1,4 +1,3 @@
-using Faber.Modules.Identity.Infrastructure.Database;
 using Faber.Modules.Resumes.Infrastructure.Database;
 using Microsoft.Extensions.Diagnostics.HealthChecks;
 
@@ -12,9 +11,6 @@ public static class HealthCheckRegistration
         services.AddHttpClient("health-keycloak", client => client.Timeout = TimeSpan.FromSeconds(4));
 
         services.AddHealthChecks()
-            .AddCheck<DatabaseHealthCheck<IdentityDbContext>>(
-                "identity-db", failureStatus: HealthStatus.Unhealthy, tags: ["ready"],
-                timeout: TimeSpan.FromSeconds(5))
             .AddCheck<DatabaseHealthCheck<ResumesDbContext>>(
                 "resumes-db", failureStatus: HealthStatus.Unhealthy, tags: ["ready"],
                 timeout: TimeSpan.FromSeconds(5))

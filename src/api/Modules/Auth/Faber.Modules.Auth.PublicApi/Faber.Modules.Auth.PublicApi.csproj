@@ -6,12 +6,4 @@
         <Nullable>enable</Nullable>
     </PropertyGroup>
 
-    <ItemGroup>
-        <PackageReference Include="FastEndpoints.Messaging.Core" Version="8.3.0" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <ProjectReference Include="..\..\Identity\Faber.Modules.Identity.PublicApi\Faber.Modules.Identity.PublicApi.csproj"/>
-    </ItemGroup>
-
 </Project>

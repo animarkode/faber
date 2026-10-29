@@ -6,14 +6,9 @@ using Microsoft.Extensions.Options;
 namespace Faber.Api.RateLimiting.Policies;
 
 /// <summary>
-/// <c>auth-session</c>: bounded per-IP sliding window for the anonymous sign-out endpoint. Sign-out
-/// consumes a refresh token and answers 400 for an invalid one against 204 for a valid one, so left
-/// on the global anonymous baseline it is a refresh-token validity oracle running at three times the
-/// budget of <see cref="AuthRefreshPolicy"/>, which consumes the very same credential. It gets its
-/// own budget rather than sharing <c>auth-refresh</c> so that ordinary sign-outs from a shared
-/// address can never exhaust the refresh budget a legitimate session needs to renew itself.
-/// Partitioned by IP rather than user because sign-out is anonymous and never reads the bearer
-/// token, so keying on it would let an attacker buy a second budget just by attaching one.
+/// <c>auth-session</c>: bounded per-IP sliding window for sign-out and Keycloak's back-channel logout.
+/// Back-channel logout is anonymous by design (Keycloak posts a signed logout token), so keying on a
+/// user would be meaningless; partitioning by IP bounds how fast anyone can probe it with forged tokens.
 /// </summary>
 public sealed class AuthSessionPolicy(IOptions<RateLimitingOptions> options) : IRateLimiterPolicy<string>
 {

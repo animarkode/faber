@@ -6,10 +6,7 @@ using Faber.Api.OpenApi;
 using Faber.Api.RateLimiting;
 using Faber.Modules.Auth.Application;
 using Faber.Modules.Documents.Application;
-using Faber.Modules.Identity.Application;
-using Faber.Modules.Notifications.Application;
 using Faber.Modules.Resumes.Application;
-using Faber.Modules.Users.Application;
 using Faber.Modules.Vault.Application;
 using Faber.ServiceDefaults;
 using FastEndpoints;
@@ -40,12 +37,9 @@ builder.Services
 
 builder.Services
     .AddAuthModule()
-    .AddUsersModule()
     .AddDocumentsModule()
-    .AddVaultModule(builder.Environment, builder.Configuration)
-    .AddNotificationsModule(builder.Environment);
+    .AddVaultModule(builder.Environment, builder.Configuration);
 
-await builder.Services.AddIdentityModuleAsync(builder.Environment, builder.Configuration);
 await builder.Services.AddResumesModuleAsync(builder.Configuration);
 
 builder.Services.AddApiReadinessChecks();
@@ -75,12 +69,9 @@ builder.Services
 
 builder.Services.AddExceptionHandler<OperationCanceledExceptionHandler>();
 builder.Services.AddExceptionHandler<ValidationExceptionHandler>();
-builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 builder.Services.AddExceptionHandler<DbUpdateExceptionHandler>();
 builder.Services.AddExceptionHandler<FallbackExceptionHandler>();
 builder.Services.AddProblemDetails();
-
-builder.Services.AddFaberCors(builder.Configuration);
 
 builder.Services.AddFaberForwardedHeaders(builder.Configuration);
 builder.Services.AddFaberRateLimiting();
@@ -122,8 +113,6 @@ if (app.Environment.IsDevelopment())
 }
 
 await app.UseDocumentsModuleAsync();
-
-app.UseCors("Faber.NgApp");
 
 if (app.Environment.IsProduction())
 {
