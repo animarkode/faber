@@ -8,9 +8,9 @@ description: FastEndpoints patterns for Faber — Endpoint, Group, SubGroup, Val
 FastEndpoints replaces Controllers and MinimalAPI in Faber. Most features follow the **Request → Command → Handler → Response** pipeline.
 
 Canonical sources to mirror before generating new code:
-- `src/api/Modules/Auth/Faber.Modules.Auth.Application/Features/SignIn/`
+- `src/api/Modules/Resumes/Faber.Modules.Resumes.Application/Features/Educations/CreateEducation/`
 - `src/api/Modules/Resumes/Faber.Modules.Resumes.Application/Features/Educations/DeleteEducation/`
-- `src/api/Modules/Auth/Faber.Modules.Auth.Application/Features/Refresh/`
+- `src/api/Modules/Auth/Faber.Modules.Auth.Application/Features/User/` (no request) and `Features/Login/` (challenge result)
 - `src/api/Modules/Auth/Faber.Modules.Auth.Application/Groups/`
 - `src/api/Modules/Resumes/Faber.Modules.Resumes.Application/Groups/`
 
@@ -21,96 +21,91 @@ Canonical sources to mirror before generating new code:
 ### Request (DTO)
 
 ```csharp
-// {Feature}Request.cs
-public record SignInRequest(string Username, string Password);
+// {Feature}Request.cs — route values bind by name (ResumeId comes from the subgroup route)
+public record CreateEducationRequest(
+    Guid ResumeId,
+    string? School,
+    string? Degree,
+    DateOnly? StartDate,
+    DateOnly? EndDate,
+    string? City,
+    string? Description);
 ```
 
 ### Command
 
 ```csharp
 // {Feature}Command.cs — ICommand<ErrorOr<T>> from FastEndpoints
-public record SignInCommand(string Username, string Password)
-    : ICommand<ErrorOr<SignInResponse>>;
+public record CreateEducationCommand(
+    Guid ResumeId,
+    string? School,
+    string? Degree,
+    DateOnly? StartDate,
+    DateOnly? EndDate,
+    string? City,
+    string? Description) : ICommand<ErrorOr<CreateEducationResponse>>;
 ```
 
 ### Response
 
 ```csharp
 // {Feature}Response.cs
-public record SignInResponse(string AccessToken, string RefreshToken);
+public record CreateEducationResponse(
+    Guid Id, Guid ResumeId, string? School, string? Degree,
+    DateOnly? StartDate, DateOnly? EndDate, string? City, string? Description, int Order);
 ```
 
 ### Validator
 
 ```csharp
 // {Feature}Validator.cs — Validator<TRequest> from FastEndpoints (FluentValidation-based)
-public class SignInValidator : Validator<SignInRequest>
+public class CreateEducationValidator : Validator<CreateEducationRequest>
 {
-    public SignInValidator()
+    public CreateEducationValidator()
     {
-        RuleFor(x => x.Username)
-            .NotEmpty().WithMessage("Username is required");
+        RuleFor(x => x.School)
+            .MaximumLength(100).WithMessage("'School' must not exceed 100 characters.");
 
-        RuleFor(x => x.Password)
-            .NotEmpty().WithMessage("Password is required")
-            .MinimumLength(8).WithMessage("Password must be at least 8 characters");
-    }
-}
-
-// With injected dependencies (async validation)
-public class SignUpValidator : Validator<SignUpRequest>
-{
-    public SignUpValidator(IIdentityModuleApi identityModuleApi)
-    {
-        RuleFor(x => x.Username)
-            .MustAsync(async (username, ct) =>
-                await identityModuleApi.IsUsernameUniqueAsync(username, ct))
-            .WithMessage("Username already exists");
-
-        RuleFor(x => x.Email)
-            .EmailAddress().WithMessage("Invalid email")
-            .MustAsync(async (email, ct) =>
-                await identityModuleApi.IsEmailUniqueAsync(email, ct))
-            .WithMessage("Email already exists");
-
-        RuleFor(x => x.Password)
-            .Equal(x => x.ConfirmPassword).WithMessage("Passwords do not match");
+        RuleFor(x => x.EndDate)
+            .Must((r, endDate) => endDate >= r.StartDate)
+            .WithMessage("'EndDate' must be greater than or equal to 'StartDate'.")
+            .When(x => x.StartDate.HasValue && x.EndDate.HasValue);
     }
 }
 ```
 
-Validators are **auto-discovered** by FastEndpoints — no manual registration.
+Validators are **auto-discovered** by FastEndpoints — no manual registration. A validator may take
+constructor dependencies for async rules (`MustAsync`).
 
 ### CommandHandler
 
 ```csharp
 // {Feature}CommandHandler.cs — ICommandHandler<TCommand, TResponse>
-public class SignInCommandHandler(
-    IIdentityModuleApi identityModuleApi,
-    ILogger<SignInCommandHandler> logger)
-    : ICommandHandler<SignInCommand, ErrorOr<SignInResponse>>
+public class CreateEducationCommandHandler(
+    ResumesDbContext dbContext,
+    ILogger<CreateEducationCommandHandler> logger)
+    : ICommandHandler<CreateEducationCommand, ErrorOr<CreateEducationResponse>>
 {
-    private const string HandlerName = nameof(SignInCommandHandler);
+    private const string HandlerName = nameof(CreateEducationCommandHandler);
 
-    public async Task<ErrorOr<SignInResponse>> ExecuteAsync(SignInCommand command, CancellationToken ct)
+    public async Task<ErrorOr<CreateEducationResponse>> ExecuteAsync(
+        CreateEducationCommand command,
+        CancellationToken ct)
     {
-        logger.LogInformation("[START] {HandlerName} for {Username}", HandlerName, command.Username);
+        logger.LogInformation("[START] {HandlerName} for resume {ResumeId}", HandlerName, command.ResumeId);
 
-        logger.LogInformation("[STEP] Signing in {Username}", command.Username);
-        var token = await identityModuleApi.SignInAsync(command.Username, command.Password, ct);
+        var resume = await dbContext.Resumes.FirstOrDefaultAsync(r => r.Id == command.ResumeId, ct);
 
-        if (string.IsNullOrEmpty(token.AccessToken) || string.IsNullOrEmpty(token.RefreshToken))
+        if (resume is null)
         {
-            logger.LogWarning("[FAIL] {HandlerName} | Sign in failed for {Username}", HandlerName, command.Username);
-            return Error.Unauthorized("Auth.SignIn", "Sign in failed");
+            logger.LogWarning("[FAIL] {HandlerName} | Resume {ResumeId} not found", HandlerName, command.ResumeId);
+            return Error.NotFound("Resume.NotFound", $"Resume with id '{command.ResumeId}' was not found");
         }
 
-        logger.LogInformation(
-            "[SUCCESS] {HandlerName} | User {Username} signed in successfully",
-            HandlerName,
-            command.Username);
+        // ... create and save the entity ...
 
-        return token.MapToResponse();
+        logger.LogInformation("[SUCCESS] {HandlerName} | Education {EducationId} created", HandlerName, education.Id);
+        return education.MapToResponse();
     }
 }
 ```
@@ -121,17 +116,20 @@ public class SignInCommandHandler(
 - `[FAIL]` — business logic failure (Warning level)
 - `[SUCCESS]` — happy path completed
 
+Never log credentials, tokens or e-mail addresses.
+
 ### Mapper
 
 ```csharp
 // {Feature}Mapper.cs — static class, extension methods only
-public static class SignInMapper
+public static class CreateEducationMapper
 {
-    public static SignInCommand MapToCommand(this SignInRequest request)
-        => new(request.Username, request.Password);
+    public static CreateEducationCommand MapToCommand(this CreateEducationRequest request)
+        => new(request.ResumeId, request.School, request.Degree,
+               request.StartDate, request.EndDate, request.City, request.Description);
 
-    public static SignInResponse MapToResponse(this TokenResponse token)
-        => new(token.AccessToken, token.RefreshToken);
+    public static CreateEducationResponse MapToResponse(this Education education)
+        => new(education.Id, education.ResumeId, /* ... */ education.Order);
 }
 ```
 
@@ -139,45 +137,35 @@ public static class SignInMapper
 
 ```csharp
 // {Feature}Endpoint.cs — Endpoint<TRequest, TResponse>
-public class SignInEndpoint(ILogger<SignInEndpoint> logger)
-    : Endpoint<SignInRequest, Results<Ok<SignInResponse>, UnauthorizedHttpResult>>
+public class CreateEducationEndpoint(ILogger<CreateEducationEndpoint> logger)
+    : Endpoint<CreateEducationRequest, Results<Ok<CreateEducationResponse>, NotFound>>
 {
     public override void Configure()
     {
-        Post("sign-in");
-        Group<AuthGroup>();
+        Post("");
+        Group<EducationsSubGroup>();
+        Policies("ResumeOwnerPolicy");
         Version(1);
-        AllowAnonymous();
+        Options(x => x.RequireRateLimiting(RateLimitPolicies.AuthenticatedDefault));
     }
 
-    public override async Task<Results<Ok<SignInResponse>, UnauthorizedHttpResult>> ExecuteAsync(
-        SignInRequest request,
+    public override async Task<Results<Ok<CreateEducationResponse>, NotFound>> ExecuteAsync(
+        CreateEducationRequest req,
         CancellationToken ct)
     {
         var path = HttpContext.Request.Path.Value;
-        logger.LogInformation("[HTTP POST] {Path} started for {Username}", path, request.Username);
+        logger.LogInformation("[HTTP POST] {Path} started", path);
 
-        var response = await request.MapToCommand().ExecuteAsync(ct);
+        var result = await req.MapToCommand().ExecuteAsync(ct);
 
-        if (response.IsError)
+        if (result.IsError)
         {
-            logger.LogWarning(
-                "[HTTP POST] {Path} failed for {Username}: {Error}",
-                path,
-                request.Username,
-                response.FirstError.Description);
-
-            return TypedResults.Unauthorized();
+            logger.LogWarning("[HTTP POST] {Path} failed: {Error}", path, result.FirstError.Description);
+            return TypedResults.NotFound();
         }
 
-        logger.LogInformation(
-            "[HTTP POST] {Path} completed successfully for {Username}",
-            path,
-            request.Username);
-
-        HttpContext.SetCookiesRefreshToken(response.Value.RefreshToken);
-
-        return TypedResults.Ok(response.Value);
+        logger.LogInformation("[HTTP POST] {Path} completed successfully", path);
+        return TypedResults.Ok(result.Value);
     }
 }
 ```
@@ -185,7 +173,7 @@ public class SignInEndpoint(ILogger<SignInEndpoint> logger)
 ### What the framework returns automatically
 
 - `Validator<TRequest>` failures return **400 Bad Request** before the endpoint handler continues
-- `Policies("ResumeOwnerPolicy")` and default auth can return **403 Forbidden** before typed endpoint results run
+- `Policies("ResumeOwnerPolicy")` and default auth can return **401/403** before typed endpoint results run
 - These framework/middleware responses usually **do not appear** in the endpoint's `Results<...>` generic signature
 
 ---
@@ -264,102 +252,72 @@ Important distinction:
 ### No Request Body
 
 ```csharp
-public class MeEndpoint(ILogger<MeEndpoint> logger)
-    : EndpointWithoutRequest<Results<Ok<MeResponse>, UnauthorizedHttpResult>>
+public class UserEndpoint(IOptions<KeycloakOptions> keycloak) : EndpointWithoutRequest<Ok<UserResponse>>
 {
     public override void Configure()
     {
-        Get("me");
+        Get("user");
         Group<AuthGroup>();
         Version(1);
     }
 
-    public override async Task<Results<Ok<MeResponse>, UnauthorizedHttpResult>> ExecuteAsync(
-        CancellationToken ct)
+    public override Task<Ok<UserResponse>> ExecuteAsync(CancellationToken ct)
     {
-        var userId = HttpContext.User.FindFirst(JwtClaimTypes.Aliases.UserId)?.Value;
-
-        if (string.IsNullOrEmpty(userId))
-        {
-            return TypedResults.Unauthorized();
-        }
-
-        var result = await new MeCommand(userId).ExecuteAsync(ct);
-
-        if (result.IsError)
-        {
-            return TypedResults.Unauthorized();
-        }
-
-        return TypedResults.Ok(result.Value);
+        return Task.FromResult(TypedResults.Ok(User.MapToResponse(keycloak.Value.AccountUrl)));
     }
 }
 ```
 
-### Refresh Token (custom base)
+### Redirect or challenge
+
+An endpoint that hands the browser to another flow returns a result instead of writing the response
+itself. Calling `HttpContext.ChallengeAsync(...)` from `HandleAsync` does not work: FastEndpoints sends
+its own `204` afterwards.
 
 ```csharp
-// Custom base class handles cookie (web) vs header (mobile) extraction
-public class RefreshEndpoint(ILogger<RefreshEndpoint> logger)
-    : EndpointWithRefreshToken<Results<Ok<RefreshResponse>, BadRequest<Error>, UnauthorizedHttpResult>>
+public class LoginEndpoint : EndpointWithoutRequest<Results<ChallengeHttpResult, RedirectHttpResult>>
 {
     public override void Configure()
     {
-        Post("refresh");
+        Get("login");
         Group<AuthGroup>();
         Version(1);
         AllowAnonymous();
+        Options(x => x.RequireRateLimiting(RateLimitPolicies.AuthExternal));
     }
 
-    public override async Task<Results<Ok<RefreshResponse>, BadRequest<Error>, UnauthorizedHttpResult>> ExecuteAsync(
-        RefreshTokenRequest request,
-        CancellationToken ct)
-    {
-        var refreshToken = GetRefreshToken(request);
-
-        if (string.IsNullOrEmpty(refreshToken))
-        {
-            return TypedResults.Unauthorized();
-        }
-
-        var response = await request.MapToCommand(refreshToken).ExecuteAsync(ct);
-
-        if (response.IsError)
-        {
-            return TypedResults.BadRequest(response.FirstError);
-        }
-
-        HttpContext.SetCookiesRefreshToken(response.Value.RefreshToken);
-
-        return TypedResults.Ok(response.Value);
-    }
+    public override Task<Results<ChallengeHttpResult, RedirectHttpResult>> ExecuteAsync(CancellationToken ct)
+        => Task.FromResult(KeycloakChallenge.For(User, Query<string>("returnUrl", isRequired: false), prompt: null));
 }
 ```
 
-`EndpointWithRefreshToken<TResponse>` in Faber is a real custom base class:
-- accepts `RefreshTokenRequest`
-- reads refresh token from cookie for web clients
-- reads refresh token from request body for mobile clients
+### Form-encoded request
+
+```csharp
+public class BackchannelLogoutRequest
+{
+    [BindFrom("logout_token")]
+    public string? LogoutToken { get; init; }
+}
+
+// in Configure():
+AllowFormData(urlEncoded: true);
+```
 
 ---
 
 ## 5. HttpContext Utilities
 
 ```csharp
-// Set refresh token in cookie (web clients)
-HttpContext.SetCookiesRefreshToken(refreshToken);
-
-// Extract user id from JWT
+// The signed-in user's id (Keycloak `sub`), with either the session cookie or a bearer token
 var userId = HttpContext.User.FindFirst(JwtClaimTypes.Aliases.UserId)?.Value;
 
 // Extract route parameter
 var resumeId = HttpContext.GetRouteValue("ResumeId")?.ToString();
 ```
 
-In practice:
-- `SetCookiesRefreshToken(...)` is used by `SignInEndpoint` and `RefreshEndpoint`
-- `FindFirst(JwtClaimTypes.Aliases.UserId)` is common in authenticated endpoints and authorization handlers
-- `GetRouteValue("ResumeId")` is used notably inside resume-ownership authorization, not only in endpoints
+`JwtClaimTypes` lives in `Faber.Modules.Auth.PublicApi`. `GetRouteValue("ResumeId")` is used notably
+inside resume-ownership authorization, not only in endpoints.
 
 ---
 
@@ -372,7 +330,7 @@ FastEndpoints commands are executed with the `.ExecuteAsync(ct)` extension:
 var result = await request.MapToCommand().ExecuteAsync(ct);
 
 // Without request DTO mapping
-var result = await new MeCommand(userId).ExecuteAsync(ct);
+var result = await new LogoutCommand(refreshToken).ExecuteAsync(ct);
 ```
 
 This is equivalent to resolving the handler from DI and calling it directly.
@@ -386,7 +344,7 @@ This is equivalent to resolving the handler from DI and calling it directly.
 | `Post("route")` / `Get(...)` / `Put(...)` / `Delete(...)` / `Patch(...)` | HTTP verb + route segment |
 | `Group<TGroup>()` | Attach to a Group/SubGroup |
 | `Version(1)` | API version prefix (`/api/v1/...`) |
-| `AllowAnonymous()` | Skip JWT auth |
+| `AllowAnonymous()` | Skip authentication (session cookie or bearer token) |
 | `Policies("PolicyName")` | Require authorization policy |
 | `Tags("TagName")` | Swagger tag (usually set on Group) |
 
@@ -397,21 +355,25 @@ This is equivalent to resolving the handler from DI and calling it directly.
 Use FastEndpoints.Testing helpers:
 
 ```csharp
+// A Keycloak access token for a fixture user (bearer path; see keycloak-aspnet-integration)
+var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
+
 // POST with typed request/response
 var (httpRes, response) = await app.Client
-    .POSTAsync<SignInEndpoint, SignInRequest, SignInResponse>(
-        new SignInRequest("user", "pass"));
+    .WithAuthToken(accessToken)
+    .POSTAsync<CreateEducationEndpoint, CreateEducationRequest, CreateEducationResponse>(createRequest);
 
 httpRes.StatusCode.ShouldBe(HttpStatusCode.OK);
-response.AccessToken.ShouldNotBeNullOrEmpty();
+response.ResumeId.ShouldBe(resumeId);
 
 // POST validation failure — FastEndpoints ErrorResponse
 var (badHttpRes, error) = await app.Client
-    .POSTAsync<SignInEndpoint, SignInRequest, ErrorResponse>(
-        new SignInRequest("", ""));
+    .WithAuthToken(accessToken)
+    .POSTAsync<CreateEducationEndpoint, CreateEducationRequest, ErrorResponse>(
+        createRequest with { School = new string('x', 101) });
 
 badHttpRes.StatusCode.ShouldBe(HttpStatusCode.BadRequest);
-error.Errors.ShouldContainKey("username");
+error.Errors.ShouldContainKey("school");
 
 // DELETE — use the typed route/request DTO, not an anonymous object
 var httpRes = await app.Client

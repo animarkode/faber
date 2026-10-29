@@ -21,7 +21,7 @@ Use the `Skill` tool to invoke these when relevant:
 | `errorOr-patterns` | When working with ErrorOr, mapping errors to HTTP responses |
 | `faber-feature-template` | When adding a new feature to an existing module |
 | `faber-module-bootstrapping` | When creating a new module from scratch |
-| `keycloak-aspnet-integration` | When working with Identity module or auth flows |
+| `keycloak-aspnet-integration` | When working with sign-in, sessions or the Keycloak realm config |
 | `vault-secrets-aspnet` | When working with Vault secrets or the Vault module |
 | `impl-gh-issue` | `/impl-gh-issue <number>` — implement a GitHub issue end-to-end, sized to the issue (user-invoked only) |
 

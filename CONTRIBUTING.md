@@ -95,15 +95,21 @@ Never commit or share the generated keys, token, or local passwords.
 
 ### 6. Restart once
 
-Stop the AppHost and start it again (step 4). The unseal hook reads the key file and unseals Vault; the stack then brings itself up with no further manual step: `Faber.Migrations` applies migrations and creates the `keycloak` schema, Keycloak imports the tracked realm, and `Faber.Bootstrap` creates the `secrets` KV v2 mount and writes `secrets/keycloak`. Every service becomes healthy, and the one-shot `migrations` and `bootstrap` finish with exit code 0. There is no `dotnet ef database update`, no Keycloak admin-console step, and no manual Vault seeding. Mail in Development goes to Mailpit, so no Resend account or `secrets/mail` is needed.
+Stop the AppHost and start it again (step 4). The unseal hook reads the key file and unseals Vault; the stack then brings itself up with no further manual step:
 
-The tracked `infra/keycloak/realm-export.json` stores the `faber-api` client secret as the placeholder `<YOUR-CLIENT-SECRET>` — that value is never used. On every start, `Faber.Bootstrap` regenerates the `faber-api` client secret through the Keycloak admin API and writes the result to `secrets/keycloak`, so nothing needs regenerating or copying by hand.
+- `Faber.Migrations` applies migrations and creates the `keycloak` schema.
+- Keycloak (the stock `quay.io/keycloak/keycloak` image) starts, and `keycloak-config` applies the realm from `infra/keycloak/config/faber.json`. It runs on every start, so the realm always matches the repository; users and their data are left alone.
+- `Faber.Bootstrap` turns passkeys on (the config tool cannot express that setting yet), regenerates the `faber-api` client secret and writes it to `secrets/keycloak` in Vault.
+
+Every service becomes healthy, and the one-shot `migrations`, `keycloak-config` and `bootstrap` finish with exit code 0. There is no `dotnet ef database update`, no Keycloak admin-console step and no manual Vault seeding.
+
+Sign-in, registration, password reset and e-mail verification all happen on Keycloak's own pages. Keycloak sends its mail (verification, password reset) to Mailpit in Development; open the `mailpit` resource from the Aspire dashboard to read it.
+
+**Coming from a stack created before hosted login?** That realm was imported from the old `realm-export.json` and still carries flows and a client override that refer to a Keycloak extension which no longer exists. Delete the `faber` realm once (Keycloak admin console, `http://localhost:8080/admin/master/console`, realm **faber** → **Realm settings** → **Action** → **Delete**), or reset the PostgreSQL volume as described under [Resetting local state](#resetting-local-state). The next start creates the realm fresh. Its users are lost either way.
 
 #### Optional: Google and GitHub sign-in
 
-This step is optional. The stack works fully without it, and email and password sign-in needs nothing from it. Social sign-in does not work in LAN mode (`LAN_MODE`): the providers list stays empty there.
-
-The Google and GitHub identity providers ship disabled in `infra/keycloak/realm-export.json`, with the placeholders `<GOOGLE-CLIENT-ID>`, `<GOOGLE-CLIENT-SECRET>`, `<GITHUB-CLIENT-ID>` and `<GITHUB-CLIENT-SECRET>` as credentials. To enable them locally, create an OAuth client at each provider and enter its credentials in your local Keycloak. Never put real credentials in the repository.
+This step is optional. Without it the providers stay disabled and e-mail and password sign-in works on its own.
 
 1. In Google Cloud Console, open **APIs & Services → Credentials → Create credentials → OAuth client ID** and choose **Web application**. Under **Authorized redirect URIs** add exactly:
 
@@ -117,23 +123,27 @@ http://localhost:8080/realms/faber/broker/google/endpoint
 http://localhost:8080/realms/faber/broker/github/endpoint
 ```
 
-3. Open the local Keycloak admin console and sign in with the `Parameters:keycloak-admin` credentials from step 3:
+3. Store the credentials as AppHost user-secrets. A provider is enabled exactly when its client ID is set; set only the pair you created:
 
-```text
-http://localhost:8080/admin/master/console
+```bash
+dotnet user-secrets set "Parameters:google-client-id" "<GOOGLE-CLIENT-ID>" --project src/api/Aspire/Faber.AppHost
 ```
 
-4. Select the `faber` realm, open **Identity providers**, then open `google`. Set **Client ID** to `<GOOGLE-CLIENT-ID>` and **Client secret** to `<GOOGLE-CLIENT-SECRET>`, turn **Enabled** on, and save. Repeat for `github` with `<GITHUB-CLIENT-ID>` and `<GITHUB-CLIENT-SECRET>`.
-
-The API caches the provider list for 60 seconds. Within a minute, this URL lists the enabled providers, in the shape `{"providers":["google"]}`:
-
-```text
-http://localhost:5020/api/v1/auth/external/providers
+```bash
+dotnet user-secrets set "Parameters:google-client-secret" "<GOOGLE-CLIENT-SECRET>" --project src/api/Aspire/Faber.AppHost
 ```
 
-Keycloak imports the realm export only when the realm does not exist yet. A realm created before the social sign-in work therefore lacks the configuration this step relies on. Either delete the `faber` realm in the admin console and restart the AppHost, which also deletes its users, or follow the operator guide at [docs/operations/social-sign-in.md](docs/operations/social-sign-in.md).
+```bash
+dotnet user-secrets set "Parameters:github-client-id" "<GITHUB-CLIENT-ID>" --project src/api/Aspire/Faber.AppHost
+```
 
-For a manual end-to-end check of the Google flow, see [docs/qa/external-sign-in-google.md](docs/qa/external-sign-in-google.md).
+```bash
+dotnet user-secrets set "Parameters:github-client-secret" "<GITHUB-CLIENT-SECRET>" --project src/api/Aspire/Faber.AppHost
+```
+
+4. Restart the AppHost. `keycloak-config` enables the provider, and Keycloak's sign-in page shows its button.
+
+Never put real credentials in the repository. A provider sign-in whose e-mail matches an existing account asks the person to sign in to that account first; see [docs/operations/keycloak.md](docs/operations/keycloak.md) for how linking works.
 
 ### 7. Frontend
 
@@ -144,6 +154,10 @@ cd src/web/faber-app
 npm ci
 npm start
 ```
+
+Open `http://localhost:4200`. The dev server proxies `/api` to the API on `localhost:5020`, so the app and the API share one origin, exactly as behind the production edge proxy, and the session cookie is first-party.
+
+The session cookie is `__Host-faber`: HttpOnly, `Secure` and `SameSite=Strict`. Chrome and Firefox accept a `Secure` cookie on `http://localhost`; Safari may not, so use Chrome or Firefox to sign in locally. The stack is reachable from `localhost` only; there is no LAN mode.
 
 ### Resetting local state
 
@@ -169,7 +183,7 @@ docker ps -aq --filter volume="$volume" | xargs -r docker rm -f
 docker volume rm "$volume"
 ```
 
-`xargs -r` skips `docker rm` when no container holds the volume, so the same commands work whether one does. The next start creates a fresh volume with the current parameters; migrations, the realm import and bootstrap then rebuild everything, so no manual step follows. Local data such as registered users is lost.
+`xargs -r` skips `docker rm` when no container holds the volume, so the same commands work whether one does. The next start creates a fresh volume with the current parameters; migrations, `keycloak-config` and bootstrap then rebuild everything, so no manual step follows. Local data such as registered users is lost.
 
 A checkout created before the per-checkout volume was introduced may still have the old fixed-name `faber-postgres-data` volume. Nothing uses it anymore; remove it the same way with `volume=faber-postgres-data`.
 

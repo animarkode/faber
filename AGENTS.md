@@ -6,6 +6,11 @@ Faber is a full-stack CV/resume builder:
 
 - Backend: ASP.NET Core 8, FastEndpoints, EF Core/PostgreSQL, Redis, Keycloak,
   Vault, and OpenTelemetry.
+- Sign-in: Keycloak 26.8 hosted login (password, passkeys, Google, GitHub); the
+  API is a backend-for-frontend that keeps tokens in a server-side session and
+  gives the browser an HttpOnly cookie. The realm is code
+  (`infra/keycloak/config/faber.json`, applied by keycloak-config-cli on every
+  start). See `docs/operations/keycloak.md`.
 - Frontend: Angular 21 standalone components, Angular Material, Tailwind CSS,
   and signal-based state.
 - Local orchestration: .NET Aspire 13.5.3, with DCP and the dashboard supplied by
@@ -78,7 +83,7 @@ plain Markdown, no special tooling required:
 | Working with ErrorOr, mapping errors to HTTP responses | `.agents/skills/errorOr-patterns/SKILL.md` |
 | Adding a feature to an existing module | `.agents/skills/faber-feature-template/SKILL.md` |
 | Creating a new module from scratch | `.agents/skills/faber-module-bootstrapping/SKILL.md` |
-| Identity module / Keycloak auth flows | `.agents/skills/keycloak-aspnet-integration/SKILL.md` |
+| Sign-in, sessions, the realm config / Keycloak | `.agents/skills/keycloak-aspnet-integration/SKILL.md` |
 | Vault secrets or the Vault module | `.agents/skills/vault-secrets-aspnet/SKILL.md` |
 | Implementing a GitHub issue end-to-end | `.agents/skills/impl-gh-issue/SKILL.md` |
 | Creating/labeling issues, opening PRs, handling a release | `.agents/skills/github-workflow/SKILL.md` |

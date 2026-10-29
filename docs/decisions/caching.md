@@ -61,6 +61,10 @@ the interceptor are logged and swallowed for the same reason: a committed databa
 turn into a failed HTTP response because Redis is unavailable. There is no Redis health check — an
 outage degrades latency and cache-hit rate, not availability.
 
+Web sign-in sessions deliberately do not live in Redis: they are in PostgreSQL (the Auth module's
+`auth` schema), together with the Data Protection keys, so this posture holds — a Redis outage signs
+nobody out.
+
 ## TTLs and staleness bounds
 
 `HybridCache` defaults (set once in `AddFaberCaching`, applied to every Resumes entry):

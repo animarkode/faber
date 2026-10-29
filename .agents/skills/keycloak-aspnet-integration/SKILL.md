@@ -1,417 +1,59 @@
 ---
 name: keycloak-aspnet-integration
-description: Keycloak OAuth2/OIDC integration for ASP.NET Core in Faber — Refit client, per-request admin token, action tokens, IIdentityModuleApi contract, Testcontainers setup, realm-export sync. Use when working with Identity module or authentication flows.
+description: Keycloak hosted login and the API's BFF session in Faber — realm as code (faber.json + keycloak-config-cli), OIDC code+PKCE, server-side sessions in Postgres, single-flight refresh, CSRF header, back-channel logout, bearer access tokens, account linking, and the Testcontainers fixture with a browser-less login driver. Use when working with sign-in, sessions, the Keycloak realm config, or auth tests.
 ---
 
-# Keycloak ASP.NET Core Integration — Faber
+# Keycloak hosted login and the BFF session — Faber
 
-Faber uses Keycloak as the OAuth2/OIDC identity provider. Client credentials (client-id, client-secret) are stored in HashiCorp Vault and injected at startup.
+Keycloak owns every credential and every sign-in page. The API is a backend-for-frontend: it signs the browser in through Keycloak and keeps the tokens on the server. Read `docs/operations/keycloak.md` for the operator view and the security model; this skill is the developer view.
 
-Source: `src/api/Modules/Identity/`
+## Where things live
 
-Canonical sources to mirror before generating code:
-- `src/api/Modules/Identity/Faber.Modules.Identity.PublicApi/IIdentityModuleApi.cs`
-- `src/api/Modules/Identity/Faber.Modules.Identity.Application/IdentityModuleApi.cs`
-- `src/api/Modules/Identity/Faber.Modules.Identity.Application/Keycloak/IKeycloakApi.cs`
-- `src/api/Modules/Identity/Faber.Modules.Identity.Application/Keycloak/BearerAdminToken.cs`
-- `src/api/Modules/Identity/Faber.Modules.Identity.Application/Keycloak/OptionsSetup/KeycloakOptionsSetup.cs`
-- `src/api/Modules/Auth/Faber.Modules.Auth.Application/Features/SignUp/`
-- `src/api/Modules/Auth/Faber.Modules.Auth.Application/Features/ForgotPassword/`
-- `src/api/Modules/Auth/Faber.Modules.Auth.Application/Features/ResetPassword/`
-- `src/api/Modules/Auth/Faber.Modules.Auth.Application/Features/VerifyEmail/`
-
----
-
-## Architecture Overview
-
-```
-Auth module            Identity module              Keycloak
-SignInEndpoint  ──────► IIdentityModuleApi ──────► IKeycloakApi (Refit)
-                                │                         │
-                         Local DB (action tokens)   Admin REST API
-                                                  (token endpoint,
-                                                   users, password reset)
-```
-
----
-
-## 1. Refit HTTP Client
-
-```csharp
-// IKeycloakApi.cs — Refit interface
-public interface IKeycloakApi
-{
-    // Sign-in token (password grant)
-    [Post("/realms/{realm}/protocol/openid-connect/token")]
-    Task<TokenResponse> GetTokenAsync(
-        [AliasAs("realm")] string realm,
-        [Body(BodySerializationMethod.UrlEncoded)] TokenRequest request,
-        CancellationToken cancellationToken = default);
-
-    // Admin token (client_credentials grant)
-    [Post("/realms/{realm}/protocol/openid-connect/token")]
-    Task<TokenResponse> GetAdminTokenAsync(
-        [AliasAs("realm")] string realm,
-        [Body(BodySerializationMethod.UrlEncoded)] AdminTokenRequest request,
-        CancellationToken cancellationToken = default);
-
-    // Refresh token grant
-    [Post("/realms/{realm}/protocol/openid-connect/token")]
-    Task<TokenResponse> RefreshTokenAsync(
-        [AliasAs("realm")] string realm,
-        [Body(BodySerializationMethod.UrlEncoded)] RefreshTokenRequest request,
-        CancellationToken cancellationToken = default);
-
-    // Admin: create user
-    [Post("/admin/realms/{realm}/users")]
-    Task CreateUserAsync(
-        [AliasAs("realm")] string realm,
-        [Header("Authorization")] string bearerToken,
-        [Body] CreateUserRequest request,
-        CancellationToken cancellationToken = default);
-
-    // Admin: get user by username/email or id
-    [Get("/admin/realms/{realm}/users")]
-    Task<List<UserResponse>> GetUserByNameAsync(
-        [AliasAs("realm")] string realm,
-        [Header("Authorization")] string bearerToken,
-        [Query] string username,
-        [Query] bool exact = true,
-        CancellationToken cancellationToken = default);
-
-    [Get("/admin/realms/{realm}/users")]
-    Task<List<UserResponse>> GetUserByEmailAsync(
-        [AliasAs("realm")] string realm,
-        [Header("Authorization")] string bearerToken,
-        [Query] string email,
-        [Query] bool exact = true,
-        CancellationToken cancellationToken = default);
-
-    [Get("/admin/realms/{realm}/users/{id}")]
-    Task<UserResponse> GetUserByIdAsync(
-        [AliasAs("realm")] string realm,
-        [AliasAs("id")] string userId,
-        [Header("Authorization")] string bearerToken,
-        CancellationToken cancellationToken = default);
-
-    [Put("/admin/realms/{realm}/users/{id}/reset-password")]
-    Task ResetPasswordAsync(
-        [AliasAs("realm")] string realm,
-        [AliasAs("id")] string userId,
-        [Header("Authorization")] string bearerToken,
-        [Body] CredentialRequest request,
-        CancellationToken cancellationToken = default);
-
-    [Put("/admin/realms/{realm}/users/{id}")]
-    Task UpdateUserAsync(
-        [AliasAs("realm")] string realm,
-        [AliasAs("id")] string userId,
-        [Header("Authorization")] string bearerToken,
-        [Body] UpdateUserRequest request,
-        CancellationToken cancellationToken = default);
-
-    [Put("/admin/realms/{realm}/users/{id}")]
-    Task VerifyUserEmailAsync(
-        [AliasAs("realm")] string realm,
-        [AliasAs("id")] string userId,
-        [Header("Authorization")] string bearerToken,
-        [Body] UserEmailVerifyRequest request,
-        CancellationToken cancellationToken = default);
-
-    [Put("/admin/realms/{realm}/users/{id}/execute-actions-email")]
-    Task ExecuteActionsEmailAsync(
-        [AliasAs("realm")] string realm,
-        [AliasAs("id")] string userId,
-        [Body] string[] actions,
-        [Header("Authorization")] string bearerToken,
-        [Query] int lifespan = 600,
-        CancellationToken cancellationToken = default);
-
-    // Sign out
-    [Post("/realms/{realm}/protocol/openid-connect/logout")]
-    Task SignOutAsync(
-        [AliasAs("realm")] string realm,
-        [Body(BodySerializationMethod.UrlEncoded)] SignOutRequest request,
-        CancellationToken cancellationToken = default);
-}
-
-// Request/response DTOs live in Keycloak.Contracts and use [AliasAs] for snake_case OAuth2 fields.
-```
-
-Important current behavior:
-- Faber has separate request contracts for password grant, refresh-token grant, admin token grant, and logout
-- `VerifyUserEmailAsync` currently updates the user document directly with `EmailVerified = true`; `ExecuteActionsEmailAsync` exists but is not the main verify-email path in current auth flows
-
----
-
-## 2. Configuration — Options from Vault
-
-```csharp
-// KeycloakOptions.cs
-public class KeycloakOptions
-{
-    public string BaseUrl { get; set; } = string.Empty;
-    public string Issuer { get; set; } = string.Empty;
-    public string Audience { get; set; } = string.Empty;
-    public string Realm { get; set; } = string.Empty;
-    public string ClientId { get; set; } = string.Empty;     // from Vault
-    public string ClientSecret { get; set; } = string.Empty; // from Vault
-}
-
-// KeycloakOptionsSetup.cs — fetches from Vault + config
-public class KeycloakOptionsSetup(
-    IConfiguration configuration,
-    IVaultModuleApi vaultApi)
-    : IConfigureOptions<KeycloakOptions>
-{
-    public void Configure(KeycloakOptions options)
-    {
-        configuration.GetSection("Keycloak").Bind(options);
-
-        // Secrets from Vault KV v2
-        options.ClientId = vaultApi
-            .GetSecretValueAsync(VaultConstants.Paths.Keycloak, VaultConstants.MountPoint, VaultConstants.Keys.Keycloak.ClientId)
-            .GetAwaiter().GetResult() ?? string.Empty;
-
-        options.ClientSecret = vaultApi
-            .GetSecretValueAsync(VaultConstants.Paths.Keycloak, VaultConstants.MountPoint, VaultConstants.Keys.Keycloak.ClientSecret)
-            .GetAwaiter().GetResult() ?? string.Empty;
-    }
-}
-```
-
-Current Faber specifics:
-- the mount constant is `VaultConstants.DefaultMountPoint`, value `"secrets"`
-- Keycloak secret keys are `client-id` and `client-secret`
-- section binding uses `ConfigurationConstants.Sections.Keycloak`
-
----
-
-## 3. Per-Request Admin Token
-
-Every admin API call requires a fresh Bearer token obtained via client_credentials grant:
-
-```csharp
-// BearerAdminToken.cs
-public class BearerAdminToken
-{
-    public required string Value { get; init; }
-
-    public static async Task<BearerAdminToken> GenerateAsync(
-        IKeycloakApi keycloakApi,
-        KeycloakOptions options,
-        CancellationToken ct)
-    {
-        var response = await keycloakApi.GetAdminTokenAsync(options.Realm, new AdminTokenRequest
-        {
-            GrantType = "client_credentials",
-            ClientId = options.ClientId,
-            ClientSecret = options.ClientSecret
-        }, ct);
-
-        return new BearerAdminToken
-        {
-            Value = $"{response.TokenType} {response.AccessToken}"
-        };
-    }
-}
-
-// Usage in IdentityModuleApi
-public async Task ResetPasswordAsync(string userId, string password, CancellationToken ct)
-{
-    var adminToken = await BearerAdminToken.GenerateAsync(_keycloakApi, _options, ct);
-    await _keycloakApi.ResetPasswordAsync(_options.Realm, userId, adminToken.Value, credential, ct);
-}
-```
-
----
-
-## 4. IIdentityModuleApi — Cross-Module Contract
-
-Define in `Faber.Modules.Identity.PublicApi/IIdentityModuleApi.cs`:
-
-```csharp
-public interface IIdentityModuleApi
-{
-    // Local action tokens
-    Task<VerifyActionTokenResponse> VerifyActionTokenAsync(string selector, string token, ActionTokenType type, CancellationToken ct = default);
-    Task ConsumeActionTokenAsync(string selector, CancellationToken ct = default);
-    Task<StoreActionTokenResponse> TryStoreActionTokenAsync(string email, string token, int expiresInMinutes, ActionTokenType type, CancellationToken ct = default);
-
-    // Password management
-    Task ResetPasswordAsync(string userId, string newPassword, CancellationToken ct = default);
-    Task<ResetPasswordResponse> ResetPasswordByEmailAsync(string email, string newPassword, CancellationToken ct = default);
-
-    // Uniqueness checks for validators
-    Task<bool> IsEmailUniqueAsync(string email, CancellationToken ct);
-    Task<bool> IsUsernameUniqueAsync(string username, CancellationToken ct);
-
-    // Authentication
-    Task<TokenResponse> SignInAsync(string username, string password, CancellationToken ct);
-    Task SignOutAsync(string refreshToken, CancellationToken ct);
-    Task<TokenResponse> RefreshTokenAsync(string refreshToken, CancellationToken ct);
-
-    // User management
-    Task<VerifyEmailResponse> VerifyEmailAsync(string email, CancellationToken ct = default);
-    Task<UserResponse?> CreateUserAsync(string email, string username, string firstName, string lastName, CancellationToken ct = default);
-    Task<UserResponse?> GetUserByEmailAsync(string email, CancellationToken ct = default);
-    Task<UserResponse?> GetUserByIdAsync(string userId, CancellationToken ct = default);
-    Task<UserResponse?> GetUserByNameAsync(string username, CancellationToken ct = default);
-    Task UpdateUserProfileAsync(string userId, string firstName, string lastName, CancellationToken ct);
-
-    string GenerateToken(int sizeBytes = 32);
-}
-```
-
-Important current behavior:
-- `GenerateToken(...)` is implemented directly on the interface as a default method using `RandomNumberGenerator`
-- `VerifyActionTokenAsync(...)` returns a response object with `IsValid`, `Email`, and `Message`, not a bare `bool`
-- `ConsumeActionTokenAsync(...)` does not currently take `ActionTokenType`
-
----
-
-## 5. Action Tokens (Local DB)
-
-For email verification and password reset, Faber stores tokens locally (not in Keycloak):
-
-```csharp
-// ActionToken entity
-public class ActionToken
-{
-    public Ulid Id { get; private set; }
-    public Ulid Selector { get; private set; }
-    public string Email { get; private set; }
-    public string Hash { get; }
-    public string Salt { get; }
-    public ActionTokenType Type { get; set; }
-    public DateTimeOffset ExpiresAt { get; private init; }
-    public DateTimeOffset CreatedAt { get; private init; }
-    public DateTimeOffset? ConsumedAt { get; private set; }
-}
-
-public enum ActionTokenType { VerifyEmail, ForgotPassword }
-
-// Flow
-var token = identityModuleApi.GenerateToken();           // random 32-char token
-var result = await identityModuleApi.TryStoreActionTokenAsync(email, token, 30, ActionTokenType.VerifyEmail, ct);
-// result.Selector is the DB row identifier
-// User receives: {result.Selector}{token} (combined key in email link)
-```
-
-Current implementation details that matter:
-- selector values are `Ulid`, not arbitrary strings
-- tokens are verified locally against Argon2id-derived hash + salt
-- `VerifyActionTokenAsync(...)` currently checks selector parsing, existence, expiry/consumption, and token validity
-- the `type` parameter is part of the public method, but current verification logic does not explicitly reject mismatched token types before returning success
-
----
-
-## 6. Dependency Injection
-
-```csharp
-// DependencyInjection.cs (Identity.Application)
-public static async Task AddIdentityModuleAsync(
-    this IServiceCollection services,
-    IWebHostEnvironment env,
-    IConfiguration configuration)
-{
-    services.AddScoped<IIdentityModuleApi, IdentityModuleApi>();
-    // connection string may come from config or Vault
-    // ...
-    services.ConfigureOptions<KeycloakOptionsSetup>();
-
-    var sp = services.BuildServiceProvider();
-    var keycloakOptions = sp.GetRequiredService<IOptions<KeycloakOptions>>().Value;
-
-    services.AddRefitClient<IKeycloakApi>()
-        .ConfigurePrimaryHttpMessageHandler(() => new HttpClientHandler
-        {
-            ServerCertificateCustomValidationCallback = HttpClientHandler.DangerousAcceptAnyServerCertificateValidator
-        })
-        .ConfigureHttpClient(client =>
-        {
-            client.BaseAddress = new Uri(keycloakOptions.BaseUrl);
-        });
-}
-```
-
-Current caveats:
-- `AddIdentityModuleAsync(...)` currently calls `BuildServiceProvider()` twice during setup
-- certificate validation bypass is currently unconditional in the registered handler, not only for development
-- when no DB connection string is provided, Identity builds one from Vault database secrets
-
----
-
-## 7. Integration Testing with Testcontainers
-
-```csharp
-// WebApp.cs (test fixture)
-private KeycloakContainer _keycloak = null!;
-
-protected override async Task PreSetupAsync()
-{
-    _keycloak = new KeycloakBuilder()
-        .WithImage("quay.io/keycloak/keycloak:26.2.5")
-        .WithRealmImportFile("realm-export.json")   // must be in test project root
-        .WithAdminUsername(KeycloakConstants.AdminUsername)
-        .WithAdminPassword(KeycloakConstants.AdminPassword)
-        .Build();
-
-    await _keycloak.StartAsync();
-}
-
-protected override void ConfigureApp(IWebHostBuilder b)
-{
-    b.ConfigureServices((ctx, services) =>
-    {
-        // Override Keycloak base URL with container URL
-        ctx.Configuration["Keycloak:BaseUrl"] = _keycloak.GetBaseAddress();
-        ctx.Configuration["Keycloak:Realm"] = "faber";
-    });
-}
-```
-
-**realm-export.json requirements:**
-- Audience mapper (`oidc-audience-mapper`) must reference an existing `clientId` in the realm
-- Token lifespans set for test speed (short access token, long refresh)
-- Roles: `regular`, `premium` (used by authorization handlers)
-
-**Critical:** Keycloak lowercases usernames and emails. Always compare case-insensitively:
-```csharp
-user.Username.ShouldBe(expected, StringCompareShould.IgnoreCase);
-user.Email.ShouldBe(expected, StringCompareShould.IgnoreCase);
-```
-
-**Keep in sync:**
-- `infra/keycloak/realm-export.json`
-- `tests/Integration/Faber.Api.Tests/realm-export.json`
-- `tests/Integration/Modules/Auth/Faber.Modules.Auth.Application.Tests/realm-export.json`
-- `tests/Integration/Modules/Resumes/Faber.Modules.Resumes.Application.Tests/realm-export.json`
-
-Any realm change should be reflected in every exported realm file used by dev/test flows.
-
-## 8. Real Auth Flow Patterns
-
-- `SignUpCommandHandler` creates the user via `IUserModuleApi`, then sets password in Identity/Keycloak, stores a local verify-email action token, and publishes an event containing `{selector}{token}`
-- `ForgotPasswordCommandHandler` verifies the user exists via `IUserModuleApi`, stores a local `ForgotPassword` action token, and publishes an event containing `{selector}{token}`
-- `ResetPasswordCommandHandler` verifies the local action token first, then resets password by email in Keycloak, then consumes the local token
-- `VerifyEmailCommandHandler` verifies the local action token first, then calls `VerifyEmailAsync(email)` in IdentityModuleApi, then consumes the local token
-
-This means email verification and password reset are **hybrid flows**:
-- token issuance/verification is local in Identity DB
-- final user/password mutation is executed against Keycloak
-
----
-
-## 9. Common Pitfalls
-
-| Pitfall | Fix |
+| Piece | Location |
 |---|---|
-| Admin token expired mid-request | Generate fresh token per call (not cached) |
-| Keycloak lowercases username/email | Compare with `IgnoreCase` in tests |
-| Audience mapper references non-existent client | Verify `clientId` exists in realm-export |
-| Test realm-export out of sync with prod | Apply all realm changes to all four files |
-| Local action-token docs assume bcrypt/string selectors | Real implementation uses `Ulid` selector + Argon2id hash/salt |
-| Interface docs assume bool responses for token verification | Real API returns `VerifyActionTokenResponse` / `StoreActionTokenResponse` |
-| SSL validation behavior described as dev-only | Verify actual DI wiring before changing, because current setup bypasses validation unconditionally |
-| `offline_access` scope not in realm | Add to realm's supported scopes |
+| Realm configuration (the whole realm, as code) | `infra/keycloak/config/faber.json` |
+| AppHost wiring (stock Keycloak, `keycloak-config`, providers from user-secrets) | `src/api/Aspire/Faber.AppHost/Program.cs`, `SocialProviderExtensions.cs` |
+| Passkeys toggle + client secret → Vault | `src/api/Jobs/Faber.Bootstrap` |
+| Schemes, cookie, OIDC and JWT bearer options | `src/api/Modules/Auth/Faber.Modules.Auth.Application/Authentication/` |
+| Session store, refresh, Keycloak back-channel calls | `.../Auth.Application/Sessions/` |
+| Endpoints (`login`, `register`, `user`, `logout`, `backchannel-logout`) | `.../Auth.Application/Features/` |
+| Sessions + Data Protection keys (`auth` schema) | `src/api/Modules/Auth/Faber.Modules.Auth.Infrastructure/Database/` |
+| JWT claim names, plan roles | `src/api/Modules/Auth/Faber.Modules.Auth.PublicApi/` |
+| Test fixture, login driver, back-channel relay | `tests/Integration/Modules/Common/Faber.Testing.Shared/` |
+
+## Rules
+
+1. **Never handle a credential in the API or the web app.** No password grant, no sign-in form, no password-reset endpoint. Anything a person types to prove who they are goes on a Keycloak page.
+2. **Never send a token to the browser.** The browser holds only `__Host-faber`; tokens stay in the session ticket. `auth/user` returns claims, never tokens.
+3. **Change the realm only in `faber.json`.** keycloak-config-cli applies it on every start; console edits are overwritten. Do not add built-in objects (`realm-management`, `broker`, their roles) — the CLI cannot update them.
+4. **keycloak-config-cli 6.5.1 (Keycloak 26.1 model) does not know realm fields added after 26.1** (e.g. `webAuthnPolicyPasswordless*Passkeys*`, `...Mediation`) and resets them on every import. Set such fields from `Faber.Bootstrap` after the import, as `KeycloakAdminClient.EnablePasskeysAsync` does, and say why in a comment.
+5. **Linking stays inside Keycloak.** The `faber first broker login` flow creates a user for a new e-mail and otherwise runs `idp-confirm-link` + re-authentication. Never add `idp-auto-link` or `idp-email-verification`. Google keeps its `email_verified` essential-claim filter.
+6. **One bearer predicate.** `AuthSchemes.IsBearerRequest` decides both the scheme and whether the CSRF header is required. Never test the `Authorization` header another way.
+7. **Bearer means access token.** JwtBearer rejects any token whose `typ` claim is not `Bearer` (ID tokens share `aud=faber-api`).
+8. **Every cookie-authenticated `/api` call needs `X-CSRF: 1`**, except the top-level navigations (`login`, `register`, `callback`) and Keycloak's `backchannel-logout`. A new navigation endpoint goes on `CsrfHeaderMiddleware`'s list.
+
+## How a request is authenticated
+
+- The default scheme `faber` forwards to `Bearer` when `Authorization: Bearer …` is present, otherwise to the cookie scheme `faber-session`.
+- `faber-session` reads the session key from the cookie and loads the ticket from `PostgresTicketStore` (tickets are Data-Protection-encrypted; a deleted row ends the session).
+- `SessionRefresher` runs on every cookie request. Within 60 s of access-token expiry it refreshes under `SELECT … FOR UPDATE` on the session row: one request refreshes, concurrent ones wait and reuse the saved tokens. Keycloak rotates refresh tokens with `refreshTokenMaxReuse=0`, so this lock is required. A refresh Keycloak refuses deletes the session.
+- `SessionClaims.ApplyAccessToken` copies `realm_access` from the access token into the cookie principal at sign-in and on refresh, so `MaxResumeCreationPolicy` reads roles the same way for both schemes.
+- "Remember me" is detected from `refresh_expires_in` (> `Keycloak:DefaultSessionIdleSeconds`) and makes the cookie persistent.
+
+## Options
+
+`KeycloakOptions` binds the `Keycloak` section (`Issuer`, `Audience`, `RequireHttpsMetadata`, `DefaultSessionIdleSeconds`); `ClientId` and `ClientSecret` come from Vault (`secrets/keycloak`) unless configured. Token and logout endpoints derive from `Issuer`.
+
+## Testing
+
+Integration tests run the real thing: stock Keycloak 26.8.1 with `faber.json` applied by the same keycloak-config-cli image (`FaberKeycloak.StartAsync`). Never mock Keycloak.
+
+- **Browser flow:** `KeycloakLoginDriver` follows the API's redirect, submits Keycloak's real login form and returns the callback response. It keeps Keycloak cookies per path (each realm has its own), because `CookieContainer` will not send Keycloak's `Secure` cookies over `http://localhost`. The API client uses `https://localhost` so its own `__Host-` cookie round-trips.
+- **Bearer flow:** `FaberKeycloak.GetTokensAsync` uses the test-only public client `faber-tests` (password grant, `aud=faber-api` on access and ID tokens). It exists only in test Keycloaks.
+- **Back-channel logout:** `BackchannelLogoutRelay` listens on a host port that Keycloak reaches as `host.docker.internal` and forwards logout tokens to the in-memory API.
+- **Providers:** `AddStandInIdentityProviderAsync` adds a second realm as an OIDC provider with the same first-broker-login flow and `email_verified` filter as Google.
+- **Clock:** the Auth tests replace `TimeProvider` with a `FakeTimeProvider` to make access tokens look expired.
+- Migrate `AuthDbContext` **before** the app starts (Data Protection reads its key table on first use).
+- Give a test that ends Keycloak sessions its own user; sessions from other tests on a shared user make it flaky.
+
+Users are created through `KeycloakAdminTestClient.CreateUserAsync` (e-mail is the login; `emailVerified` defaults to true). Compare Keycloak-returned e-mails with `StringCompareShould.IgnoreCase`.

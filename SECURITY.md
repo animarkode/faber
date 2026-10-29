@@ -30,7 +30,7 @@ Faber is pre-1.0 and moves fast. Only the latest release on `main` receives secu
 
 **In scope** — anything that lets an attacker act as another user or reach data that is not theirs:
 
-- Authentication and session handling (Keycloak integration, token validation, refresh flow)
+- Authentication and session handling (Keycloak hosted login, the API's server-side sessions and session cookie, token validation and refresh, account linking)
 - Authorization on API endpoints — a resume, person, or document reachable by a user who does not own it
 - Cross-request data leakage, cache poisoning, or response reuse
 - Injection of any kind — SQL, template, HTML/XSS through the rich-text editor
@@ -40,7 +40,7 @@ Faber is pre-1.0 and moves fast. Only the latest release on `main` receives secu
 **Out of scope** — please do not report these:
 
 - **The documented local development defaults.** The Aspire AppHost configures a throwaway environment on a developer machine, and required credentials are supplied outside the repository. Weak developer-chosen credentials or unauthenticated local services are not findings on their own. A way to expose a secret or affect a production deployment remains in scope. Production orchestration and environment configuration are private deployment assets and are not included here.
-- **Test fixtures and realm exports.** `infra/keycloak/realm-export.json` and the test realm are seeded with fake, well-known values on purpose.
+- **Test fixtures.** Test Keycloak instances use fake, well-known secrets and a test-only password-grant client on purpose; the realm configuration in `infra/keycloak/config/faber.json` holds placeholders, never real credentials.
 - Missing security headers or TLS configuration on a deployment you do not control.
 - Findings from an automated scanner with no demonstrated impact — show us how it is exploited.
 - Denial of service by simply sending a lot of traffic.

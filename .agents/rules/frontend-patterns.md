@@ -11,11 +11,10 @@ paths:
 
 ```text
 src/app/
-├── core/           # App-wide singletons: auth, interceptors, guards, layouts
+├── core/           # App-wide singletons: auth (session store, guard, CSRF interceptor), layouts
 ├── shared/         # Reusable standalone components (fb-* prefix), pipes, directives
 └── modules/        # Lazy-loaded feature modules
-    ├── auth/       # Sign-in, sign-up, password reset
-    ├── users/      # User profile
+    ├── users/      # Account page (profile itself is managed in Keycloak's account console)
     ├── resumes/    # Resume builder and catalog
     ├── home/
     └── about/
