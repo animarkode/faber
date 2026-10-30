@@ -18,7 +18,7 @@ One e-mail is one account, and e-mail is the login.
 - With the e-mail of an **existing** account, Keycloak asks whether to link and then asks the person to sign in to the existing account (password plus 2FA if set, or a provider already linked). Only then is the provider linked. Nothing is linked automatically, so a provider account someone else controls cannot take over an existing account.
 - **Google sign-ins whose e-mail Google has not verified are refused** (an essential-claim filter on `email_verified`). GitHub only completes OAuth for users with a verified primary e-mail.
 - A provider with a different e-mail is linked from the account console's *Linked accounts*. Keycloak refuses to remove the last way to sign in.
-- A password registration must confirm its e-mail before the first sign-in.
+- A password registration asks only for e-mail and name. The password is set after the e-mail link is followed (Keycloak 26.8 does this when e-mail verification is on), so nobody can set a password on an address they do not control.
 
 ## 2. The realm is code
 
@@ -101,6 +101,10 @@ Keycloak__Realm=faber
 Serve the web app and the API on **one origin**, `https://<APP-HOST>`, with `/api` routed to the API. The session cookie is `SameSite=Strict` and the API grants no CORS, so a split origin does not work.
 
 Sessions and Data Protection keys live in the `auth` schema of `faberdb`, created by `Faber.Migrations`. Every API replica shares them, so no sticky sessions are needed. Redis stays an optional cache; an outage there signs nobody out.
+
+- Session rows are keyed by the SHA-256 of the cookie's key, so a copy of the table does not yield working cookies. The Data Protection key ring that encrypts the tickets is in the same database and is not yet encrypted with a key held elsewhere; treat database backups as secrets.
+- An hourly job deletes expired session rows.
+- A refresh that Keycloak refuses with `invalid_grant` ends the session. A Keycloak that is down, slow, or refuses the client (`invalid_client`, for example right after `Faber.Bootstrap` rotated the secret while an API instance still holds the old one) does not: the session is kept and the error is logged. Restart API instances after rotating the client secret.
 
 ## 5. Provider OAuth apps
 

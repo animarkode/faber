@@ -103,7 +103,7 @@ Stop the AppHost and start it again (step 4). The unseal hook reads the key file
 
 Every service becomes healthy, and the one-shot `migrations`, `keycloak-config` and `bootstrap` finish with exit code 0. There is no `dotnet ef database update`, no Keycloak admin-console step and no manual Vault seeding.
 
-Sign-in, registration, password reset and e-mail verification all happen on Keycloak's own pages. Keycloak sends its mail (verification, password reset) to Mailpit in Development; open the `mailpit` resource from the Aspire dashboard to read it.
+Sign-in, registration, password reset and e-mail verification all happen on Keycloak's own pages. Registration asks for e-mail and name only; the password is set after following the verification link. Keycloak sends its mail (verification, password reset) to Mailpit in Development; open the `mailpit` resource from the Aspire dashboard to read it.
 
 **Coming from a stack created before hosted login?** That realm was imported from the old `realm-export.json` and still carries flows and a client override that refer to a Keycloak extension which no longer exists. Delete the `faber` realm once (Keycloak admin console, `http://localhost:8080/admin/master/console`, realm **faber** → **Realm settings** → **Action** → **Delete**), or reset the PostgreSQL volume as described under [Resetting local state](#resetting-local-state). The next start creates the realm fresh. Its users are lost either way.
 

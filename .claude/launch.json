@@ -3,17 +3,16 @@
   "configurations": [
     {
       "name": "faber-app",
-      "runtimeExecutable": "ng",
-      "runtimeArgs": ["serve", "--port", "4201"],
-      "port": 4201,
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["ng", "serve", "--port", "4200"],
+      "port": 4200,
       "cwd": "src/web/faber-app"
     },
     {
-      "name": "faber-app-lan",
-      "runtimeExecutable": "ng",
-      "runtimeArgs": ["serve", "--configuration", "lan", "--port", "4202"],
-      "port": 4202,
-      "cwd": "src/web/faber-app"
+      "name": "apphost",
+      "runtimeExecutable": "dotnet",
+      "runtimeArgs": ["run", "--project", "src/api/Aspire/Faber.AppHost", "--launch-profile", "http"],
+      "port": 15288
     }
   ]
 }
