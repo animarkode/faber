@@ -1,6 +1,8 @@
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Containers;
 using DotNet.Testcontainers.Networks;
+using Faber.Modules.Auth.Application.Sessions;
+using Faber.Modules.Auth.Application.Tests.Support;
 using Faber.Modules.Auth.Infrastructure.Database;
 using Faber.Testing.Shared.Containers;
 using Faber.Testing.Shared.Data;
@@ -40,6 +42,9 @@ public class WebApp : AppFixture<Program>
     public FakeTimeProvider Clock { get; } = new(DateTimeOffset.UtcNow);
 
     public List<TestUser> Users { get; } = RegisteredUsersData.Generate();
+
+    /// <summary>Lets a test make Keycloak's token endpoint misbehave for the API's back-channel calls.</summary>
+    public TokenEndpointInterceptor KeycloakBackChannel { get; } = new();
 
     /// <summary>A second realm in the same Keycloak that plays Google or GitHub.</summary>
     public static readonly StandInIdentityProvider StandIn = new(
@@ -144,6 +149,7 @@ public class WebApp : AppFixture<Program>
     {
         services.RemoveAll<TimeProvider>();
         services.AddSingleton<TimeProvider>(Clock);
+        services.AddHttpClient<KeycloakTokenClient>().AddHttpMessageHandler(KeycloakBackChannel.CreateHandler);
     }
 
     protected override async ValueTask TearDownAsync()

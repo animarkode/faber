@@ -44,7 +44,8 @@ public sealed class SessionRefresher(
         var ct = context.HttpContext.RequestAborted;
         await using var transaction = await db.Database.BeginTransactionAsync(ct);
         var session = await db.Sessions
-            .FromSqlRaw($"SELECT * FROM {DbConstants.SchemaName}.sessions WHERE id = {{0}} FOR UPDATE", key)
+            .FromSqlRaw($"SELECT * FROM {DbConstants.SchemaName}.sessions WHERE id = {{0}} FOR UPDATE",
+                PostgresTicketStore.HashKey(key))
             .SingleOrDefaultAsync(ct);
         var stored = session is null ? null : store.Unprotect(session.Ticket, key);
 
@@ -62,18 +63,20 @@ public sealed class SessionRefresher(
         }
 
         var refreshToken = stored.Properties.GetTokenValue("refresh_token");
+        // From here on the browser leaving must not stop us: once Keycloak answers, the old refresh token is
+        // spent, and the rotated one has to be saved or the session is lost.
         var result = string.IsNullOrEmpty(refreshToken)
             ? RefreshResult.Rejected
-            : await keycloak.RefreshAsync(refreshToken, ct);
+            : await keycloak.RefreshAsync(refreshToken, CancellationToken.None);
 
         switch (result.Outcome)
         {
             case RefreshOutcome.Rejected:
                 logger.LogInformation("Keycloak refused the refresh token; ending the web session");
-                await EndAsync(context, session, transaction, ct);
+                await EndAsync(context, session, transaction, CancellationToken.None);
                 return;
             case RefreshOutcome.Unavailable:
-                await transaction.RollbackAsync(ct);
+                await transaction.RollbackAsync(CancellationToken.None);
                 return;
         }
 
@@ -83,8 +86,8 @@ public sealed class SessionRefresher(
         StoreTokens(stored.Properties, tokens);
 
         session.Ticket = store.Protect(new AuthenticationTicket(principal, stored.Properties, AuthSchemes.Session));
-        await db.SaveChangesAsync(ct);
-        await transaction.CommitAsync(ct);
+        await db.SaveChangesAsync(CancellationToken.None);
+        await transaction.CommitAsync(CancellationToken.None);
 
         stored.Properties.Items[PostgresTicketStore.SessionKeyItem] = key;
         Adopt(context, principal, stored.Properties);

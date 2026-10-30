@@ -1,5 +1,6 @@
 using System.Net;
 using System.Net.Http.Json;
+using System.Text.Json;
 using System.Text.Json.Serialization;
 using Faber.Modules.Auth.Application.Options;
 using Microsoft.Extensions.Logging;
@@ -15,6 +16,11 @@ public sealed class KeycloakTokenClient(
 {
     private readonly KeycloakOptions _options = options.Value;
 
+    /// <remarks>
+    /// Only <c>invalid_grant</c> means the session is over (expired, signed out, revoked, or the refresh token
+    /// already used). Everything else — an unreachable or slow Keycloak, <c>invalid_client</c> after a secret
+    /// rotation, an unreadable answer — is a server-side problem, and the session is kept.
+    /// </remarks>
     public async Task<RefreshResult> RefreshAsync(string refreshToken, CancellationToken ct)
     {
         try
@@ -25,24 +31,42 @@ public sealed class KeycloakTokenClient(
                 ["refresh_token"] = refreshToken
             }), ct);
 
-            if (response.StatusCode is HttpStatusCode.BadRequest or HttpStatusCode.Unauthorized)
+            if (response.IsSuccessStatusCode)
+            {
+                var tokens = await response.Content.ReadFromJsonAsync<TokenResponse>(ct);
+                return tokens is null ? RefreshResult.Unavailable : RefreshResult.Refreshed(tokens);
+            }
+
+            var error = await ReadOAuthErrorAsync(response, ct);
+            if (error == "invalid_grant")
             {
                 return RefreshResult.Rejected;
             }
 
-            if (!response.IsSuccessStatusCode)
-            {
-                logger.LogWarning("Keycloak refresh answered {StatusCode}", (int)response.StatusCode);
-                return RefreshResult.Unavailable;
-            }
-
-            var tokens = await response.Content.ReadFromJsonAsync<TokenResponse>(ct);
-            return tokens is null ? RefreshResult.Unavailable : RefreshResult.Refreshed(tokens);
-        }
-        catch (HttpRequestException exception)
-        {
-            logger.LogWarning(exception, "Keycloak refresh failed");
+            logger.LogError("Keycloak refused a refresh with {StatusCode} {Error}; the session is kept",
+                (int)response.StatusCode, error);
             return RefreshResult.Unavailable;
+        }
+        catch (Exception exception) when (exception is HttpRequestException or JsonException
+                                              || (exception is TaskCanceledException && !ct.IsCancellationRequested))
+        {
+            logger.LogError(exception, "Keycloak could not be asked to refresh; the session is kept");
+            return RefreshResult.Unavailable;
+        }
+    }
+
+    private static async Task<string?> ReadOAuthErrorAsync(HttpResponseMessage response, CancellationToken ct)
+    {
+        try
+        {
+            var body = await response.Content.ReadFromJsonAsync<JsonElement>(ct);
+            return body.ValueKind == JsonValueKind.Object && body.TryGetProperty("error", out var error)
+                ? error.GetString()
+                : null;
+        }
+        catch (JsonException)
+        {
+            return null;
         }
     }
 
@@ -91,9 +115,9 @@ public enum RefreshOutcome
 {
     Refreshed,
 
-    /// <summary>Keycloak refused the refresh token: the session is over.</summary>
+    /// <summary>Keycloak refused the refresh token (<c>invalid_grant</c>): the session is over.</summary>
     Rejected,
 
-    /// <summary>Keycloak could not be asked; the session is kept and retried on the next request.</summary>
+    /// <summary>Keycloak could not answer usefully; the session is kept and retried on a later request.</summary>
     Unavailable
 }

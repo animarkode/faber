@@ -1,4 +1,5 @@
 using System.Security.Cryptography;
+using System.Text;
 using Faber.Modules.Auth.Infrastructure.Database;
 using Faber.Modules.Auth.PublicApi;
 using Microsoft.AspNetCore.Authentication;
@@ -13,7 +14,8 @@ namespace Faber.Modules.Auth.Application.Sessions;
 /// <summary>
 /// Keeps each web session (claims and tokens) in PostgreSQL. The cookie carries only a random key, so the
 /// browser never sees a token, and deleting the row (sign-out, back-channel logout) ends the session at once.
-/// Tickets are encrypted with Data Protection before they reach the database.
+/// Tickets are encrypted with Data Protection before they reach the database, and rows are found by the
+/// SHA-256 of the key, so reading the table (a leaked backup, a replica) yields no usable cookie.
 /// </summary>
 public sealed class PostgresTicketStore(
     IServiceScopeFactory scopes,
@@ -33,7 +35,7 @@ public sealed class PostgresTicketStore(
         var db = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
         db.Sessions.Add(new AuthSession
         {
-            Id = key,
+            Id = HashKey(key),
             Subject = ticket.Principal.FindFirst(JwtClaimTypes.Registered.Sub)?.Value ?? string.Empty,
             KeycloakSessionId = ticket.Principal.FindFirst(JwtClaimTypes.Registered.Sid)?.Value,
             Ticket = Protect(ticket),
@@ -49,9 +51,10 @@ public sealed class PostgresTicketStore(
     {
         await using var scope = scopes.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
+        var id = HashKey(key);
         var protectedTicket = Protect(ticket);
         await db.Sessions
-            .Where(session => session.Id == key)
+            .Where(session => session.Id == id)
             .ExecuteUpdateAsync(set => set
                 .SetProperty(session => session.Ticket, protectedTicket)
                 .SetProperty(session => session.ExpiresAt, ticket.Properties.ExpiresUtc));
@@ -61,7 +64,8 @@ public sealed class PostgresTicketStore(
     {
         await using var scope = scopes.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
-        var session = await db.Sessions.AsNoTracking().SingleOrDefaultAsync(s => s.Id == key);
+        var id = HashKey(key);
+        var session = await db.Sessions.AsNoTracking().SingleOrDefaultAsync(s => s.Id == id);
 
         if (session is null || session.ExpiresAt <= time.GetUtcNow())
         {
@@ -75,7 +79,14 @@ public sealed class PostgresTicketStore(
     {
         await using var scope = scopes.CreateAsyncScope();
         var db = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
-        await db.Sessions.Where(session => session.Id == key).ExecuteDeleteAsync();
+        var id = HashKey(key);
+        await db.Sessions.Where(session => session.Id == id).ExecuteDeleteAsync();
+    }
+
+    /// <summary>The row id of the session the cookie key names.</summary>
+    public static string HashKey(string key)
+    {
+        return WebEncoders.Base64UrlEncode(SHA256.HashData(Encoding.UTF8.GetBytes(key)));
     }
 
     public byte[] Protect(AuthenticationTicket ticket)

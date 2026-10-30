@@ -41,8 +41,11 @@ public static class DependencyInjection
 
         services.AddSingleton<PostgresTicketStore>();
         services.AddScoped<SessionRefresher>();
+        services.AddScoped<ExpiredSessionSweeper>();
+        services.AddHostedService<ExpiredSessionSweepService>();
         services.AddScoped<LogoutTokenValidator>();
-        services.AddHttpClient<KeycloakTokenClient>(client => client.Timeout = TimeSpan.FromSeconds(10));
+        // Short: a refresh holds the session's row lock while it waits.
+        services.AddHttpClient<KeycloakTokenClient>(client => client.Timeout = TimeSpan.FromSeconds(5));
 
         services.AddFaberAuthentication();
     }

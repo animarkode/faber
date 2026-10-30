@@ -39,6 +39,7 @@ jobs:
         env:
           ConnectionStrings__faberdb: Host=localhost;Port=5432;Database=faberdb;Username=faber;Password=faber
         run: |
+          dotnet ef migrations list --no-connect --no-build --project src/api/Modules/Auth/Faber.Modules.Auth.Infrastructure
           dotnet ef migrations list --no-connect --no-build --project src/api/Modules/Resumes/Faber.Modules.Resumes.Infrastructure
 
       - name: Install Playwright browser

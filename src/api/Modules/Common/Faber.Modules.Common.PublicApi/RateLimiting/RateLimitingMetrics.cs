@@ -4,8 +4,7 @@ namespace Faber.Modules.Common.PublicApi.RateLimiting;
 
 /// <summary>
 /// The single OpenTelemetry counter for rate limiting rejections, shared by the Api middleware and by
-/// module-level limiters that sit below HTTP (e.g. the per-recipient outbound email bucket in
-/// Notifications). It lives in Common.PublicApi rather than Faber.Api because a module may not
+/// any module-level limiter that sits below HTTP and must record its own rejections. It lives in Common.PublicApi rather than Faber.Api because a module may not
 /// reference the API host, and splitting the meter per caller would scatter one question — "how much
 /// are we throttling, and where?" — across several dashboard queries.
 /// </summary>
