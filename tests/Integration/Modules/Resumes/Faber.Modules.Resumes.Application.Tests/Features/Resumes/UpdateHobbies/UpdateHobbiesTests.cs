@@ -33,7 +33,7 @@ public class UpdateHobbiesTests(WebApp app) : TestBase
     public async Task UpdateHobbies_ShouldModifyHobbies()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
 
         var createRequest = new CreateResumeRequest("en-us");
 
@@ -63,7 +63,7 @@ public class UpdateHobbiesTests(WebApp app) : TestBase
     public async Task NonExistentResume_ShouldReturnForbidden()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
 
         var httpResponse = await app.Client
             .WithAuthToken(accessToken)
@@ -78,7 +78,7 @@ public class UpdateHobbiesTests(WebApp app) : TestBase
     public async Task HobbiesWithExactly200VisibleCharacters_ShouldReturnNoContent()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
 
         var createRequest = new CreateResumeRequest("en-us");
 
@@ -101,7 +101,7 @@ public class UpdateHobbiesTests(WebApp app) : TestBase
     public async Task HobbiesWithDisallowedAttributeContainingAngleBracketAnd200VisibleCharacters_ShouldReturnNoContent()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
 
         var (_, createResponse) = await app.Client
             .WithAuthToken(accessToken)
@@ -120,7 +120,7 @@ public class UpdateHobbiesTests(WebApp app) : TestBase
     public async Task HobbiesWith201VisibleCharacters_ShouldReturnBadRequest()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
 
         var createRequest = new CreateResumeRequest("en-us");
 

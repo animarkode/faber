@@ -33,7 +33,7 @@ public class UpdateLocalizationTests(WebApp app) : TestBase
     public async Task UpdateLocalization_ShouldModifyLocalization()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
 
         var createRequest = new CreateResumeRequest("en-us");
 
@@ -63,7 +63,7 @@ public class UpdateLocalizationTests(WebApp app) : TestBase
     public async Task NonExistentResume_ShouldReturnForbidden()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
 
         var httpResponse = await app.Client
             .WithAuthToken(accessToken)

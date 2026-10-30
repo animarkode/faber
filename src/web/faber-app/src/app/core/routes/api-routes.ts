@@ -12,24 +12,13 @@ function subResource(entity: string) {
 
 export const API_ROUTES = {
   auth: {
-    signIn: `${base}/auth/sign-in`,
-    signUp: `${base}/auth/sign-up`,
-    signOut: `${base}/auth/sign-out`,
-    me: `${base}/auth/me`,
-    refresh: `${base}/auth/refresh`,
-    verifyEmail: `${base}/auth/verify-email`,
-    forgotPassword: `${base}/auth/forgot-password`,
-    resetPassword: `${base}/auth/reset-password`,
-    external: {
-      providers: `${base}/auth/external/providers`,
-      start: (provider: string) => `${base}/auth/external/${encodeURIComponent(provider)}`,
-    },
-  },
-  identity: {
-    verifyActionToken: `${base}/identity/verify-action-token`,
-  },
-  users: {
-    byId: (id: string) => `${base}/users/${id}`,
+    /** Who is signed in (the session cookie identifies the browser). */
+    user: `${base}/auth/user`,
+    logout: `${base}/auth/logout`,
+    /** A page navigation, not a fetch: the API sends the browser on to Keycloak's sign-in page. */
+    login: (returnUrl = '/') => `${base}/auth/login?returnUrl=${encodeURIComponent(returnUrl)}`,
+    /** A page navigation to Keycloak's registration page. */
+    register: `${base}/auth/register`,
   },
   resumes: {
     root: `${base}/resumes`,

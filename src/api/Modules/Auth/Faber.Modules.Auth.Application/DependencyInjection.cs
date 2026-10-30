@@ -1,29 +1,58 @@
-using Faber.Modules.Auth.Application.Features.ForgotPassword.RateLimiting;
-using Faber.Modules.Auth.Application.Features.Shared.ExternalSignIn;
+using Faber.Modules.Auth.Application.Authentication;
+using Faber.Modules.Auth.Application.Features.BackchannelLogout;
+using Faber.Modules.Auth.Application.Options;
+using Faber.Modules.Auth.Application.Sessions;
+using Faber.Modules.Auth.Infrastructure.Database;
+using Faber.Modules.Vault.PublicApi;
+using Microsoft.AspNetCore.Builder;
+using Microsoft.AspNetCore.DataProtection;
+using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.DependencyInjection.Extensions;
 
 namespace Faber.Modules.Auth.Application;
 
 public static class DependencyInjection
 {
-    public static IServiceCollection AddAuthModule(this IServiceCollection services)
+    /// <summary>The application name all API instances share, so each can read the others' cookies and sessions.</summary>
+    private const string DataProtectionApplicationName = "Faber";
+
+    public static async Task AddAuthModuleAsync(this IServiceCollection services, IConfiguration configuration)
     {
-        services.ConfigureOptions<TargetEmailRateLimitingOptionsSetup>();
-        services.AddSingleton<ITargetEmailRateLimiter, TargetEmailRateLimiter>();
+        services.ConfigureOptions<KeycloakOptionsSetup>();
+        services.TryAddSingleton(TimeProvider.System);
 
-        services.AddDataProtection();
-        services.ConfigureOptions<ExternalSignInOptionsSetup>();
-        services.AddOptions<ExternalSignInOptions>()
-            .Validate(
-                o => !string.IsNullOrWhiteSpace(o.CallbackUrl) &&
-                     !string.IsNullOrWhiteSpace(o.SuccessRedirectUrl) &&
-                     !string.IsNullOrWhiteSpace(o.FailureRedirectUrl) &&
-                     o.StateLifetimeSeconds > 0,
-                "ExternalSignIn requires CallbackUrl, SuccessRedirectUrl, FailureRedirectUrl and a positive StateLifetimeSeconds.")
-            .ValidateOnStart();
-        services.AddSingleton<ExternalSignInStateProtector>();
-        services.AddScoped<IExternalProviderCatalog, ExternalProviderCatalog>();
+        var connectionString = configuration.GetConnectionString("faberdb");
+        if (string.IsNullOrEmpty(connectionString))
+        {
+            var vault = services.BuildServiceProvider().GetRequiredService<IVaultModuleApi>();
+            connectionString = await vault.GetDatabaseConnectionStringAsync();
+        }
 
-        return services;
+        services.AddDbContext<AuthDbContext>(o => o
+            .UseNpgsql(connectionString, npgsql =>
+                npgsql.MigrationsHistoryTable(DbConstants.MigrationsHistoryTableName, DbConstants.SchemaName))
+            .UseSnakeCaseNamingConvention());
+
+        services.AddDataProtection()
+            .SetApplicationName(DataProtectionApplicationName)
+            .PersistKeysToDbContext<AuthDbContext>();
+
+        services.AddSingleton<PostgresTicketStore>();
+        services.AddScoped<SessionRefresher>();
+        services.AddScoped<ExpiredSessionSweeper>();
+        services.AddHostedService<ExpiredSessionSweepService>();
+        services.AddScoped<LogoutTokenValidator>();
+        // Short: a refresh holds the session's row lock while it waits.
+        services.AddHttpClient<KeycloakTokenClient>(client => client.Timeout = TimeSpan.FromSeconds(5));
+
+        services.AddFaberAuthentication();
+    }
+
+    /// <summary>Requires the CSRF header on cookie-authenticated API calls. Call before authentication.</summary>
+    public static IApplicationBuilder UseFaberCsrfProtection(this IApplicationBuilder app)
+    {
+        return app.UseMiddleware<CsrfHeaderMiddleware>();
     }
 }

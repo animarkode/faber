@@ -33,7 +33,7 @@ public class DeleteLinkTests(WebApp app) : TestBase
     public async Task DeleteLink_ShouldRemoveLink()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var createRequest = new CreateLinkRequestFaker(resume.Id).Generate();
@@ -62,7 +62,7 @@ public class DeleteLinkTests(WebApp app) : TestBase
     public async Task NonExistentLink_ShouldReturnNotFound()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var deleteResponse = await app.Client
@@ -78,7 +78,7 @@ public class DeleteLinkTests(WebApp app) : TestBase
     public async Task CrossUserDeleteLink_ShouldReturnForbidden()
     {
         var ct = TestContext.Current.CancellationToken;
-        var userAToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var userAToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, userAToken, ct: ct);
 
         var createRequest = new CreateLinkRequestFaker(resume.Id).Generate();
@@ -87,7 +87,7 @@ public class DeleteLinkTests(WebApp app) : TestBase
             .WithAuthToken(userAToken)
             .POSTAsync<CreateLinkEndpoint, CreateLinkRequest, CreateLinkResponse>(createRequest);
 
-        var userBToken = await ResumesTestHelper.SignInAsUserAsync(app.Client, 1, ct);
+        var userBToken = await ResumesTestHelper.SignInAsUserAsync(app, 1, ct);
 
         var httpResponse = await app.Client
             .WithAuthToken(userBToken)

@@ -17,9 +17,8 @@
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
         <PackageReference Include="FastEndpoints.Testing" Version="8.3.0" />
+        <PackageReference Include="Microsoft.Extensions.TimeProvider.Testing" Version="9.10.0" />
         <PackageReference Include="Microsoft.NET.Test.Sdk" Version="18.10.0" />
-        <PackageReference Include="NSubstitute" Version="6.2.0" />
-        <PackageReference Include="Refit" Version="15.2.0" />
         <PackageReference Include="Shouldly" Version="4.3.0"/>
         <PackageReference Include="Testcontainers.Keycloak" Version="4.15.0" />
         <PackageReference Include="Testcontainers.PostgreSql" Version="4.15.0" />
@@ -33,16 +32,7 @@
     <ItemGroup>
         <ProjectReference Include="..\..\..\..\..\src\api\Faber.Api\Faber.Api.csproj"/>
         <ProjectReference Include="..\..\..\..\..\src\api\Modules\Auth\Faber.Modules.Auth.Application\Faber.Modules.Auth.Application.csproj"/>
-        <ProjectReference Include="..\..\..\..\..\src\api\Modules\Identity\Faber.Modules.Identity.Application\Faber.Modules.Identity.Application.csproj"/>
-        <ProjectReference Include="..\..\..\..\..\src\api\Modules\Users\Faber.Modules.Users.Application\Faber.Modules.Users.Application.csproj"/>
-        <ProjectReference Include="..\..\..\..\..\src\api\Modules\Users\Faber.Modules.Users.PublicApi\Faber.Modules.Users.PublicApi.csproj"/>
         <ProjectReference Include="..\..\Common\Faber.Testing.Shared\Faber.Testing.Shared.csproj" />
-    </ItemGroup>
-
-    <ItemGroup>
-        <Content Include="realm-export.json">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </Content>
     </ItemGroup>
 
 </Project>

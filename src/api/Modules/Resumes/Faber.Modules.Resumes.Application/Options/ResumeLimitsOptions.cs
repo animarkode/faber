@@ -1,4 +1,4 @@
-using Faber.Modules.Users.Domain.Enums;
+using Faber.Modules.Auth.PublicApi;
 
 namespace Faber.Modules.Resumes.Application.Options;
 

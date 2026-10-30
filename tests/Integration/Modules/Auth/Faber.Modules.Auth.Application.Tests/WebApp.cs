@@ -1,267 +1,163 @@
-using System.Net.Http.Json;
 using DotNet.Testcontainers.Builders;
 using DotNet.Testcontainers.Containers;
 using DotNet.Testcontainers.Networks;
+using Faber.Modules.Auth.Application.Sessions;
+using Faber.Modules.Auth.Application.Tests.Support;
+using Faber.Modules.Auth.Infrastructure.Database;
 using Faber.Testing.Shared.Containers;
 using Faber.Testing.Shared.Data;
-using Faber.Modules.Auth.Application.Tests.Features.Shared;
-using Faber.Modules.Communication.PublicApi;
-using Faber.Modules.Identity.Application.Keycloak;
-using Faber.Modules.Identity.Infrastructure.Database;
-using Faber.Modules.Identity.PublicApi;
-using Faber.Modules.Notifications.Application.Email;
-using Faber.Modules.Users.Application;
-using Faber.Modules.Users.PublicApi;
+using Faber.Testing.Shared.Http;
 using FastEndpoints.Testing;
-using FluentEmail.Core;
-using FluentEmail.Core.Interfaces;
-using FluentEmail.Core.Models;
 using Microsoft.AspNetCore.Hosting;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.DependencyInjection;
-using NSubstitute;
-using Refit;
-using Testcontainers.Keycloak;
+using Microsoft.Extensions.DependencyInjection.Extensions;
+using Microsoft.Extensions.Time.Testing;
 using Testcontainers.PostgreSql;
 
 namespace Faber.Modules.Auth.Application.Tests;
 
 public class WebApp : AppFixture<Program>
 {
-    private const string KeycloakUsername = "admin";
-    private const string KeycloakPassword = "admin";
-    private const string KeycloakToken = "token-exchange";
-    private const string KeycloakRealm = "faber";
-    private const string KeycloakClientId = "faber-api";
-    private const string KeycloakClientSecret = "secret-secret";
+    /// <summary>
+    /// The origin the "browser" uses for the API. It is HTTPS so that the client keeps and sends the
+    /// <c>Secure</c> <c>__Host-</c> session cookie, exactly as a browser would.
+    /// </summary>
+    public static readonly Uri AppOrigin = new("https://localhost");
 
     private const string VaultImage = "hashicorp/vault:1.17.3";
     private const string VaultToken = "test-token";
-    private IIdentityModuleApi? _identityModuleApi;
-    private KeycloakContainer? _keycloakContainer;
+
     private INetwork? _network;
-    private PostgreSqlContainer? _postgresContainer;
-    private IUserModuleApi? _userModuleApi;
-    private string _vaultAddr = string.Empty;
+    private PostgreSqlContainer? _postgres;
+    private IContainer? _vault;
+    private FaberKeycloak? _keycloak;
+    private BackchannelLogoutRelay? _relay;
 
-    private IContainer? _vaultContainer;
+    public FaberKeycloak Keycloak => _keycloak ?? throw new InvalidOperationException("Keycloak not started");
 
-    /// <summary>The SMTP transport under the real email sender; tests configure failures per recipient.</summary>
-    public ISender EmailTransport { get; } = Substitute.For<ISender>();
+    public BackchannelLogoutRelay Relay => _relay ?? throw new InvalidOperationException("Relay not started");
 
-    private IContainer Vault =>
-        _vaultContainer ?? throw new InvalidOperationException("Vault container not initialized");
+    /// <summary>The clock the API reads; tests move it forward to make access tokens look expired.</summary>
+    public FakeTimeProvider Clock { get; } = new(DateTimeOffset.UtcNow);
 
-    private KeycloakContainer Keycloak =>
-        _keycloakContainer ?? throw new InvalidOperationException("Keycloak container not initialized");
+    public List<TestUser> Users { get; } = RegisteredUsersData.Generate();
 
-    private PostgreSqlContainer Postgres =>
-        _postgresContainer ?? throw new InvalidOperationException("Postgres container not initialized");
+    /// <summary>Lets a test make Keycloak's token endpoint misbehave for the API's back-channel calls.</summary>
+    public TokenEndpointInterceptor KeycloakBackChannel { get; } = new();
 
-    private IUserModuleApi UserModuleApi =>
-        _userModuleApi ?? throw new InvalidOperationException("User module API not initialized");
+    /// <summary>A second realm in the same Keycloak that plays Google or GitHub.</summary>
+    public static readonly StandInIdentityProvider StandIn = new(
+        Alias: "standin",
+        Realm: "standin",
+        ClientId: "faber-broker",
+        ClientSecret: "broker-secret",
+        Username: "provider.user",
+        Password: "provider-password-1",
+        Email: "provider.user@standin.test",
+        FirstName: "Stan",
+        LastName: "Din");
 
-    private IIdentityModuleApi IdentityModuleApi => _identityModuleApi ??
-                                                    throw new InvalidOperationException(
-                                                        "Identity module API not initialized");
+    /// <summary>A client that behaves like a browser tab on the web app: cookies on, redirects off.</summary>
+    public HttpClient CreateBrowserClient()
+    {
+        var client = CreateClient(new ClientOptions
+        {
+            BaseAddress = AppOrigin,
+            HandleCookies = true,
+            AllowAutoRedirect = false
+        });
+        client.DefaultRequestHeaders.Add("X-CSRF", "1");
+
+        return client;
+    }
+
+    /// <summary>Signs a user in through Keycloak's login page and returns the signed-in browser client.</summary>
+    public async Task<(HttpClient Client, HttpResponseMessage Callback)> SignInAsync(
+        TestUser user,
+        bool rememberMe = false,
+        string returnUrl = "/",
+        CancellationToken ct = default)
+    {
+        var client = CreateBrowserClient();
+        using var driver = new KeycloakLoginDriver(client);
+        var callback = await driver.SignInAsync(user.Email, user.Password, rememberMe, returnUrl, ct);
+
+        return (client, callback);
+    }
 
     protected override async ValueTask PreSetupAsync()
     {
-        _network = new NetworkBuilder()
-            .WithName($"faber-test-network-{Guid.NewGuid()}")
-            .Build();
+        _network = new NetworkBuilder().WithName($"faber-auth-tests-{Guid.NewGuid()}").Build();
+        await _network.CreateAsync();
 
-        _postgresContainer = new PostgreSqlBuilder()
-            .WithNetwork(_network)
-            .Build();
-
-        _vaultContainer = new ContainerBuilder()
+        _postgres = new PostgreSqlBuilder("postgres:17.6").WithNetwork(_network).Build();
+        _vault = new ContainerBuilder(VaultImage)
             .WithName($"vault-tests-{Guid.NewGuid()}")
-            .WithImage(VaultImage)
             .WithNetwork(_network)
             .WithEnvironment("VAULT_DEV_ROOT_TOKEN_ID", VaultToken)
             .WithEnvironment("VAULT_ADDR", "http://0.0.0.0:8200")
-            .WithEnvironment("VAULT_TOKEN", VaultToken)
             .WithPortBinding(8200, true)
-            .WithWaitStrategy(
-                Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(strategy =>
-                    strategy.ForPort(8200).ForPath("/v1/sys/health")))
+            .WithWaitStrategy(Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(s => s.ForPort(8200).ForPath("/v1/sys/health")))
             .Build();
+        _relay = new BackchannelLogoutRelay();
 
-        _keycloakContainer = new KeycloakBuilder()
-            .WithName($"keycloak-tests-{Guid.NewGuid()}")
-            .WithImage(await FaberKeycloakImage.GetAsync())
-            .WithNetwork(_network)
-            .WithResourceMapping(new FileInfo("realm-export.json"), "/opt/keycloak/data/import/")
-            .WithCommand("--import-realm")
-            .WithEnvironment("KEYCLOAK_ADMIN", KeycloakUsername)
-            .WithEnvironment("KEYCLOAK_ADMIN_PASSWORD", KeycloakPassword)
-            .WithEnvironment("KC_FEATURES", KeycloakToken)
-            .WithPortBinding(8080, true)
-            .Build();
+        await Task.WhenAll(_postgres.StartAsync(), _vault.StartAsync());
+        _keycloak = await FaberKeycloak.StartAsync(_network, AppOrigin.ToString().TrimEnd('/'), _relay.ContainerUrl);
+        await _keycloak.Container.AddStandInIdentityProviderAsync(
+            FaberKeycloak.AdminUsername, FaberKeycloak.AdminPassword, FaberKeycloak.Realm, StandIn);
 
-        await Task.WhenAll(
-            _postgresContainer.StartAsync(),
-            _vaultContainer.StartAsync(),
-            _keycloakContainer.StartAsync());
-
-        await _keycloakContainer.DisableSslRequirementAsync(
-            KeycloakUsername, KeycloakPassword, ["master", KeycloakRealm]);
-
-        // Before the app boots, so the provider catalog's first (cached) read already sees the stand-in.
-        await _keycloakContainer.AddStandInIdentityProviderAsync(
-            KeycloakUsername, KeycloakPassword, KeycloakRealm, ExternalSignInTestSupport.StandIn);
-
-        await _keycloakContainer.AddStandInIdentityProviderAliasAsync(
-            KeycloakUsername, KeycloakPassword, KeycloakRealm, ExternalSignInTestSupport.StandIn,
-            ExternalSignInTestSupport.SecondStandInAlias);
-
-        _vaultAddr = $"http://{Vault.Hostname}:{Vault.GetMappedPublicPort(8200)}";
+        var vaultAddress = $"http://{_vault.Hostname}:{_vault.GetMappedPublicPort(8200)}";
         Environment.SetEnvironmentVariable("VAULT_TOKEN", VaultToken);
-        Environment.SetEnvironmentVariable("VAULT_ADDR", _vaultAddr);
+        Environment.SetEnvironmentVariable("VAULT_ADDR", vaultAddress);
+        await VaultTestSecrets.SeedAsync(vaultAddress, VaultToken);
 
-        await SeedVaultSecretsAsync();
+        // Before the API starts: Data Protection reads its key table on first use.
+        await using (var db = new AuthDbContext(new DbContextOptionsBuilder<AuthDbContext>()
+                         .UseNpgsql(_postgres.GetConnectionString(), o => o.MigrationsHistoryTable(
+                             DbConstants.MigrationsHistoryTableName, DbConstants.SchemaName))
+                         .UseSnakeCaseNamingConvention()
+                         .Options))
+        {
+            await db.Database.MigrateAsync();
+        }
+
+        foreach (var user in Users)
+        {
+            await Keycloak.Admin.CreateUserAsync(user);
+        }
     }
 
-    protected override async ValueTask SetupAsync()
+    protected override ValueTask SetupAsync()
     {
-        var identityDbContext = Services.GetRequiredService<IdentityDbContext>();
-        await identityDbContext.Database.MigrateAsync();
-
-        _userModuleApi = Services.GetRequiredService<IUserModuleApi>();
-        _identityModuleApi = Services.GetRequiredService<IIdentityModuleApi>();
-
-        foreach (var (request, password) in RegisteredUsersData.Generate())
-        {
-            var userResponse = await UserModuleApi.CreateUserAsync(request, CancellationToken.None) ??
-                               throw new InvalidOperationException("CreateUserAsync returned null");
-
-            await IdentityModuleApi.ResetPasswordAsync(userResponse.UserId, password, CancellationToken.None);
-            await IdentityModuleApi.VerifyEmailAsync(request.Email, CancellationToken.None);
-        }
+        Relay.Start(() => CreateClient(new ClientOptions { BaseAddress = AppOrigin }));
+        return ValueTask.CompletedTask;
     }
 
     protected override void ConfigureApp(IWebHostBuilder builder)
     {
-        builder.ConfigureServices(services =>
-        {
-            services.AddRefitGeneratedClient<IKeycloakApi>()
-                .ConfigureHttpClient(client =>
-                {
-                    client.BaseAddress = new Uri(Keycloak.GetBaseAddress());
-                });
-
-            services.AddScoped<IUserModuleApi, UserModuleApi>();
-
-            // The real FluentEmail sender over a substituted SMTP transport: only the mail server is
-            // faked, so a transport failure travels the same path it takes against Mailpit.
-            EmailTransport
-                .SendAsync(Arg.Any<IFluentEmail>(), Arg.Any<CancellationToken?>())
-                .Returns(new SendResponse());
-
-            services.AddSingleton(EmailTransport);
-            services.AddScoped<IEmailSender, FluentEmailSender>();
-        });
-
-        var keycloakBaseAddress = Keycloak.GetBaseAddress();
-
-        builder.UseSetting("ConnectionStrings:faberdb", Postgres.GetConnectionString());
-
-        builder.UseSetting("Keycloak:BaseUrl", keycloakBaseAddress);
-        builder.UseSetting("Keycloak:Realm", KeycloakRealm);
-        builder.UseSetting("Keycloak:ClientId", KeycloakClientId);
-        builder.UseSetting("Keycloak:ClientSecret", KeycloakClientSecret);
-        builder.UseSetting("Keycloak:Issuer", $"{keycloakBaseAddress}realms/{KeycloakRealm}");
-        builder.UseSetting("Keycloak:Audience", KeycloakClientId);
-
-        builder.UseSetting("Jwt:Issuer", $"{keycloakBaseAddress}realms/{KeycloakRealm}");
-        builder.UseSetting("Jwt:Audience", KeycloakClientId);
+        builder.UseSetting("ConnectionStrings:faberdb", _postgres!.GetConnectionString());
+        builder.UseSetting("Keycloak:BaseUrl", Keycloak.BaseAddress);
+        builder.UseSetting("Keycloak:Realm", FaberKeycloak.Realm);
+        builder.UseSetting("Keycloak:Issuer", Keycloak.Issuer);
+        builder.UseSetting("Keycloak:Audience", FaberKeycloak.ClientId);
+        builder.UseSetting("Keycloak:RequireHttpsMetadata", "false");
         builder.UseSetting("RateLimiting:Enabled", "false");
-
-        builder.UseSetting("ExternalSignIn:Providers:0", "google");
-        builder.UseSetting("ExternalSignIn:Providers:1", "github");
-        builder.UseSetting("ExternalSignIn:Providers:2", ExternalSignInTestSupport.StandIn.Alias);
-        builder.UseSetting("ExternalSignIn:Providers:3", ExternalSignInTestSupport.SecondStandInAlias);
-        builder.UseSetting("ExternalSignIn:CallbackUrl", ExternalSignInTestSupport.CallbackUrl);
-        builder.UseSetting("ExternalSignIn:SuccessRedirectUrl", ExternalSignInTestSupport.SuccessUrl);
-        builder.UseSetting("ExternalSignIn:FailureRedirectUrl", ExternalSignInTestSupport.FailureUrl);
-
-        builder.UseSetting("FluentEmail:SmtpServer", "localhost");
-        builder.UseSetting("FluentEmail:SmtpPort", "1025");
-        builder.UseSetting("FluentEmail:FromEmail", "test@test.com");
-        builder.UseSetting("FluentEmail:FromName", "Test");
     }
 
-    /// <summary>Creates one more user in the stand-in provider realm.</summary>
-    public Task AddStandInUserAsync(string username, string password, string? email, bool emailVerified)
+    protected override void ConfigureServices(IServiceCollection services)
     {
-        return Keycloak.AddStandInUserAsync(
-            KeycloakUsername, KeycloakPassword, ExternalSignInTestSupport.StandIn, username, password, email,
-            emailVerified);
-    }
-
-    /// <summary>Flips the e-mail verification the stand-in provider reports for an existing user.</summary>
-    public Task SetStandInUserEmailVerifiedAsync(string username, bool emailVerified)
-    {
-        return Keycloak.SetStandInUserEmailVerifiedAsync(
-            KeycloakUsername, KeycloakPassword, ExternalSignInTestSupport.StandIn, username, emailVerified);
+        services.RemoveAll<TimeProvider>();
+        services.AddSingleton<TimeProvider>(Clock);
+        services.AddHttpClient<KeycloakTokenClient>().AddHttpMessageHandler(KeycloakBackChannel.CreateHandler);
     }
 
     protected override async ValueTask TearDownAsync()
     {
-        if (_keycloakContainer is not null) await _keycloakContainer.DisposeAsync();
-        if (_vaultContainer is not null) await _vaultContainer.DisposeAsync();
-        if (_postgresContainer is not null) await _postgresContainer.DisposeAsync();
+        if (_relay is not null) await _relay.DisposeAsync();
+        if (_keycloak is not null) await _keycloak.DisposeAsync();
+        if (_vault is not null) await _vault.DisposeAsync();
+        if (_postgres is not null) await _postgres.DisposeAsync();
         if (_network is not null) await _network.DisposeAsync();
-    }
-
-    private async Task SeedVaultSecretsAsync()
-    {
-        using var httpClient = new HttpClient();
-        httpClient.BaseAddress = new Uri(_vaultAddr);
-        httpClient.DefaultRequestHeaders.Add("X-Vault-Token", VaultToken);
-
-        (await httpClient.PostAsJsonAsync(
-            "/v1/sys/mounts/secrets",
-            new
-            {
-                type = "kv",
-                options = new { version = "2" }
-            })).EnsureSuccessStatusCode();
-
-        (await httpClient.PostAsJsonAsync(
-            "/v1/secrets/data/keycloak",
-            new
-            {
-                data = new Dictionary<string, string>
-                {
-                    ["client-id"] = KeycloakClientId,
-                    ["client-secret"] = KeycloakClientSecret
-                }
-            })).EnsureSuccessStatusCode();
-
-        (await httpClient.PostAsJsonAsync(
-            "/v1/secrets/data/database",
-            new
-            {
-                data = new Dictionary<string, string>
-                {
-                    ["host"] = "localhost",
-                    ["port"] = "5432",
-                    ["name"] = "test",
-                    ["username"] = "test",
-                    ["password"] = "test"
-                }
-            })).EnsureSuccessStatusCode();
-
-        (await httpClient.PostAsJsonAsync(
-            "/v1/secrets/data/mail",
-            new
-            {
-                data = new Dictionary<string, string>
-                {
-                    ["resend-api-key"] = "test-api-key"
-                }
-            })).EnsureSuccessStatusCode();
     }
 }

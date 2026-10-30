@@ -5,7 +5,8 @@ import { EMPTY, of } from 'rxjs';
 
 import { AppNavbar } from './app-navbar';
 import { AuthStore } from '../../auth/auth-store';
-import { AuthClient } from '../../../modules/auth/auth-client';
+import { AuthClient } from '../../auth/auth-client';
+import { API_ROUTES } from '../../routes/api-routes';
 import { ThemeService } from '../../services/theme';
 
 describe('AppNavbar', () => {
@@ -115,9 +116,12 @@ describe('AppNavbar', () => {
     expect(component.isDrawerOpen()).toBe(false);
   });
 
-  it('should call signOut when logout is invoked', () => {
-    component.logout();
-    expect(mockAuthClient.signOut).toHaveBeenCalledOnce();
+  it('should send a signed-out visitor to Keycloak through the API for sign-in and sign-up', () => {
+    const hrefs = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('a'))
+      .map((a) => a.getAttribute('href'));
+
+    expect(hrefs).toContain(API_ROUTES.auth.login());
+    expect(hrefs).toContain(API_ROUTES.auth.register);
   });
 
   it('should default title to "microcivi.com"', () => {

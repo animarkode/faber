@@ -26,7 +26,7 @@ public class RedisUnavailableTests(RedisUnavailableWebApp app) : TestBase
     public async Task GetResume_RedisDown_ShouldReturnResume()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var (response, getResponse) = await app.Client
@@ -62,7 +62,7 @@ public class RedisUnavailableTests(RedisUnavailableWebApp app) : TestBase
     public async Task UpdateTitle_RedisDown_ShouldSucceedAndReadBackFresh()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         // Primes the L1 in-memory cache entry for this resume; with Redis down, invalidation
@@ -88,7 +88,7 @@ public class RedisUnavailableTests(RedisUnavailableWebApp app) : TestBase
     public async Task DownloadDocument_RedisDown_ShouldReturnPdf()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         await app.Client

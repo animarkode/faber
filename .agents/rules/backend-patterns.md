@@ -8,7 +8,7 @@ paths:
 
 ## Module Feature Structure
 
-Canonical example: `src/api/Modules/Auth/Faber.Modules.Auth.Application/Features/SignIn/`
+Canonical example: `src/api/Modules/Resumes/Faber.Modules.Resumes.Application/Features/Educations/CreateEducation/`
 
 ```text
 Features/{Feature}/
@@ -30,16 +30,16 @@ Features/{Feature}/
 
 | Concept            | Pattern                                    | Example                                    |
 |--------------------|--------------------------------------------|--------------------------------------------|
-| Endpoint           | `{Feature}Endpoint`                        | `SignInEndpoint`                           |
-| Request / Response | `{Feature}Request` / `{Feature}Response`   | `SignInRequest` / `SignInResponse`         |
-| Command            | `{Feature}Command`                         | `SignInCommand`                            |
-| Command Handler    | `{Feature}CommandHandler`                  | `SignInCommandHandler`                     |
-| Validator          | `{Feature}Validator`                       | `SignInValidator`                          |
-| Mapper             | `{Feature}Mapper`                          | `SignInMapper`                             |
-| Group              | `{Module}Group`                            | `AuthGroup`                                |
-| Module API         | `I{Module}ModuleApi` / `{Module}ModuleApi` | `IIdentityModuleApi` / `IdentityModuleApi` |
-| Tests              | `{Feature}Tests`                           | `SignInTests`                              |
-| Test data          | `{Purpose}Data` / `{Feature}Constants`     | `RegisteredUsersData` / `SignInConstants`  |
+| Endpoint           | `{Feature}Endpoint`                        | `CreateEducationEndpoint`                  |
+| Request / Response | `{Feature}Request` / `{Feature}Response`   | `CreateEducationRequest` / `...Response`   |
+| Command            | `{Feature}Command`                         | `CreateEducationCommand`                   |
+| Command Handler    | `{Feature}CommandHandler`                  | `CreateEducationCommandHandler`            |
+| Validator          | `{Feature}Validator`                       | `CreateEducationValidator`                 |
+| Mapper             | `{Feature}Mapper`                          | `CreateEducationMapper`                    |
+| Group              | `{Module}Group`                            | `ResumesGroup`                             |
+| Module API         | `I{Module}ModuleApi` / `{Module}ModuleApi` | `IResumesModuleApi` / `ResumesModuleApi`   |
+| Tests              | `{Feature}Tests`                           | `CreateEducationTests`                     |
+| Test data          | `{Purpose}Data` / `{Feature}Constants`     | `RegisteredUsersData` / `{Feature}Constants` |
 | Options            | `{Name}Options` / `{Name}OptionsSetup`     | `KeycloakOptions` / `KeycloakOptionsSetup` |
 
 ## C# Patterns
@@ -50,7 +50,7 @@ Features/{Feature}/
 
 ## Tests
 
-**Test class pattern:** `[Collection<CollectionAuth>] [Priority(N)] public class {Feature}Tests(WebApp app) : TestBase`
+**Test class pattern:** `[Collection<CollectionResumes>] [Priority(N)] public class {Feature}Tests(WebApp app) : TestBase`
 
 **Test method naming:** `{Scenario}_Should{Outcome}` (e.g. `EmptyUsername_ShouldReturnBadRequest`)
 

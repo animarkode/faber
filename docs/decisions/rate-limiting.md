@@ -11,7 +11,7 @@ BCL-aligned — the same split `System.Threading.RateLimiting` itself uses:
 |---|---|---|
 | `RateLimiting` | the *area*: namespace, folder, config section, root options | `RateLimitingOptions`, section `RateLimiting` |
 | `RateLimit` | an *artifact* of the area | `RateLimitPolicies`, `RateLimitRejection`, `RateLimitPartitions` |
-| `RateLimiter` | an *actor* that limits | `TargetEmailRateLimiter` |
+| `RateLimiter` | an *actor* that limits | `PartitionedRateLimiter` (the BCL's) |
 
 Layout: `Faber.Api/RateLimiting/` holds `Options/` (binding), `Policies/` (one
 `IRateLimiterPolicy<string>` class per named policy, DI-activated so each gets `IOptions<RateLimitingOptions>`
@@ -22,10 +22,31 @@ under `Policies/`, and one `AddPolicy` line in `RateLimitingExtensions`. Trust c
 `X-Forwarded-For` lives in `Faber.Api/Http/ForwardedHeadersExtensions.cs` — a networking concern the
 rate limiter depends on, registered explicitly in `Program.cs`.
 
+## Hosted login (2026-10-29)
+
+Sign-in, registration, password reset and e-mail verification moved to Keycloak's hosted pages, and the
+API became a backend-for-frontend. The endpoints those flows used are gone, and with them the policies
+`auth-strict`, `auth-password-reset`, `auth-refresh` and `user-lookup`, the per-target-email bucket of
+`forgot-password` (#333) and the per-recipient send limiter (#339). The sections below that describe
+them are kept as history and marked so.
+
+The API's own auth endpoints now are:
+
+| Endpoint | Policy |
+|---|---|
+| `GET /api/v1/auth/login`, `GET /api/v1/auth/register`, `GET /api/v1/auth/callback` | `auth-external` |
+| `POST /api/v1/auth/logout`, `POST /api/v1/auth/backchannel-logout` | `auth-session` |
+| `GET /api/v1/auth/user` | none (global baseline only, as `me` was) |
+
+**Known regression: outgoing mail is no longer limited by the application.** Keycloak counts failed
+sign-ins per user (brute-force lockout) but has no limit on reset and verification mail. The deployment
+must limit those Keycloak paths per client IP at the reverse proxy (`docs/operations/keycloak.md`,
+section 6). A per-recipient limit needs a Keycloak extension and is a follow-up.
+
 ## Policies
 
 A **global limiter** applies to every endpoint as a baseline: authenticated requests are partitioned
-by the JWT `sub` claim, anonymous requests by client IP. On top of that, seven named policies are
+by the JWT `sub` claim, anonymous requests by client IP. On top of that, four named policies are
 registered (names in `Faber.Modules.Common.PublicApi.RateLimiting.RateLimitPolicies`) for endpoints
 to opt into via `RequireRateLimiting` in the per-module issues:
 
@@ -33,19 +54,18 @@ to opt into via `RequireRateLimiting` in the per-module issues:
 |---|---|---|---|
 | (global, authenticated) | user id | sliding window | 300 / 60s |
 | (global, anonymous) | client IP | sliding window | 60 / 60s |
-| `auth-strict` | client IP | sliding window | 10 / 60s |
-| `auth-password-reset` | client IP | sliding window | 3 / 900s |
-| `auth-refresh` | client IP | sliding window | 20 / 60s |
+| `auth-external` | client IP | sliding window | 20 / 60s |
 | `auth-session` | client IP | sliding window | 20 / 60s |
 | `authenticated-default` | user id → IP | sliding window | 100 / 60s |
 | `expensive-resource` | user id → IP | concurrency | 2 concurrent, queue 2 |
-| `user-lookup` | user id → IP | sliding window | 20 / 60s |
 
 All limits bind from the `RateLimiting` section (`RateLimitingOptions`) — tunable via appsettings /
 environment variables, applied at startup (restart to change). `RateLimiting:Enabled=false` removes
 the middleware entirely; integration test fixtures use this.
 
 ## Per-target-email throttling (issue #333)
+
+> **History.** The endpoints this section describes were removed with hosted login (2026-10-29).
 
 `ForgotPassword` additionally throttles by the *requested* email, independent of the per-IP
 `auth-password-reset` policy — an attacker rotating client IPs can still only trigger a handful of
@@ -76,6 +96,8 @@ the per-IP policy — there is no email-bombing surface to throttle there.
 
 ## Refresh-token throttling (issue #335)
 
+> **History.** The endpoints this section describes were removed with hosted login (2026-10-29).
+
 `Refresh` gets its own `auth-refresh` policy rather than joining `auth-strict`. Refreshing is a
 *legitimate* recurring operation — a normal session renews roughly once per access-token lifetime, and
 a multi-tab client can burst several at once — so putting it on the credential-endpoint budget would
@@ -105,6 +127,8 @@ What per-IP limiting cannot stop is distributed refresh abuse from rotating addr
 Keycloak-side concern (refresh token reuse detection / session limits), not a rate limiter's.
 
 ## Sign-out throttling (issue #331)
+
+> **History.** The endpoints this section describes were removed with hosted login (2026-10-29).
 
 `SignOut` is `AllowAnonymous`, accepts a refresh token from the request body or cookie, and answers
 400 for an invalid token against 204 for a valid one — a refresh-token validity oracle, structurally
@@ -192,40 +216,14 @@ per-user cap is insufficient.
 
 | Endpoint | Policy | Issue |
 |---|---|---|
-| `POST /api/v1/auth/sign-in` | `auth-strict` | #332 |
-| `POST /api/v1/auth/sign-up` | `auth-strict` | #334 |
-| `POST /api/v1/auth/verify-email` | `auth-strict` | #334 |
-| `POST /api/v1/auth/forgot-password` | `auth-password-reset` (+ per-target-email token bucket, see below) | #333 |
-| `PUT /api/v1/auth/reset-password` | `auth-password-reset` | #333 |
-| `POST /api/v1/auth/refresh` | `auth-refresh` | #335 |
-| `POST /api/v1/auth/sign-out` | `auth-session` | #331 |
-| `PUT /api/v1/users/{id}` | `authenticated-default` | #336 |
-| `GET /api/v1/users/{id}` · `/{email}/email` · `/{username}/username` | `user-lookup` | #336 |
-| `POST /api/v1/identity/verify-action-token` | `auth-strict` | #337 |
+| `GET /api/v1/auth/login` · `/register` · `/callback` | `auth-external` | hosted login |
+| `POST /api/v1/auth/logout` · `/backchannel-logout` | `auth-session` | hosted login |
 | All 48 Resumes CRUD endpoints (`/api/v1/resumes/**`) | `authenticated-default` | #338 |
 | `POST /api/v1/resumes/{id}/generate` | `expensive-resource` | #338 |
 | `GET /api/v1/resumes/{id}/download` | `expensive-resource` | #338 |
 
-App-level limiting on sign-in complements Keycloak's own brute-force protection (defense in
-depth — both layers stay). Throttled responses use the generic rejection contract below and
-carry no account-existence signal.
-
-A named policy is one `PartitionedRateLimiter` instance shared by every endpoint that opts into it,
-so sign-in, sign-up and verify-email draw from **one** `auth-strict` budget per client IP. That is
-deliberate: alternating endpoints must not buy an attacker a second allowance, and the legitimate
-flow (sign up → verify → sign in) costs three requests against a 10/60s budget.
-
-Sign-up gets no per-target-email bucket (unlike `forgot-password`, #333): an address can only ever
-trigger one verification mail, because `SignUpCommandHandler` publishes the verification event only
-*after* `CreateUserAsync` succeeds, and Keycloak enforces realm-level email uniqueness
-(`duplicateEmailsAllowed: false` in `infra/keycloak/realm-export.json`) at creation time — so a repeat
-sign-up for the same address fails before reaching the send step. `SignUpValidator`'s
-`IsEmailUniqueAsync` is a best-effort pre-check that buys a friendly error message, not the safety
-mechanism: it queries Keycloak before the account exists, so concurrent requests can all pass it. What
-per-IP limiting cannot stop is bulk account creation from rotating IPs — that needs CAPTCHA /
-proof-of-work rather than a rate limiter, and is out of scope for #334. Per-IP limiting does
-additionally throttle the account-enumeration oracle that sign-up's "Username already exists" /
-"Email already exists" validation messages expose.
+Brute-force protection for passwords is Keycloak's (temporary lockout per user); the API never sees a
+password, so it has no sign-in budget of its own any more.
 
 ## Spoofing resistance (X-Forwarded-For)
 
@@ -257,40 +255,22 @@ Every rejection increments counter `faber.api.rate_limiting.rejections` (tag: `p
 `RateLimitingMetrics`) and logs a structured warning under category `Faber.Api.RateLimiting` — both
 visible in the Aspire dashboard.
 
-`policy` values come from three call sites, not just the HTTP middleware:
+`policy` values come from the HTTP middleware: `RateLimitRejectionHandler` records the value of
+`RateLimitPolicies` attached to the rejecting endpoint (`auth-external`, `auth-session`,
+`authenticated-default`, `expensive-resource`) — or the `global` fallback when only the global baseline
+limiter applies. Tag semantics: the middleware does not expose which chained limiter (global vs named)
+produced the failing lease, so rejections on an endpoint carrying a named policy are attributed to that
+named policy. The request path in the warning log disambiguates hot spots.
 
-1. **HTTP-layer policies** — `RateLimitRejectionHandler` records the value of `RateLimitPolicies`
-   attached to the rejecting endpoint: `auth-strict`, `auth-password-reset`, `auth-refresh`,
-   `auth-session`, `authenticated-default`, `expensive-resource`, `user-lookup` — or the `global`
-   fallback when only the global baseline limiter applies. Tag semantics: the middleware does not
-   expose which chained limiter (global vs named) produced the failing lease, so rejections on an
-   endpoint carrying a named policy are attributed to that named policy. The request path in the
-   warning log disambiguates hot spots.
-2. **`outbound-email`** — recorded by `ThrottledEmailSender`'s per-recipient send-path token bucket
-   (see the decision record below), independent of any inbound HTTP policy.
-3. **`auth-forgot-password-target-email`** — recorded by `ForgotPasswordEndpoint`'s in-endpoint
-   per-target-email token bucket (issue #397), distinct from the `auth-password-reset` HTTP policy so
-   the dashboard can attribute a rejection to the exact layer that fired.
-
-Sources 2 and 3 are **in-process limiters**: they are called by hand via `TryAcquire` and never pass
-through `RequireRateLimiting`, so `RateLimitRejectionHandler` cannot record for them — each consumer
-must call `RateLimitingMetrics.RecordRejection` itself on the rejection branch, with a tag distinct
-from every `RateLimitPolicies` name. Two behavioural `MeterListener` tests plus a five-fact structural
-guard hold that rule (issue #416): each limiter has a behavioural test proving the call really fires
-with the right tag
-(`ForgotPasswordRateLimitingTests.EmailBombing_PerEmailThrottle_ShouldRecordRejectionMetric`,
-`ThrottledEmailSenderTests.ThrottledSend_ShouldRecordRejectionMetric`), and
-`InProcessRateLimiterMetricCoverageTests` discovers every `I*RateLimiter` contract in the module
-assemblies the host loads, fails if one is missing from its allowlist, and resolves each allowlist
-entry's `CoveredBy` string — for every entry whose assembly it can reach — to confirm the named
-behavioural test actually exists. That structural guard proves a limiter was consciously registered
-and that its named test exists where it is reachable — it does not prove the
-test's assertions are meaningful, so only the behavioural test itself proves the rejection is genuinely
-recorded, and writing one for a new limiter means actually driving it past its budget and observing the
-metric fire. **Adding a third in-process limiter therefore means: record the metric with a new distinct
-tag, add its behavioural test, add its allowlist entry, and add it to the numbered list above.**
+The two in-process limiters that recorded their own tags (`outbound-email` and
+`auth-forgot-password-target-email`, issues #397 and #416) went away with hosted login, and so did the
+structural guard over them. A new in-process limiter, called by hand via `TryAcquire`, must again record
+`RateLimitingMetrics.RecordRejection` itself with a tag distinct from every `RateLimitPolicies` name,
+and get a behavioural `MeterListener` test proving it.
 
 ## Decision record: `email-send` policy removed as orphaned (2026-08-09, issue #398)
+
+> **History.** The endpoints this section describes were removed with hosted login (2026-10-29).
 
 **Decision: remove `EmailSendPolicy`, `RateLimitPolicies.EmailSend`, its `RateLimitingOptions.EmailSend`
 property and `RateLimiting:EmailSend` config section.** The name was reserved in the #330 foundation
@@ -336,25 +316,9 @@ OpenTelemetry — the middleware provides all of these and keeps limits config-t
 
 `tests/Integration/Faber.Api.Tests` verifies the 429 + `Retry-After` contract, no-leak body, per-IP
 and per-user partition isolation, trusted-proxy forwarding, and spoof resistance.
-`ForgotPasswordRateLimitingTests` additionally covers the per-target-email bucket (exceedance,
-case/whitespace bucket-sharing, and non-leakage of account existence — a registered and an
-unregistered email throttle to the identical rejection contract, traceId aside); `SignInRateLimitingTests` covers the
-equivalent non-enumeration property for `auth-strict` (registered vs. unknown username throttle
-identically, and a valid password still 429s once the limit is spent);
-`ResetPasswordRateLimitingTests` exercises the same `auth-password-reset` per-IP contract on the
-reset-password endpoint, consistent with it having no email to bomb. `SignUpRateLimitingTests` covers
-mass registration (a fully valid sign-up is refused once the budget is spent, and the same
-registration then succeeds from a fresh partition — proving the rejected request created nothing) plus
-the non-enumeration property; `VerifyEmailRateLimitingTests` covers verification-link hammering and
-asserts that sign-up and verify-email share one `auth-strict` budget per IP.
-`RefreshRateLimitingTests` covers the refresh endpoint: exceedance of `auth-refresh`, per-IP partition
-isolation, the fact that attaching a bearer token to a refresh call does not open a second budget for
-the same IP, the fact that a spent `auth-strict` budget does not throttle refresh (separate budgets),
-and that a normal session's sign-in → refresh → refresh cycle completes untouched.
-`SignOutRateLimitingTests` covers the equivalent set for sign-out: exceedance of `auth-session`,
-per-IP partition isolation, the fact that attaching a bearer token to a sign-out call does not open a
-second budget for the same IP, and the fact that a spent `auth-refresh` budget does not throttle
-sign-out (separate budgets).
+`AuthEndpointsRateLimitingTests` covers the hosted-login endpoints: exceeding `auth-external` on
+`auth/login` and `auth-session` on `auth/logout` returns 429. Tokens for the authenticated suites come
+straight from the test Keycloak, so no sign-in request spends an anonymous budget.
 `ResumesCrudRateLimitingTests` covers the Resumes CRUD baseline: exceedance of
 `authenticated-default` with the full 429 contract, per-user partition isolation for two accounts
 behind one address, and the single-budget property — a spent budget on `GET /api/v1/resumes` also

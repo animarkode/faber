@@ -33,7 +33,7 @@ public class GetPersonTests(WebApp app) : TestBase
     public async Task GetPerson_ShouldReturnCreatedPerson()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var createRequest = new CreatePersonRequestFaker(resume.Id).Generate();
@@ -57,7 +57,7 @@ public class GetPersonTests(WebApp app) : TestBase
     public async Task GetPersonByResume_ShouldReturnPerson()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var createRequest = new CreatePersonRequestFaker(resume.Id, seed: 11001).Generate();
@@ -81,7 +81,7 @@ public class GetPersonTests(WebApp app) : TestBase
     public async Task NonExistentPerson_ShouldReturnNotFound()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var (httpResponse, _) = await app.Client
@@ -97,7 +97,7 @@ public class GetPersonTests(WebApp app) : TestBase
     public async Task GetPersonByNonExistentResume_ShouldReturnForbidden()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
 
         var (httpResponse, _) = await app.Client
             .WithAuthToken(accessToken)
@@ -112,7 +112,7 @@ public class GetPersonTests(WebApp app) : TestBase
     public async Task CrossUserGetPerson_ShouldReturnForbidden()
     {
         var ct = TestContext.Current.CancellationToken;
-        var userAToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var userAToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, userAToken, ct: ct);
 
         var createRequest = new CreatePersonRequestFaker(resume.Id).Generate();
@@ -121,7 +121,7 @@ public class GetPersonTests(WebApp app) : TestBase
             .WithAuthToken(userAToken)
             .POSTAsync<CreatePersonEndpoint, CreatePersonRequest, CreatePersonResponse>(createRequest);
 
-        var userBToken = await ResumesTestHelper.SignInAsUserAsync(app.Client, 1, ct);
+        var userBToken = await ResumesTestHelper.SignInAsUserAsync(app, 1, ct);
 
         var (httpResponse, _) = await app.Client
             .WithAuthToken(userBToken)
@@ -136,7 +136,7 @@ public class GetPersonTests(WebApp app) : TestBase
     public async Task CrossUserGetPersonByResume_ShouldReturnForbidden()
     {
         var ct = TestContext.Current.CancellationToken;
-        var userAToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var userAToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, userAToken, ct: ct);
 
         var createRequest = new CreatePersonRequestFaker(resume.Id).Generate();
@@ -145,7 +145,7 @@ public class GetPersonTests(WebApp app) : TestBase
             .WithAuthToken(userAToken)
             .POSTAsync<CreatePersonEndpoint, CreatePersonRequest, CreatePersonResponse>(createRequest);
 
-        var userBToken = await ResumesTestHelper.SignInAsUserAsync(app.Client, 1, ct);
+        var userBToken = await ResumesTestHelper.SignInAsUserAsync(app, 1, ct);
 
         var (httpResponse, _) = await app.Client
             .WithAuthToken(userBToken)

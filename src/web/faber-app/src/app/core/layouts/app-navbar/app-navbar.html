@@ -36,9 +36,9 @@
             </div>
           } @else {
             <div class="hidden sm:flex flex-row space-x-2">
-              <a [routerLink]="routes.auth.signIn"
+              <a [href]="signInUrl"
                  class="mobile-nav-link main-menu-link w-auto inline-flex items-center justify-center font-medium min-h-10 text-foreground/80 text-center px-5 rounded-full"><span class="mobile-nav-link__label">Sign in</span></a>
-              <a [routerLink]="routes.auth.signUp"
+              <a [href]="signUpUrl"
                  class="mobile-nav-link main-menu-link mobile-nav-link--primary w-auto inline-flex items-center justify-center font-medium min-h-10 text-foreground text-center px-5 rounded-full"><span class="mobile-nav-link__label">Sign up</span></a>
             </div>
           }
@@ -59,9 +59,9 @@
     @if (!authStore.loading() && !authStore.authenticated()) {
       <div class="flex flex-col gap-2 max-w-screen-xl mx-auto px-4 pb-4 sm:hidden">
         <div class="border-t border-line pt-3 flex flex-row gap-2">
-          <a [routerLink]="routes.auth.signIn"
+          <a [href]="signInUrl"
              class="mobile-nav-link flex-1 flex items-center justify-center text-center py-3 px-4 font-medium rounded-full text-foreground/80"><span class="mobile-nav-link__label">Sign in</span></a>
-          <a [routerLink]="routes.auth.signUp"
+          <a [href]="signUpUrl"
              class="mobile-nav-link mobile-nav-link--primary flex-1 flex items-center justify-center text-center py-3 px-4 font-medium rounded-full text-foreground"><span class="mobile-nav-link__label">Sign up</span></a>
         </div>
       </div>

@@ -34,16 +34,8 @@
         <ProjectReference Include="..\..\..\..\..\src\api\Faber.Api\Faber.Api.csproj"/>
         <ProjectReference Include="..\..\..\..\..\src\api\Modules\Auth\Faber.Modules.Auth.Application\Faber.Modules.Auth.Application.csproj"/>
         <ProjectReference Include="..\..\..\..\..\src\api\Modules\Resumes\Faber.Modules.Resumes.Application\Faber.Modules.Resumes.Application.csproj"/>
-        <ProjectReference Include="..\..\..\..\..\src\api\Modules\Identity\Faber.Modules.Identity.Application\Faber.Modules.Identity.Application.csproj"/>
-        <ProjectReference Include="..\..\..\..\..\src\api\Modules\Users\Faber.Modules.Users.Application\Faber.Modules.Users.Application.csproj"/>
-        <ProjectReference Include="..\..\..\..\..\src\api\Modules\Users\Faber.Modules.Users.PublicApi\Faber.Modules.Users.PublicApi.csproj"/>
+        <ProjectReference Include="..\..\..\..\..\src\api\Modules\Auth\Faber.Modules.Auth.Infrastructure\Faber.Modules.Auth.Infrastructure.csproj"/>
         <ProjectReference Include="..\..\Common\Faber.Testing.Shared\Faber.Testing.Shared.csproj"/>
-    </ItemGroup>
-
-    <ItemGroup>
-        <Content Include="realm-export.json">
-            <CopyToOutputDirectory>Always</CopyToOutputDirectory>
-        </Content>
     </ItemGroup>
 
 </Project>

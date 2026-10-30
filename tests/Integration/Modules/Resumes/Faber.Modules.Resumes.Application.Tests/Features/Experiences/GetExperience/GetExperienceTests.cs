@@ -33,7 +33,7 @@ public class GetExperienceTests(WebApp app) : TestBase
     public async Task GetExperience_ShouldReturnCreatedExperience()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var createRequest = new CreateExperienceRequestFaker(resume.Id).Generate();
@@ -59,7 +59,7 @@ public class GetExperienceTests(WebApp app) : TestBase
     public async Task GetAllExperiences_ShouldReturnExperiencesForResume()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var items = new CreateExperienceRequestFaker(resume.Id).Generate(2);
@@ -89,7 +89,7 @@ public class GetExperienceTests(WebApp app) : TestBase
     public async Task NonExistentExperience_ShouldReturnNotFound()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var (httpResponse, _) = await app.Client
@@ -105,7 +105,7 @@ public class GetExperienceTests(WebApp app) : TestBase
     public async Task GetAllExperiencesForNonExistentResume_ShouldReturnForbidden()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
 
         var (httpResponse, _) = await app.Client
             .WithAuthToken(accessToken)
@@ -121,7 +121,7 @@ public class GetExperienceTests(WebApp app) : TestBase
     public async Task GetAllExperiencesEmptyResume_ShouldReturnEmptyList()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var (httpResponse, getResponse) = await app.Client
@@ -139,7 +139,7 @@ public class GetExperienceTests(WebApp app) : TestBase
     public async Task CrossUserGetExperience_ShouldReturnForbidden()
     {
         var ct = TestContext.Current.CancellationToken;
-        var userAToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var userAToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, userAToken, ct: ct);
 
         var createRequest = new CreateExperienceRequestFaker(resume.Id).Generate();
@@ -149,7 +149,7 @@ public class GetExperienceTests(WebApp app) : TestBase
             .POSTAsync<CreateExperienceEndpoint, CreateExperienceRequest,
                 CreateExperienceResponse>(createRequest);
 
-        var userBToken = await ResumesTestHelper.SignInAsUserAsync(app.Client, 1, ct);
+        var userBToken = await ResumesTestHelper.SignInAsUserAsync(app, 1, ct);
 
         var (httpResponse, _) = await app.Client
             .WithAuthToken(userBToken)
@@ -164,10 +164,10 @@ public class GetExperienceTests(WebApp app) : TestBase
     public async Task CrossUserGetAllExperiences_ShouldReturnForbidden()
     {
         var ct = TestContext.Current.CancellationToken;
-        var userAToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var userAToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, userAToken, ct: ct);
 
-        var userBToken = await ResumesTestHelper.SignInAsUserAsync(app.Client, 1, ct);
+        var userBToken = await ResumesTestHelper.SignInAsUserAsync(app, 1, ct);
 
         var (httpResponse, _) = await app.Client
             .WithAuthToken(userBToken)

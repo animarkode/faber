@@ -20,7 +20,7 @@ public class CreateExperienceTests(WebApp app) : TestBase
     public async Task CreateExperience_ShouldReturnCreated(CreateExperienceRequest request)
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var createRequest = request with { ResumeId = resume.Id };
@@ -42,7 +42,7 @@ public class CreateExperienceTests(WebApp app) : TestBase
     public async Task CreateExperienceForNonExistentResume_ShouldReturnForbidden()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
 
         var request = new CreateExperienceRequestFaker(Guid.NewGuid()).Generate();
 
@@ -61,7 +61,7 @@ public class CreateExperienceTests(WebApp app) : TestBase
         CreateExperienceRequest invalidRequest)
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
         
         var createRequest = invalidRequest with { ResumeId = resume.Id };

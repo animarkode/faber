@@ -1,8 +1,6 @@
 import { TestBed } from '@angular/core/testing';
-import { signal } from '@angular/core';
 import { provideRouter } from '@angular/router';
 import { Home } from './home';
-import { AuthStore } from '../../core/auth/auth-store';
 
 describe('Home', () => {
   beforeEach(async () => {
@@ -10,17 +8,6 @@ describe('Home', () => {
       imports: [Home],
       providers: [
         provideRouter([]),
-        {
-          provide: AuthStore,
-          useValue: {
-            authenticated: signal(false),
-            user: signal(null),
-            loading: signal(false),
-            error: signal(null),
-            clearUser: () => {},
-            reload: () => {},
-          },
-        },
       ],
     }).compileComponents();
   });
@@ -28,5 +15,13 @@ describe('Home', () => {
   it('should create', () => {
     const fixture = TestBed.createComponent(Home);
     expect(fixture.componentInstance).toBeTruthy();
+  });
+
+  it('should lead to the resumes, whose guard handles signing in', () => {
+    const fixture = TestBed.createComponent(Home);
+    fixture.detectChanges();
+
+    const hrefs = Array.from((fixture.nativeElement as HTMLElement).querySelectorAll('a')).map((a) => a.getAttribute('href'));
+    expect(hrefs).toContain('/resumes');
   });
 });

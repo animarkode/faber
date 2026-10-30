@@ -48,8 +48,6 @@ public sealed class TagGroupsDocumentProcessor : IDocumentProcessor
         document.ExtensionData["x-tagGroups"] = new object[]
         {
             new { name = "Auth", tags = new[] { "Auth" } },
-            new { name = "Users", tags = new[] { "Users" } },
-            new { name = "Identity", tags = new[] { "Identity" } },
             new
             {
                 name = "Resumes",

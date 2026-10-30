@@ -8,14 +8,11 @@ description: ErrorOr result pattern for Faber — error creation, error code con
 Faber uses the [ErrorOr](https://github.com/amantinband/error-or) library (v2) for command-handler results and business failures. Never throw exceptions for business logic.
 
 Canonical sources to mirror before changing behavior:
-- `src/api/Modules/Auth/Faber.Modules.Auth.Application/Features/SignIn/`
-- `src/api/Modules/Auth/Faber.Modules.Auth.Application/Features/Refresh/`
-- `src/api/Modules/Auth/Faber.Modules.Auth.Application/Features/ForgotPassword/`
-- `src/api/Modules/Auth/Faber.Modules.Auth.Application/Features/ResetPassword/`
+- `src/api/Modules/Auth/Faber.Modules.Auth.Application/Features/Logout/`
+- `src/api/Modules/Auth/Faber.Modules.Auth.Application/Features/BackchannelLogout/`
+- `src/api/Modules/Resumes/Faber.Modules.Resumes.Application/Features/Educations/CreateEducation/`
 - `src/api/Modules/Resumes/Faber.Modules.Resumes.Application/Features/Educations/DeleteEducation/`
 - `src/api/Modules/Resumes/Faber.Modules.Resumes.Application/Features/Persons/CreatePerson/`
-- `src/api/Modules/Users/Faber.Modules.Users.Application/Features/GetUserById/`
-- `src/api/Modules/Users/Faber.Modules.Users.Application/Features/UpdateUserFullName/`
 
 ---
 
@@ -47,10 +44,10 @@ return Error.Validation("Resume.TitleRequired", "Title is required");
 return Error.Conflict("Resume.LimitReached", "Maximum resume limit reached");
 
 // General failure (endpoint mapping depends on feature)
-return Error.Failure("Auth.SignUp", "Error while creating user");
+return Error.Failure("Auth.Logout", "Keycloak did not end its session.");
 
-// Unauthorized (HTTP 401)
-return Error.Unauthorized("Auth.SignIn", "Sign in failed");
+// Validation of an input the framework cannot check (e.g. a signed token)
+return Error.Validation("Auth.BackchannelLogout", "The logout token is not a valid token from Keycloak.");
 
 // Unexpected (rare in current Faber code)
 return Error.Unexpected("Resume.SaveFailed", "Unexpected error saving resume");
@@ -63,27 +60,20 @@ Format is usually **`"Entity.NotFound"`**, **`"Entity.Conflict"`**, or **`"Modul
 | Common in Faber | Avoid |
 |---|---|
 | `"Education.NotFound"` | `"NotFound"` |
-| `"Auth.SignIn"` | `"AuthSignInFailed"` |
+| `"Auth.Logout"` | `"LogoutFailed"` |
 | `"Resume.LimitReached"` | `"LimitReached"` |
-| `"User.NotFound"` | `"VerifyEmailError"` |
+| `"Person.Conflict"` | `"PersonExistsError"` |
 
 Current code is **not perfectly uniform**. Real examples include:
-- `Auth.SignIn`
-- `Auth.Refresh`
-- `Auth.ForgotPassword`
-- `Auth.ResetPassword`
-- `Users.Validation`
-- `Users.ResetPassword`
-- `Users.VerifyEmail`
-- `User.NotFound`
-- `User.UpdateFailed`
+- `Auth.Logout`
+- `Auth.BackchannelLogout`
 - `Resume.NotFound`
 - `Person.Conflict`
 - `Education.NotFound`
 
 Rule of thumb:
 - preserve the naming convention already used in the feature/module you are editing
-- for new errors, prefer concise domain-oriented codes such as `Resume.NotFound`, `Person.Conflict`, `Auth.SignIn`
+- for new errors, prefer concise domain-oriented codes such as `Resume.NotFound`, `Person.Conflict`, `Auth.Logout`
 
 ---
 
@@ -115,7 +105,7 @@ Real Faber examples:
 return true;                        // DeleteEducationCommandHandler
 
 // Auth flows use Result.Success for command handlers without response body
-return Result.Success;              // ForgotPassword / ResetPassword
+return Result.Success;              // LogoutCommandHandler, BackchannelLogoutCommandHandler
 
 // Create flows often map directly to response DTOs
 return person.MapToResponse();      // CreatePersonCommandHandler
@@ -151,16 +141,14 @@ return TypedResults.Ok(result.Value);
 
 | Feature pattern | Handler error examples | Endpoint mapping |
 |---|---|---|
-| Auth sign-in | `Error.Unauthorized("Auth.SignIn", ...)` | `TypedResults.Unauthorized()` |
-| Auth refresh | `Error.Validation("Auth.Refresh", ...)`, `Error.Unauthorized("Auth.Refresh", ...)` | `TypedResults.BadRequest(response.FirstError)` after refresh-token presence check; empty/missing token returns `Unauthorized()` before command execution |
-| Auth forgot/reset password | `Error.NotFound`, `Error.Validation`, `Error.Failure` | `TypedResults.BadRequest(result.FirstError)` |
+| Auth logout | `Error.Failure("Auth.Logout", ...)` | logged; the endpoint still signs out locally and returns `NoContent()` |
+| Auth back-channel logout | `Error.Validation("Auth.BackchannelLogout", ...)` | `TypedResults.BadRequest()` without payload |
 | Resumes delete/get/update | mostly `Error.NotFound(...)` | usually `TypedResults.NotFound()` without payload |
 | Resumes create with conflicts | `Error.NotFound(...)`, `Error.Conflict(...)` | branch on `result.FirstError.Type`, e.g. `Conflict()` or `NotFound()` |
-| Users queries/updates | `Error.NotFound(...)`, sometimes `Error.Failure(...)` | often `TypedResults.NotFound(result.FirstError)` |
 
 Important:
 - do **not** assume `Error.Failure` means HTTP 500 in current Faber code
-- do **not** assume `Error.Unauthorized` always maps to `401`; `RefreshEndpoint` currently maps command errors to `400`
+- do **not** assume an error type fixes the status code; each endpoint chooses its mapping (see the table above)
 - preserve the established mapping in the feature you are editing unless you are intentionally standardizing behavior repo-wide
 
 ### Validation note
@@ -226,10 +214,10 @@ public class DeleteEducationCommandHandler(
 ## 6. Feature-Specific Mapping Guidance
 
 ```csharp
-// SignInEndpoint: hide payload, just return 401
+// BackchannelLogoutEndpoint: hide why a token was refused, just return 400
 if (result.IsError)
 {
-    return TypedResults.Unauthorized();
+    return TypedResults.BadRequest();
 }
 
 // DeleteEducationEndpoint: hide payload, return plain 404
@@ -249,17 +237,6 @@ if (result.IsError)
     return TypedResults.NotFound();
 }
 
-// GetUserByIdEndpoint: include error payload in 404
-if (result.IsError)
-{
-    return TypedResults.NotFound(result.FirstError);
-}
-
-// ForgotPassword / ResetPassword: surface first error as BadRequest<Error>
-if (result.IsError)
-{
-    return TypedResults.BadRequest(result.FirstError);
-}
 ```
 
 When adding or changing an endpoint, first inspect sibling features in the same module and keep their mapping style consistent.
@@ -319,10 +296,8 @@ ErrorOr<ErrorOr<T>>  // always flatten — handlers return ErrorOr<T> directly
 
 These are real repository behaviors, not idealized rules:
 
-- `Error.Failure(...)` is sometimes surfaced as `400 BadRequest<Error>` (`ForgotPassword`, `ResetPassword`), sometimes as `404 NotFound<Error>` (`UpdateUserFullName`), not as `500`
-- `Error.Unauthorized(...)` from `RefreshCommandHandler` currently ends up as `400 BadRequest<Error>` in `RefreshEndpoint`
+- `Error.Failure(...)` is not automatically a `500`: `LogoutEndpoint` logs it and still answers `204`, because the local session is deleted either way
 - Resumes endpoints often hide error payloads and return plain `NotFound()` / `Conflict()`
-- Users endpoints often include the error payload in `NotFound<Error>`
 - FastEndpoints validators handle many input-validation scenarios before handlers run, so not every `400` in tests comes from `Error.Validation`
 
 Unless you are intentionally refactoring the whole module, prefer consistency with neighboring features over theoretical purity.

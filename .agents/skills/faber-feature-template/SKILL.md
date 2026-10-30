@@ -11,12 +11,10 @@ A feature is a **self-contained vertical slice** inside a module. Most new featu
 > See `errorOr-patterns` skill for ErrorOr usage.
 
 Canonical sources to mirror before generating new code:
-- `src/api/Modules/Auth/Faber.Modules.Auth.Application/Features/SignIn/`
-- `src/api/Modules/Auth/Faber.Modules.Auth.Application/Features/Refresh/`
+- `src/api/Modules/Resumes/Faber.Modules.Resumes.Application/Features/Educations/CreateEducation/`
 - `src/api/Modules/Resumes/Faber.Modules.Resumes.Application/Features/Educations/DeleteEducation/`
 - `src/api/Modules/Resumes/Faber.Modules.Resumes.Application/Features/Persons/CreatePerson/`
-- `src/api/Modules/Users/Faber.Modules.Users.Application/Features/GetUserById/`
-- `src/api/Modules/Users/Faber.Modules.Users.Application/Features/UpdateUserFullName/`
+- `src/api/Modules/Auth/Faber.Modules.Auth.Application/Features/Logout/`
 
 ---
 
@@ -37,8 +35,7 @@ Location: `src/api/Modules/{Module}/Faber.Modules.{Module}.Application/Features/
 
 Notes:
 - physical file order in folders is usually alphabetical, not “request-first”
-- some features intentionally reuse shared contracts, for example `RefreshEndpoint` uses `Features/Shared/Requests/RefreshTokenRequest.cs`
-- some users features reuse shared response DTOs such as `Features/Shared/Responses/GetUserResponse.cs`
+- some features intentionally have no request file, e.g. `Auth`'s `UserEndpoint` and `LogoutEndpoint` derive from `EndpointWithoutRequest`
 
 ---
 
@@ -55,12 +52,14 @@ For route parameters, property names **must match** route segments in `Group`/`E
 
 If the feature already has a shared request in the same module, reuse it instead of creating a duplicate per-feature DTO.
 
-Real example:
+Real example of binding a non-JSON field (Keycloak posts the logout token as a form field):
 
 ```csharp
-public record RefreshTokenRequest(
-    string? RefreshToken,
-    [property: FromHeader(HeaderKeys.ClientType)] string ClientType);
+public class BackchannelLogoutRequest
+{
+    [BindFrom("logout_token")]
+    public string? LogoutToken { get; init; }
+}
 ```
 
 ---
@@ -153,7 +152,7 @@ public static class CreateEducationMapper
 Real Faber patterns:
 - request → command mapping almost always lives in the feature folder
 - entity/external-contract → response mapping may live in the feature folder or a shared mapper namespace
-- some mappers take extra arguments, e.g. `request.MapToCommand(refreshToken)` in `Refresh`
+- some mappers take extra arguments, e.g. `User.MapToResponse(accountUrl)` in `Auth`'s `UserMapper`
 
 ---
 
@@ -196,7 +195,7 @@ public class DeleteEducationCommandHandler(
 
 Handler guidance:
 - use direct `DbContext` access inside Resumes features
-- use module APIs (`IUserModuleApi`, `IIdentityModuleApi`) for cross-module work
+- use another module's `I{Module}ModuleApi` from its `PublicApi` project for cross-module work
 - prefer early returns with `Error.*(...)`
 - use `CancellationToken ct` as the last parameter everywhere
 
@@ -244,7 +243,7 @@ public class DeleteEducationEndpoint(ILogger<DeleteEducationEndpoint> logger)
 
 Endpoint guidance:
 - use `Group<TGroup>()` for top-level or nested subgroup attachment
-- use `AllowAnonymous()` only when the feature genuinely bypasses auth (`SignIn`, `Refresh`, `ForgotPassword`, `ResetPassword`)
+- use `AllowAnonymous()` only when the feature genuinely bypasses auth (`auth/login`, `auth/register`, `auth/logout`, `auth/backchannel-logout`)
 - protected Resumes routes often rely on `Policies("ResumeOwnerPolicy")`
 - keep endpoint mapping consistent with sibling features in the same module, even if another module uses a different HTTP mapping style
 
@@ -288,7 +287,7 @@ Endpoint guidance:
 
 ### AUTH/SHARED REQUEST FEATURES
 - It is acceptable for a feature to omit local `Request` or `Response` files if the module already exposes an appropriate shared contract
-- Example: `Refresh` reuses `RefreshTokenRequest` from `Features/Shared/Requests/`
+- Example: `Auth`'s `UserEndpoint` has no request and maps the signed-in principal straight to `UserResponse`
 
 ---
 
@@ -361,8 +360,7 @@ Most new features inside an existing module do **not** require `DependencyInject
 
 ## Current Repository Nuances
 
-- `Users` features may reuse shared response DTOs and shared mappers
-- `Auth` features may reuse shared request DTOs (`RefreshTokenRequest`) or custom endpoint bases (`EndpointWithRefreshToken<TResponse>`)
+- `Auth` features are thin: sign-in itself happens on Keycloak's pages, so `login`/`register` return a challenge result and never take credentials (see `keycloak-aspnet-integration`)
 - `Create` endpoints in current Faber usually return `200 OK`, not `201 Created`
 - not every module currently has the same maturity of integration-test coverage; mirror the nearest existing test project rather than inventing a new pattern
 - route-bound nested resources in `Resumes` nearly always use subgroup patterns like `"{ResumeId}/educations"`

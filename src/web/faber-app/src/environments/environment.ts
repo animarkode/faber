@@ -1,6 +1,6 @@
-const apiHost = typeof window !== 'undefined' ? window.location.hostname : 'localhost';
-
 export const environment = {
   production: false,
-  api: `http://${apiHost}:5020/api/v1`,
+  // Same origin as the app: the dev server proxies /api to the API (proxy.conf.json), as the edge proxy
+  // does in production, so the session cookie is first-party and SameSite=Strict holds.
+  api: '/api/v1',
 };

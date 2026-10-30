@@ -33,7 +33,7 @@ public class DownloadDocumentTests(WebApp app) : TestBase
     public async Task DownloadDocument_ShouldReturnPdfStream()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var personRequest = new CreatePersonRequestFaker(resume.Id).Generate();
@@ -56,7 +56,7 @@ public class DownloadDocumentTests(WebApp app) : TestBase
     public async Task DownloadNonExistentDocument_ShouldReturnForbidden()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
 
         var httpResponse = await app.Client
             .WithAuthToken(accessToken)
@@ -71,10 +71,10 @@ public class DownloadDocumentTests(WebApp app) : TestBase
     public async Task CrossUserDownloadDocument_ShouldReturnForbidden()
     {
         var ct = TestContext.Current.CancellationToken;
-        var userAToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var userAToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, userAToken, ct: ct);
 
-        var userBToken = await ResumesTestHelper.SignInAsUserAsync(app.Client, 1, ct);
+        var userBToken = await ResumesTestHelper.SignInAsUserAsync(app, 1, ct);
 
         var httpResponse = await app.Client
             .WithAuthToken(userBToken)

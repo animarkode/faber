@@ -17,7 +17,7 @@ public class CreateResumeTests(WebApp app) : TestBase
     public async Task ValidCreateResume_ShouldReturnOk()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
 
         var request = new CreateResumeRequest("en-us");
 
@@ -35,7 +35,7 @@ public class CreateResumeTests(WebApp app) : TestBase
     public async Task RegularUser_ShouldCreateOneResume()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsUserAsync(app.Client, 2, ct);
+        var accessToken = await ResumesTestHelper.SignInAsUserAsync(app, 2, ct);
 
         var request = new CreateResumeRequest("en-us");
 
@@ -52,7 +52,7 @@ public class CreateResumeTests(WebApp app) : TestBase
     public async Task RegularUser_ShouldCreateSecondResume()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsUserAsync(app.Client, 2, ct);
+        var accessToken = await ResumesTestHelper.SignInAsUserAsync(app, 2, ct);
 
         var request = new CreateResumeRequest("uk-ua");
 
@@ -68,7 +68,7 @@ public class CreateResumeTests(WebApp app) : TestBase
     public async Task PremiumUser_ShouldCreateMultipleResumes()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
 
         var request = new CreateResumeRequest("uk-ua");
 

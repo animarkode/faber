@@ -18,19 +18,10 @@ public class RateLimitingOptions
     /// <summary>Global baseline for authenticated requests, partitioned by user id.</summary>
     public SlidingWindowPolicyOptions GlobalAuthenticated { get; set; } = new() { PermitLimit = 300, WindowSeconds = 60 };
 
-    /// <summary>Limits for the <c>auth-strict</c> policy (credential endpoints, per IP).</summary>
-    public SlidingWindowPolicyOptions AuthStrict { get; set; } = new() { PermitLimit = 10, WindowSeconds = 60 };
-
-    /// <summary>Limits for the <c>auth-password-reset</c> policy (per IP).</summary>
-    public SlidingWindowPolicyOptions AuthPasswordReset { get; set; } = new() { PermitLimit = 3, WindowSeconds = 900 };
-
-    /// <summary>Limits for the <c>auth-refresh</c> policy (per IP).</summary>
-    public SlidingWindowPolicyOptions AuthRefresh { get; set; } = new() { PermitLimit = 20, WindowSeconds = 60 };
-
-    /// <summary>Limits for the <c>auth-session</c> policy (per IP).</summary>
+    /// <summary>Limits for the <c>auth-session</c> policy (sign-out and back-channel logout, per IP).</summary>
     public SlidingWindowPolicyOptions AuthSession { get; set; } = new() { PermitLimit = 20, WindowSeconds = 60 };
 
-    /// <summary>Limits for the <c>auth-external</c> policy (external sign-in redirect and callback).</summary>
+    /// <summary>Limits for the <c>auth-external</c> policy (sign-in and registration redirects and the OIDC callback, per IP).</summary>
     public SlidingWindowPolicyOptions AuthExternal { get; set; } = new() { PermitLimit = 20, WindowSeconds = 60 };
 
     /// <summary>Limits for the <c>authenticated-default</c> policy (per user).</summary>
@@ -39,6 +30,4 @@ public class RateLimitingOptions
     /// <summary>Limits for the <c>expensive-resource</c> policy (per user, concurrency).</summary>
     public ConcurrencyPolicyOptions ExpensiveResource { get; set; } = new() { PermitLimit = 2, QueueLimit = 2 };
 
-    /// <summary>Limits for the <c>user-lookup</c> policy (per user, shared across all lookup endpoints).</summary>
-    public SlidingWindowPolicyOptions UserLookup { get; set; } = new() { PermitLimit = 20, WindowSeconds = 60 };
 }

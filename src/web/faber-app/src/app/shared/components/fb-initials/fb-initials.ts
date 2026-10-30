@@ -6,8 +6,9 @@ import { ChangeDetectionStrategy, Component, computed, input } from '@angular/co
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class FbInitials {
-  firstName = input.required<string>();
-  lastName = input.required<string>();
-  firstChar = computed(() => this.firstName().charAt(0).toUpperCase());
-  lastChar = computed(() => this.lastName().charAt(0).toUpperCase());
+  // Nullable: a Keycloak account (e.g. a GitHub sign-in without a public name) may have no name.
+  firstName = input.required<string | null>();
+  lastName = input.required<string | null>();
+  firstChar = computed(() => (this.firstName() ?? '').charAt(0).toUpperCase());
+  lastChar = computed(() => (this.lastName() ?? '').charAt(0).toUpperCase());
 }

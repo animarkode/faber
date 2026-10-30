@@ -40,6 +40,14 @@ describe('FbInitials', () => {
     expect(component.lastChar()).toBe('S');
   });
 
+  it('should show nothing for a name the account does not have', () => {
+    fixture.componentRef.setInput('firstName', null);
+    fixture.componentRef.setInput('lastName', null);
+
+    expect(component.firstChar()).toBe('');
+    expect(component.lastChar()).toBe('');
+  });
+
   it('should update firstChar when firstName input changes', () => {
     fixture.componentRef.setInput('firstName', 'Maria');
     expect(component.firstChar()).toBe('M');

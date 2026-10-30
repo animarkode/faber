@@ -1,13 +1,14 @@
 import { inject } from '@angular/core';
-import { CanActivateFn, Router } from '@angular/router';
-import { AuthStore } from '../auth-store';
-import { APP_ROUTES } from '../../routes/app-routes';
+import { CanActivateFn } from '@angular/router';
 import { toObservable } from '@angular/core/rxjs-interop';
 import { filter, map, take } from 'rxjs';
+import { AuthStore } from '../auth-store';
+import { AuthRedirect } from '../auth-redirect';
 
-export const authGuard: CanActivateFn = () => {
+/** Lets signed-in users through; sends everyone else to Keycloak's sign-in and back to the same page. */
+export const authGuard: CanActivateFn = (_route, state) => {
   const authStore = inject(AuthStore);
-  const router = inject(Router);
+  const redirect = inject(AuthRedirect);
 
   if (authStore.authenticated()) {
     return true;
@@ -20,7 +21,9 @@ export const authGuard: CanActivateFn = () => {
       if (authStore.authenticated()) {
         return true;
       }
-      return router.createUrlTree([APP_ROUTES.auth.signIn]);
+
+      redirect.signIn(state.url);
+      return false;
     }),
   );
 };

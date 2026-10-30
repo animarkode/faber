@@ -1,4 +1,4 @@
-using Faber.Modules.Identity.PublicApi;
+using Faber.Modules.Auth.PublicApi;
 using Faber.Modules.Resumes.Infrastructure.Database;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Http;

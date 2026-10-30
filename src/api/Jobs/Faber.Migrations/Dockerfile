@@ -6,8 +6,7 @@ COPY ["src/api/Jobs/Faber.Migrations/Faber.Migrations.csproj", "src/api/Jobs/Fab
 COPY ["src/api/Aspire/Faber.ServiceDefaults/Faber.ServiceDefaults.csproj", "src/api/Aspire/Faber.ServiceDefaults/"]
 COPY ["src/api/Modules/Resumes/Faber.Modules.Resumes.Infrastructure/Faber.Modules.Resumes.Infrastructure.csproj", "src/api/Modules/Resumes/Faber.Modules.Resumes.Infrastructure/"]
 COPY ["src/api/Modules/Resumes/Faber.Modules.Resumes.Domain/Faber.Modules.Resumes.Domain.csproj", "src/api/Modules/Resumes/Faber.Modules.Resumes.Domain/"]
-COPY ["src/api/Modules/Identity/Faber.Modules.Identity.Infrastructure/Faber.Modules.Identity.Infrastructure.csproj", "src/api/Modules/Identity/Faber.Modules.Identity.Infrastructure/"]
-COPY ["src/api/Modules/Identity/Faber.Modules.Identity.Domain/Faber.Modules.Identity.Domain.csproj", "src/api/Modules/Identity/Faber.Modules.Identity.Domain/"]
+COPY ["src/api/Modules/Auth/Faber.Modules.Auth.Infrastructure/Faber.Modules.Auth.Infrastructure.csproj", "src/api/Modules/Auth/Faber.Modules.Auth.Infrastructure/"]
 
 RUN dotnet restore "src/api/Jobs/Faber.Migrations/Faber.Migrations.csproj"
 

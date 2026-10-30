@@ -11,11 +11,10 @@ A new Faber module follows **modular monolith boundaries**, but the project coun
 > See `dotnet-backend-patterns` for repository-wide conventions.
 
 Canonical modules to inspect before bootstrapping a new one:
-- `src/api/Modules/Identity/` → `Application` + `Domain` + `Infrastructure` + `PublicApi`
+- `src/api/Modules/Auth/` → `Application` + `Infrastructure` + `PublicApi`
 - `src/api/Modules/Resumes/` → `Application` + `Domain` + `Infrastructure` + `PublicApi`
 - `src/api/Modules/Vault/` → `Application` + `PublicApi`
-- `src/api/Modules/Users/` → `Application` + `Domain` + `PublicApi`
-- `src/api/Modules/Notifications/` → `Application` + `PublicApi`
+- `src/api/Modules/Documents/` → `Application` + `PublicApi`
 
 ---
 
@@ -65,7 +64,7 @@ public record ResumeDto(Guid Id, string UserId, string Title);
 Repo reality:
 - prefer `I{Module}ModuleApi` for true module boundaries
 - not every existing module follows that exact naming yet
-- `Notifications` exposes `IEmailSender` in `Faber.Modules.Communication.PublicApi`
+- `Auth.PublicApi` exposes shared types (JWT claim names, plan roles) rather than a module API
 
 ---
 
@@ -127,8 +126,8 @@ public class ResumesDbContext(DbContextOptions<ResumesDbContext> options) : DbCo
 Use `IDesignTimeDbContextFactory<TDbContext>` when the module owns migrations.
 
 Repo reality:
-- `Identity` and `Resumes` own Infrastructure + DbContext
-- `Users` currently has no Infrastructure project
+- `Auth` and `Resumes` own Infrastructure + DbContext
+- `Auth` keeps its persistence types (sessions, Data Protection keys) in Infrastructure, with no Domain project
 - schema names and migrations-history-table names are module-specific
 
 ---
@@ -174,10 +173,10 @@ public class ResumesModuleApi(ResumesDbContext dbContext) : IResumesModuleApi
 Module registration is **module-specific** and may be sync or async.
 
 ### Sync example
-Used by lighter modules like `Users`, `Vault`, `Notifications`.
+Used by lighter modules like `Vault` and `Documents`.
 
 ```csharp
-public static IServiceCollection AddUsersModule(this IServiceCollection services)
+public static IServiceCollection AddDocumentsModule(this IServiceCollection services)
 {
     services.AddScoped<IUserModuleApi, UserModuleApi>();
     return services;
@@ -185,7 +184,7 @@ public static IServiceCollection AddUsersModule(this IServiceCollection services
 ```
 
 ### Async example
-Used by modules that may need Vault-backed startup configuration, such as `Identity` and `Resumes`.
+Used by modules that may need Vault-backed startup configuration, such as `Auth` and `Resumes`.
 
 ```csharp
 public static async Task AddResumesModuleAsync(
@@ -257,10 +256,9 @@ Add the module registration in `src/api/Faber.Api/Program.cs` using the existing
 ```csharp
 builder.Services
     .AddVaultModule(builder.Environment)
-    .AddNotificationsModule(builder.Environment)
-    .AddUsersModule();
+    .AddDocumentsModule();
 
-await builder.Services.AddIdentityModuleAsync(builder.Environment, builder.Configuration);
+await builder.Services.AddAuthModuleAsync(builder.Configuration);
 await builder.Services.AddResumesModuleAsync(builder.Configuration);
 ```
 
@@ -346,7 +344,7 @@ The service exits 0 on success and non-zero on any failure, aborting the deploy.
 | DbContext | Schema | History table | Module Infrastructure project |
 |---|---|---|---|
 | `ResumesDbContext` | `resumes` | `migrations_history` | `Faber.Modules.Resumes.Infrastructure` |
-| `IdentityDbContext` | `identity` | `migrations_history` | `Faber.Modules.Identity.Infrastructure` |
+| `AuthDbContext` | `auth` | `migrations_history` | `Faber.Modules.Auth.Infrastructure` |
 
 Schemas that EF Core does not own are listed in `Migrations:ExternalSchemas`. The worker only ensures they exist, using EF's own `EnsureSchema` so a role without `CREATE` on the database still succeeds once they do; it never migrates their contents. The AppHost declares `keycloak` this way, next to `KC_DB_SCHEMA`. Production declares none unless configured.
 
@@ -399,8 +397,8 @@ Mirror the nearest existing module test project instead of inventing a brand-new
 ## Current Repository Nuances
 
 - Not every module fits a strict 4-project template
-- `Vault` and `Notifications` are integration-style modules with smaller footprints
-- `Users` currently has no Infrastructure project
-- `Resumes` and `Identity` use async registration because startup may require Vault-backed configuration
+- `Vault` and `Documents` are integration-style modules with smaller footprints
+- `Auth` has no Domain project: its persisted types are infrastructure (sessions, keys)
+- `Resumes` and `Auth` use async registration because startup may require Vault-backed configuration
 - Existing project references are not perfectly pure; prefer `PublicApi` boundaries, but verify neighboring precedent before making assumptions
 - New modules should follow current Faber conventions while moving toward cleaner boundaries, not generic Clean Architecture templates

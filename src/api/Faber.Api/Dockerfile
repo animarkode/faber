@@ -9,7 +9,7 @@ COPY ["src/api/Faber.Api/Faber.Api.csproj", "src/api/Faber.Api/"]
 COPY ["src/api/Aspire/Faber.ServiceDefaults/Faber.ServiceDefaults.csproj", "src/api/Aspire/Faber.ServiceDefaults/"]
 
 # Auth
-COPY ["src/api/Modules/Auth/Faber.Modules.Auth.Domain/Faber.Modules.Auth.Domain.csproj", "src/api/Modules/Auth/Faber.Modules.Auth.Domain/"]
+COPY ["src/api/Modules/Auth/Faber.Modules.Auth.Infrastructure/Faber.Modules.Auth.Infrastructure.csproj", "src/api/Modules/Auth/Faber.Modules.Auth.Infrastructure/"]
 COPY ["src/api/Modules/Auth/Faber.Modules.Auth.Application/Faber.Modules.Auth.Application.csproj", "src/api/Modules/Auth/Faber.Modules.Auth.Application/"]
 COPY ["src/api/Modules/Auth/Faber.Modules.Auth.PublicApi/Faber.Modules.Auth.PublicApi.csproj", "src/api/Modules/Auth/Faber.Modules.Auth.PublicApi/"]
 
@@ -20,26 +20,11 @@ COPY ["src/api/Modules/Common/Faber.Modules.Common.PublicApi/Faber.Modules.Commo
 COPY ["src/api/Modules/Documents/Faber.Modules.Documents.Application/Faber.Modules.Documents.Application.csproj", "src/api/Modules/Documents/Faber.Modules.Documents.Application/"]
 COPY ["src/api/Modules/Documents/Faber.Modules.Documents.PublicApi/Faber.Modules.Documents.PublicApi.csproj", "src/api/Modules/Documents/Faber.Modules.Documents.PublicApi/"]
 
-# Identity
-COPY ["src/api/Modules/Identity/Faber.Modules.Identity.Domain/Faber.Modules.Identity.Domain.csproj", "src/api/Modules/Identity/Faber.Modules.Identity.Domain/"]
-COPY ["src/api/Modules/Identity/Faber.Modules.Identity.Application/Faber.Modules.Identity.Application.csproj", "src/api/Modules/Identity/Faber.Modules.Identity.Application/"]
-COPY ["src/api/Modules/Identity/Faber.Modules.Identity.Infrastructure/Faber.Modules.Identity.Infrastructure.csproj", "src/api/Modules/Identity/Faber.Modules.Identity.Infrastructure/"]
-COPY ["src/api/Modules/Identity/Faber.Modules.Identity.PublicApi/Faber.Modules.Identity.PublicApi.csproj", "src/api/Modules/Identity/Faber.Modules.Identity.PublicApi/"]
-
-# Notifications
-COPY ["src/api/Modules/Notifications/Faber.Modules.Notifications.Application/Faber.Modules.Notifications.Application.csproj", "src/api/Modules/Notifications/Faber.Modules.Notifications.Application/"]
-COPY ["src/api/Modules/Notifications/Faber.Modules.Notifications.PublicApi/Faber.Modules.Notifications.PublicApi.csproj", "src/api/Modules/Notifications/Faber.Modules.Notifications.PublicApi/"]
-
 # Resumes
 COPY ["src/api/Modules/Resumes/Faber.Modules.Resumes.Domain/Faber.Modules.Resumes.Domain.csproj", "src/api/Modules/Resumes/Faber.Modules.Resumes.Domain/"]
 COPY ["src/api/Modules/Resumes/Faber.Modules.Resumes.Application/Faber.Modules.Resumes.Application.csproj", "src/api/Modules/Resumes/Faber.Modules.Resumes.Application/"]
 COPY ["src/api/Modules/Resumes/Faber.Modules.Resumes.Infrastructure/Faber.Modules.Resumes.Infrastructure.csproj", "src/api/Modules/Resumes/Faber.Modules.Resumes.Infrastructure/"]
 COPY ["src/api/Modules/Resumes/Faber.Modules.Resumes.PublicApi/Faber.Modules.Resumes.PublicApi.csproj", "src/api/Modules/Resumes/Faber.Modules.Resumes.PublicApi/"]
-
-# Users
-COPY ["src/api/Modules/Users/Faber.Modules.Users.Domain/Faber.Modules.Users.Domain.csproj", "src/api/Modules/Users/Faber.Modules.Users.Domain/"]
-COPY ["src/api/Modules/Users/Faber.Modules.Users.Application/Faber.Modules.Users.Application.csproj", "src/api/Modules/Users/Faber.Modules.Users.Application/"]
-COPY ["src/api/Modules/Users/Faber.Modules.Users.PublicApi/Faber.Modules.Users.PublicApi.csproj", "src/api/Modules/Users/Faber.Modules.Users.PublicApi/"]
 
 # Vault
 COPY ["src/api/Modules/Vault/Faber.Modules.Vault.Application/Faber.Modules.Vault.Application.csproj", "src/api/Modules/Vault/Faber.Modules.Vault.Application/"]

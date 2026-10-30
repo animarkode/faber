@@ -16,8 +16,4 @@
         <Using Include="Xunit"/>
     </ItemGroup>
 
-    <ItemGroup>
-        <ProjectReference Include="..\..\..\..\..\src\api\Modules\Users\Faber.Modules.Users.PublicApi\Faber.Modules.Users.PublicApi.csproj" />
-    </ItemGroup>
-
 </Project>

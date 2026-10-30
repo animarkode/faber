@@ -16,7 +16,7 @@ Everything else below happens as the stack comes up.
 ## Automatic migrations
 
 Local development runs `Faber.Migrations` automatically once the `faberdb` database exists.
-Keycloak waits for migration completion before importing its realm, and the API waits for both
+Keycloak waits for migration completion before it starts, and the API waits for both
 migrations and bootstrap to complete. This keeps schema creation in the same migration path
 used by deployed environments instead of maintaining a second local bootstrap mechanism, and removes
 the manual `dotnet ef database update` step together with its ephemeral-port and quoting pitfalls.
@@ -31,11 +31,17 @@ declare no external schemas unless they configure the section, so their behavior
 
 ## Keycloak realm and Vault secrets
 
-Keycloak imports the tracked `infra/keycloak/realm-export.json` on start (`--import-realm`, read-only
-bind mount). The `faber-api` client secret in that export is a placeholder (`<YOUR-CLIENT-SECRET>`) —
-Keycloak's import stores it as the client's literal secret, but that value is never used.
+Keycloak runs the stock image and imports nothing. The `keycloak-config` resource (keycloak-config-cli)
+applies `infra/keycloak/config/faber.json` once Keycloak is healthy, on every start: it creates the
+realm on a clean stack and updates an existing one in place, without touching users. Values that differ
+per environment (the app URL, the back-channel logout URL, SMTP, Google and GitHub credentials) are
+variables the AppHost passes in; the file itself holds no secret. Configuring the realm as code, rather
+than importing an export once, keeps a long-lived realm (a developer's or a deployment's) from drifting
+away from the repository.
 
-`Faber.Bootstrap` runs once Keycloak and an unsealed Vault are healthy. It unconditionally
+`Faber.Bootstrap` runs once `keycloak-config` has completed and Vault is unsealed. It first turns
+passkeys on, because keycloak-config-cli's realm model predates that setting and drops it on every
+import. It then unconditionally
 regenerates the `faber-api` client secret through Keycloak's admin API — no detection or conditional
 logic, every run gets a fresh secret — then creates the `secrets` KV v2 mount if it is absent and
 writes the regenerated secret to `secrets/keycloak`. Re-running it is safe: an existing KV v2 mount is
@@ -46,7 +52,7 @@ the old value.
 
 It is a separate one-shot service rather than part of the migration step because the two sit on
 opposite sides of Keycloak: the schema must exist *before* Keycloak starts, and the client secret can
-only be read *after* Keycloak has imported the realm.
+only be set *after* the realm exists.
 
 `secrets/database` is not provisioned: Aspire injects `ConnectionStrings__faberdb`, which both modules
 read before falling back to Vault.
@@ -101,7 +107,7 @@ docker volume ls --filter name=faber-postgres-data-
 
 Consequences for a checkout that existed before this change:
 
-- It starts on a new, empty volume. Migrations recreate the schema, Keycloak re-imports the realm, and
+- It starts on a new, empty volume. Migrations recreate the schema, `keycloak-config` recreates the realm, and
   bootstrap writes the newly generated client secret, so the stack comes up without manual steps.
   Local data in the old database, such as registered users, is not carried over.
 - The old fixed-name `faber-postgres-data` volume is no longer used by anything and can be removed once

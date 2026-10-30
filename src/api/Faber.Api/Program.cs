@@ -6,16 +6,11 @@ using Faber.Api.OpenApi;
 using Faber.Api.RateLimiting;
 using Faber.Modules.Auth.Application;
 using Faber.Modules.Documents.Application;
-using Faber.Modules.Identity.Application;
-using Faber.Modules.Notifications.Application;
 using Faber.Modules.Resumes.Application;
-using Faber.Modules.Users.Application;
 using Faber.Modules.Vault.Application;
 using Faber.ServiceDefaults;
 using FastEndpoints;
 using FastEndpoints.Swagger;
-using Microsoft.AspNetCore.Authentication.JwtBearer;
-using Microsoft.IdentityModel.Tokens;
 using Scalar.AspNetCore;
 using Serilog;
 
@@ -39,48 +34,21 @@ builder.Services
     });
 
 builder.Services
-    .AddAuthModule()
-    .AddUsersModule()
     .AddDocumentsModule()
-    .AddVaultModule(builder.Environment, builder.Configuration)
-    .AddNotificationsModule(builder.Environment);
+    .AddVaultModule(builder.Environment, builder.Configuration);
 
-await builder.Services.AddIdentityModuleAsync(builder.Environment, builder.Configuration);
+await builder.Services.AddAuthModuleAsync(builder.Configuration);
 await builder.Services.AddResumesModuleAsync(builder.Configuration);
 
 builder.Services.AddApiReadinessChecks();
 
 builder.Services.AddFaberCaching(builder.Configuration);
 
-builder.Services
-    .AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
-    .AddJwtBearer(o =>
-    {
-        o.Authority = builder.Configuration["Keycloak:Issuer"];
-        o.Audience = builder.Configuration["Keycloak:Audience"];
-        o.RequireHttpsMetadata = false;
-        o.MapInboundClaims = false;
-
-        o.TokenValidationParameters = new TokenValidationParameters
-        {
-            ValidateIssuer = true,
-            ValidIssuer = builder.Configuration["Keycloak:Issuer"],
-            ValidateAudience = true,
-            ValidAudience = builder.Configuration["Keycloak:Audience"],
-            ValidateLifetime = true,
-            ValidateIssuerSigningKey = true,
-            ClockSkew = TimeSpan.Zero
-        };
-    });
-
 builder.Services.AddExceptionHandler<OperationCanceledExceptionHandler>();
 builder.Services.AddExceptionHandler<ValidationExceptionHandler>();
-builder.Services.AddExceptionHandler<ApiExceptionHandler>();
 builder.Services.AddExceptionHandler<DbUpdateExceptionHandler>();
 builder.Services.AddExceptionHandler<FallbackExceptionHandler>();
 builder.Services.AddProblemDetails();
-
-builder.Services.AddFaberCors(builder.Configuration);
 
 builder.Services.AddFaberForwardedHeaders(builder.Configuration);
 builder.Services.AddFaberRateLimiting();
@@ -92,6 +60,8 @@ var app = builder.Build();
 app.MapDefaultEndpoints();
 
 app.UseForwardedHeaders();
+
+app.UseFaberSecurityHeaders(app.Environment);
 
 app
     .UseExceptionHandler()
@@ -123,14 +93,14 @@ if (app.Environment.IsDevelopment())
 
 await app.UseDocumentsModuleAsync();
 
-app.UseCors("Faber.NgApp");
-
 if (app.Environment.IsProduction())
 {
     app.UseWhen(
         context => context.Connection.LocalPort != 7107,
         branch => branch.UseHttpsRedirection());
 }
+
+app.UseFaberCsrfProtection();
 
 app.UseAuthentication();
 

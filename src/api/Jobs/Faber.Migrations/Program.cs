@@ -1,10 +1,10 @@
 using Faber.Migrations;
-using Faber.Modules.Identity.Infrastructure.Database;
+using Faber.Modules.Auth.Infrastructure.Database;
 using Faber.Modules.Resumes.Infrastructure.Database;
 using Faber.ServiceDefaults;
 using Microsoft.EntityFrameworkCore;
 using Serilog;
-using IdentityDbConst = Faber.Modules.Identity.Infrastructure.Database.DbConstants;
+using AuthDbConst = Faber.Modules.Auth.Infrastructure.Database.DbConstants;
 using ResumesDbConst = Faber.Modules.Resumes.Infrastructure.Database.DbConstants;
 
 var builder = Host.CreateApplicationBuilder(args);
@@ -23,11 +23,11 @@ builder.Services.AddDbContext<ResumesDbContext>(o => o
             ResumesDbConst.SchemaName))
     .UseSnakeCaseNamingConvention());
 
-builder.Services.AddDbContext<IdentityDbContext>(o => o
+builder.Services.AddDbContext<AuthDbContext>(o => o
     .UseNpgsql(connectionString, npgsql =>
         npgsql.MigrationsHistoryTable(
-            IdentityDbConst.MigrationsHistoryTableName,
-            IdentityDbConst.SchemaName))
+            AuthDbConst.MigrationsHistoryTableName,
+            AuthDbConst.SchemaName))
     .UseSnakeCaseNamingConvention());
 
 builder.Services.AddOptions<MigrationOptions>()

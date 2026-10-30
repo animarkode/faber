@@ -34,7 +34,7 @@ public class UpdateProjectTests(WebApp app) : TestBase
     public async Task UpdateProject_ShouldModifyFields()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var createRequest = new CreateProjectRequestFaker(resume.Id).Generate();
@@ -75,7 +75,7 @@ public class UpdateProjectTests(WebApp app) : TestBase
     public async Task NonExistentProject_ShouldReturnForbidden()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
 
         var project = new CreateProjectRequestFaker(Guid.NewGuid()).Generate();
 
@@ -100,7 +100,7 @@ public class UpdateProjectTests(WebApp app) : TestBase
     public async Task CrossUserUpdateProject_ShouldReturnForbidden()
     {
         var ct = TestContext.Current.CancellationToken;
-        var userAToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var userAToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, userAToken, ct: ct);
 
         var createRequest = new CreateProjectRequestFaker(resume.Id).Generate();
@@ -109,7 +109,7 @@ public class UpdateProjectTests(WebApp app) : TestBase
             .WithAuthToken(userAToken)
             .POSTAsync<CreateProjectEndpoint, CreateProjectRequest, CreateProjectResponse>(createRequest);
 
-        var userBToken = await ResumesTestHelper.SignInAsUserAsync(app.Client, 1, ct);
+        var userBToken = await ResumesTestHelper.SignInAsUserAsync(app, 1, ct);
 
         var updated = new CreateProjectRequestFaker(resume.Id, 62002).Generate();
 
@@ -135,7 +135,7 @@ public class UpdateProjectTests(WebApp app) : TestBase
     public async Task UpdateProject_WithInvalidData_ShouldReturnBadRequest(UpdateProjectRequest invalidRequest)
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var createRequest = new CreateProjectRequestFaker(resume.Id).Generate();
@@ -158,7 +158,7 @@ public class UpdateProjectTests(WebApp app) : TestBase
     public async Task UpdateProject_WithUnsafeDescription_ShouldPersistSanitizedHtml()
     {
         var ct = TestContext.Current.CancellationToken;
-        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app.Client, ct);
+        var accessToken = await ResumesTestHelper.SignInAsFirstUserAsync(app, ct);
         var resume = await ResumesTestHelper.CreateResumeAsync(app.Client, accessToken, ct: ct);
 
         var createRequest = new CreateProjectRequestFaker(resume.Id).Generate();
