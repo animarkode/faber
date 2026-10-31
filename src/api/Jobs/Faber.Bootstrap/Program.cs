@@ -21,12 +21,6 @@ builder.Services.AddHttpClient<KeycloakAdminClient>((services, client) =>
     client.BaseAddress = new Uri(options.KeycloakAddress.TrimEnd('/') + "/");
 });
 
-builder.Services.AddHttpClient<VaultClient>((services, client) =>
-{
-    var options = services.GetRequiredService<Microsoft.Extensions.Options.IOptions<BootstrapOptions>>().Value;
-    client.BaseAddress = new Uri(options.VaultAddress.TrimEnd('/') + "/");
-});
-
 builder.Services.AddSingleton<IBootstrapWorkflow, BootstrapWorkflow>();
 builder.Services.AddHostedService<BootstrapWorker>();
 

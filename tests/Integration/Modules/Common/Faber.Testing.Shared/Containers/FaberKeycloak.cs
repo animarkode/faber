@@ -11,7 +11,7 @@ namespace Faber.Testing.Shared.Containers;
 /// <summary>
 /// A throwaway Keycloak configured exactly like the real one: the stock image the AppHost runs, with
 /// <c>infra/keycloak/config/faber.json</c> applied by the same keycloak-config-cli image. Only the variables
-/// differ (URLs, SMTP), plus a known <c>faber-api</c> secret and a test-only client for bearer tokens.
+/// differ (URLs, SMTP, a known <c>faber-api</c> secret passed the way the AppHost passes it) and a test-only client for bearer tokens.
 /// </summary>
 public sealed class FaberKeycloak : IAsyncDisposable
 {
@@ -73,7 +73,6 @@ public sealed class FaberKeycloak : IAsyncDisposable
 
         var keycloak = new FaberKeycloak(container);
         await container.DisableSslRequirementAsync(AdminUsername, AdminPassword, ["master", Realm], ct);
-        await keycloak.Admin.UpdateClientAsync(ClientId, client => client["secret"] = ClientSecret, ct);
         await keycloak.CreateTestClientAsync(ct);
 
         return keycloak;
@@ -120,6 +119,7 @@ public sealed class FaberKeycloak : IAsyncDisposable
             .WithEnvironment("KEYCLOAK_AVAILABILITYCHECK_ENABLED", "true")
             .WithEnvironment("IMPORT_FILES_LOCATIONS", "/config/*")
             .WithEnvironment("IMPORT_VARSUBSTITUTION_ENABLED", "true")
+            .WithEnvironment("FABER_API_CLIENT_SECRET", ClientSecret)
             .WithEnvironment("FABER_APP_URL", appUrl)
             .WithEnvironment("FABER_BACKCHANNEL_LOGOUT_URL", backchannelLogoutUrl)
             .WithEnvironment("KC_SMTP_HOST", "localhost")

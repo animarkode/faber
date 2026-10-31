@@ -17,16 +17,4 @@ public sealed class BootstrapOptions
 
     [Required]
     public string KeycloakRealm { get; init; } = "faber";
-
-    [Required]
-    public string KeycloakClientId { get; init; } = "faber-api";
-
-    [Required, Url]
-    public string VaultAddress { get; init; } = string.Empty;
-
-    [Required]
-    public string VaultToken { get; init; } = string.Empty;
-
-    [Required]
-    public string VaultMountPoint { get; init; } = "secrets";
 }

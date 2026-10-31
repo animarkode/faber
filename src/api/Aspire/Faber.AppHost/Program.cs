@@ -58,6 +58,19 @@ var vault = builder.AddContainer("vault", "hashicorp/vault", "1.19.4")
     .WithEnvironment("VAULT_API_ADDR", "http://127.0.0.1:8200")
     .WithUnsealHook();
 
+// Generated on first run and kept in user-secrets: keycloak-config sets it on the faber-api client and
+// the API presents it back, so both read the same value and nothing has to read it out of Keycloak.
+var faberApiClientSecret = builder.AddParameter(
+        "faber-api-client-secret",
+        new GenerateParameterDefault
+        {
+            MinLength = 48,
+            Special = false
+        },
+        secret: true,
+        persist: true)
+    .WithDescription("Client secret of the faber-api Keycloak client. Generated once and kept in user-secrets.");
+
 var keycloakUser = builder.AddParameter("keycloak-admin")
     .WithDescription("Username of Keycloak's bootstrap admin in the master realm.");
 var keycloakPass = builder.AddParameter("keycloak-password", secret: true)
@@ -95,6 +108,7 @@ var keycloakConfig = builder.AddContainer("keycloak-config", "adorsys/keycloak-c
     .WithEnvironment("KEYCLOAK_AVAILABILITYCHECK_ENABLED", "true")
     .WithEnvironment("IMPORT_FILES_LOCATIONS", "/config/*")
     .WithEnvironment("IMPORT_VARSUBSTITUTION_ENABLED", "true")
+    .WithEnvironment("FABER_API_CLIENT_SECRET", faberApiClientSecret)
     .WithEnvironment("FABER_APP_URL", "http://localhost:4200")
     .WithEnvironment("FABER_BACKCHANNEL_LOGOUT_URL", "http://host.docker.internal:5020/api/v1/auth/backchannel-logout")
     .WithEnvironment("KC_SMTP_HOST", "mailpit")
@@ -110,12 +124,7 @@ var bootstrap = builder.AddProject<Faber_Bootstrap>("bootstrap")
     .WithEnvironment("Bootstrap__KeycloakAdminUsername", keycloakUser)
     .WithEnvironment("Bootstrap__KeycloakAdminPassword", keycloakPass)
     .WithEnvironment("Bootstrap__KeycloakRealm", "faber")
-    .WithEnvironment("Bootstrap__KeycloakClientId", "faber-api")
-    .WithEnvironment("Bootstrap__VaultAddress", vault.GetEndpoint("vault-http"))
-    .WithEnvironment("Bootstrap__VaultToken", vaultToken)
-    .WithEnvironment("Bootstrap__VaultMountPoint", "secrets")
-    .WaitForCompletion(keycloakConfig)
-    .WaitFor(vault);
+    .WaitForCompletion(keycloakConfig);
 
 var faberApi = builder.AddProject<Faber_Api>("faberapi")
     .WaitFor(redis)
@@ -127,6 +136,8 @@ var faberApi = builder.AddProject<Faber_Api>("faberapi")
     .WaitFor(mailpit)
     .WithEnvironment("VAULT_ADDR", "http://localhost:8200")
     .WithEnvironment("VAULT_TOKEN", vaultToken)
+    .WithEnvironment("Keycloak__ClientId", "faber-api")
+    .WithEnvironment("Keycloak__ClientSecret", faberApiClientSecret)
     .WithReference(redis)
     .WithReference(faberDb);
 

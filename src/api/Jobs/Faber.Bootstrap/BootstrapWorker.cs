@@ -12,7 +12,7 @@ public class BootstrapWorker(
         try
         {
             await workflow.RunAsync(stoppingToken);
-            logger.LogInformation("Local Keycloak and Vault provisioning completed successfully");
+            logger.LogInformation("Local Keycloak provisioning completed successfully");
         }
         catch (OperationCanceledException) when (stoppingToken.IsCancellationRequested)
         {
@@ -21,7 +21,7 @@ public class BootstrapWorker(
         catch (Exception exception)
         {
             Environment.ExitCode = 1;
-            logger.LogCritical(exception, "Local Keycloak and Vault provisioning failed: {Message}", exception.Message);
+            logger.LogCritical(exception, "Local Keycloak provisioning failed: {Message}", exception.Message);
         }
         finally
         {

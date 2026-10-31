@@ -16,7 +16,8 @@ public class AppHostModelTests
         "--Parameters:postgres-username=test-postgres-user",
         "--Parameters:postgres-password=test-postgres-password",
         "--Parameters:keycloak-admin=test-keycloak-admin",
-        "--Parameters:keycloak-password=test-keycloak-password"
+        "--Parameters:keycloak-password=test-keycloak-password",
+        "--Parameters:faber-api-client-secret=test-faber-api-client-secret"
     ];
 
     private static readonly string[] TestConfiguration =
@@ -44,7 +45,7 @@ public class AppHostModelTests
         keycloak.ShouldWaitFor(migrations, WaitType.WaitForCompletion);
         keycloakConfig.ShouldWaitFor(keycloak, WaitType.WaitUntilHealthy);
         bootstrap.ShouldWaitFor(keycloakConfig, WaitType.WaitForCompletion);
-        bootstrap.ShouldWaitFor(vault, WaitType.WaitUntilHealthy);
+        bootstrap.Annotations.OfType<WaitAnnotation>().ShouldNotContain(annotation => annotation.Resource == vault);
         api.ShouldWaitFor(migrations, WaitType.WaitForCompletion);
         api.ShouldWaitFor(bootstrap, WaitType.WaitForCompletion);
     }
@@ -108,6 +109,27 @@ public class AppHostModelTests
         environment["FABER_BACKCHANNEL_LOGOUT_URL"]
             .ShouldBe("http://host.docker.internal:5020/api/v1/auth/backchannel-logout");
         environment["KC_SMTP_HOST"].ShouldBe("mailpit");
+    }
+
+    [Fact]
+    public async Task FaberApiClientSecret_ShouldReachKeycloakConfigAndTheApi()
+    {
+        var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.Faber_AppHost>(
+            TestConfiguration,
+            TestContext.Current.CancellationToken);
+        var keycloakConfig = builder.Resources.Single(resource => resource.Name == "keycloak-config");
+        var api = builder.Resources.Single(resource => resource.Name == "faberapi");
+
+        var secret = builder.Resources.OfType<ParameterResource>()
+            .Single(resource => resource.Name == "faber-api-client-secret");
+
+        var configEnvironment = await GetDeclaredEnvironmentAsync(keycloakConfig);
+        var apiEnvironment = await GetDeclaredEnvironmentAsync(api);
+
+        secret.Secret.ShouldBeTrue();
+        configEnvironment["FABER_API_CLIENT_SECRET"].ShouldBeSameAs(secret);
+        apiEnvironment["Keycloak__ClientSecret"].ShouldBeSameAs(secret);
+        apiEnvironment["Keycloak__ClientId"].ShouldBe("faber-api");
     }
 
     [Fact]
