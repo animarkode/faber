@@ -20,7 +20,7 @@ public sealed class CollectionHealth : TestCollection<ProductionHealthWebApp>;
 public sealed class HealthEndpointTests(ProductionHealthWebApp app) : TestBase
 {
     [Fact]
-    public async Task ProductionProbes_WhenVaultStops_ShouldReturn503ForReadinessAndKeepLivenessHealthy()
+    public async Task ProductionProbes_WhenDatabaseStops_ShouldReturn503ForReadinessAndKeepLivenessHealthy()
     {
         using var internalClient = CreateClientForLocalPort(7107);
         using var publicClient = CreateClientForLocalPort(7106);
@@ -35,7 +35,7 @@ public sealed class HealthEndpointTests(ProductionHealthWebApp app) : TestBase
         using var publicAlive = await publicClient.GetAsync("/alive", TestContext.Current.CancellationToken);
         publicAlive.StatusCode.ShouldBe(HttpStatusCode.NotFound);
 
-        await app.StopVaultAsync();
+        await app.StopPostgresAsync();
 
         using var failedReady = await internalClient.GetAsync("/ready", TestContext.Current.CancellationToken);
         failedReady.StatusCode.ShouldBe(HttpStatusCode.ServiceUnavailable);

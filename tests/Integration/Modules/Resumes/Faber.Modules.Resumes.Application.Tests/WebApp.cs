@@ -1,5 +1,4 @@
 using DotNet.Testcontainers.Builders;
-using DotNet.Testcontainers.Containers;
 using DotNet.Testcontainers.Networks;
 using Faber.Modules.Auth.Infrastructure.Database;
 using Faber.Modules.Documents.Application.Templates;
@@ -20,9 +19,6 @@ namespace Faber.Modules.Resumes.Application.Tests;
 
 public class WebApp : AppFixture<Program>
 {
-    private const string VaultImage = "hashicorp/vault:1.17.3";
-    private const string VaultToken = "test-token";
-
     /// <summary>The first two users get the <c>premium</c> realm role.</summary>
     private const int PremiumUsers = 2;
 
@@ -30,7 +26,6 @@ public class WebApp : AppFixture<Program>
     private INetwork? _network;
     private PostgreSqlContainer? _postgresContainer;
     private RedisContainer? _redisContainer;
-    private IContainer? _vaultContainer;
 
     public FaberKeycloak Keycloak => _keycloak ?? throw new InvalidOperationException("Keycloak not initialized");
 
@@ -54,20 +49,9 @@ public class WebApp : AppFixture<Program>
         await _network.CreateAsync();
 
         _postgresContainer = new PostgreSqlBuilder("postgres:17.6").WithNetwork(_network).Build();
-        _vaultContainer = new ContainerBuilder(VaultImage)
-            .WithName($"vault-tests-{Guid.NewGuid()}")
-            .WithNetwork(_network)
-            .WithEnvironment("VAULT_DEV_ROOT_TOKEN_ID", VaultToken)
-            .WithEnvironment("VAULT_ADDR", "http://0.0.0.0:8200")
-            .WithEnvironment("VAULT_TOKEN", VaultToken)
-            .WithPortBinding(8200, true)
-            .WithWaitStrategy(
-                Wait.ForUnixContainer().UntilHttpRequestIsSucceeded(strategy =>
-                    strategy.ForPort(8200).ForPath("/v1/sys/health")))
-            .Build();
         _redisContainer = UsesRedis ? new RedisBuilder("redis:7.4").WithNetwork(_network).Build() : null;
 
-        var startTasks = new List<Task> { _postgresContainer.StartAsync(), _vaultContainer.StartAsync() };
+        var startTasks = new List<Task> { _postgresContainer.StartAsync() };
         if (_redisContainer is not null)
         {
             startTasks.Add(_redisContainer.StartAsync());
@@ -75,11 +59,6 @@ public class WebApp : AppFixture<Program>
 
         await Task.WhenAll(startTasks);
         _keycloak = await FaberKeycloak.StartAsync(_network, "https://localhost", "http://localhost/backchannel-logout");
-
-        var vaultAddress = $"http://{_vaultContainer.Hostname}:{_vaultContainer.GetMappedPublicPort(8200)}";
-        Environment.SetEnvironmentVariable("VAULT_TOKEN", VaultToken);
-        Environment.SetEnvironmentVariable("VAULT_ADDR", vaultAddress);
-        await VaultTestSecrets.SeedAsync(vaultAddress, VaultToken);
 
         // Before the API starts: Data Protection reads its key table on first use.
         await using (var auth = new AuthDbContext(new DbContextOptionsBuilder<AuthDbContext>()
@@ -133,6 +112,8 @@ public class WebApp : AppFixture<Program>
         builder.UseSetting("Keycloak:Realm", FaberKeycloak.Realm);
         builder.UseSetting("Keycloak:Issuer", Keycloak.Issuer);
         builder.UseSetting("Keycloak:Audience", FaberKeycloak.ClientId);
+        builder.UseSetting("Keycloak:ClientId", FaberKeycloak.ClientId);
+        builder.UseSetting("Keycloak:ClientSecret", FaberKeycloak.ClientSecret);
         builder.UseSetting("Keycloak:RequireHttpsMetadata", "false");
         builder.UseSetting("RateLimiting:Enabled", "false");
     }
@@ -141,7 +122,6 @@ public class WebApp : AppFixture<Program>
     {
         if (_redisContainer is not null) await _redisContainer.DisposeAsync();
         if (_keycloak is not null) await _keycloak.DisposeAsync();
-        if (_vaultContainer is not null) await _vaultContainer.DisposeAsync();
         if (_postgresContainer is not null) await _postgresContainer.DisposeAsync();
         if (_network is not null) await _network.DisposeAsync();
     }

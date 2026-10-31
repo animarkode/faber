@@ -7,7 +7,6 @@ using Faber.Api.RateLimiting;
 using Faber.Modules.Auth.Application;
 using Faber.Modules.Documents.Application;
 using Faber.Modules.Resumes.Application;
-using Faber.Modules.Vault.Application;
 using Faber.ServiceDefaults;
 using FastEndpoints;
 using FastEndpoints.Swagger;
@@ -33,12 +32,10 @@ builder.Services
         };
     });
 
-builder.Services
-    .AddDocumentsModule()
-    .AddVaultModule(builder.Environment, builder.Configuration);
+builder.Services.AddDocumentsModule();
 
-await builder.Services.AddAuthModuleAsync(builder.Configuration);
-await builder.Services.AddResumesModuleAsync(builder.Configuration);
+builder.Services.AddAuthModule(builder.Configuration);
+builder.Services.AddResumesModule(builder.Configuration);
 
 builder.Services.AddApiReadinessChecks();
 

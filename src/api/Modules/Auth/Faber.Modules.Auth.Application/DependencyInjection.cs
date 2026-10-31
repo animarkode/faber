@@ -3,7 +3,6 @@ using Faber.Modules.Auth.Application.Features.BackchannelLogout;
 using Faber.Modules.Auth.Application.Options;
 using Faber.Modules.Auth.Application.Sessions;
 using Faber.Modules.Auth.Infrastructure.Database;
-using Faber.Modules.Vault.PublicApi;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
@@ -18,16 +17,23 @@ public static class DependencyInjection
     /// <summary>The application name all API instances share, so each can read the others' cookies and sessions.</summary>
     private const string DataProtectionApplicationName = "Faber";
 
-    public static async Task AddAuthModuleAsync(this IServiceCollection services, IConfiguration configuration)
+    public static IServiceCollection AddAuthModule(this IServiceCollection services, IConfiguration configuration)
     {
         services.ConfigureOptions<KeycloakOptionsSetup>();
+        services.AddOptions<KeycloakOptions>()
+            .Validate(
+                o => !string.IsNullOrWhiteSpace(o.ClientId),
+                "Keycloak:ClientId must be configured.")
+            .Validate(
+                o => !string.IsNullOrWhiteSpace(o.ClientSecret),
+                "Keycloak:ClientSecret must be configured.")
+            .ValidateOnStart();
         services.TryAddSingleton(TimeProvider.System);
 
         var connectionString = configuration.GetConnectionString("faberdb");
         if (string.IsNullOrEmpty(connectionString))
         {
-            var vault = services.BuildServiceProvider().GetRequiredService<IVaultModuleApi>();
-            connectionString = await vault.GetDatabaseConnectionStringAsync();
+            throw new InvalidOperationException("Connection string 'ConnectionStrings:faberdb' is not configured.");
         }
 
         services.AddDbContext<AuthDbContext>(o => o
@@ -48,6 +54,8 @@ public static class DependencyInjection
         services.AddHttpClient<KeycloakTokenClient>(client => client.Timeout = TimeSpan.FromSeconds(5));
 
         services.AddFaberAuthentication();
+
+        return services;
     }
 
     /// <summary>Requires the CSRF header on cookie-authenticated API calls. Call before authentication.</summary>

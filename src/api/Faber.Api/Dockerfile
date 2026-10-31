@@ -26,10 +26,6 @@ COPY ["src/api/Modules/Resumes/Faber.Modules.Resumes.Application/Faber.Modules.R
 COPY ["src/api/Modules/Resumes/Faber.Modules.Resumes.Infrastructure/Faber.Modules.Resumes.Infrastructure.csproj", "src/api/Modules/Resumes/Faber.Modules.Resumes.Infrastructure/"]
 COPY ["src/api/Modules/Resumes/Faber.Modules.Resumes.PublicApi/Faber.Modules.Resumes.PublicApi.csproj", "src/api/Modules/Resumes/Faber.Modules.Resumes.PublicApi/"]
 
-# Vault
-COPY ["src/api/Modules/Vault/Faber.Modules.Vault.Application/Faber.Modules.Vault.Application.csproj", "src/api/Modules/Vault/Faber.Modules.Vault.Application/"]
-COPY ["src/api/Modules/Vault/Faber.Modules.Vault.PublicApi/Faber.Modules.Vault.PublicApi.csproj", "src/api/Modules/Vault/Faber.Modules.Vault.PublicApi/"]
-
 RUN dotnet restore "src/api/Faber.Api/Faber.Api.csproj"
 COPY . .
 WORKDIR "/src/src/api/Faber.Api"

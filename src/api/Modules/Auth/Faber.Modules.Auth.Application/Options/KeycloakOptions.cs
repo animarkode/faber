@@ -1,8 +1,8 @@
 namespace Faber.Modules.Auth.Application.Options;
 
 /// <summary>
-/// How the API reaches Keycloak as the web app's confidential client. <see cref="ClientId"/> and
-/// <see cref="ClientSecret"/> come from Vault unless configuration already sets them.
+/// How the API reaches Keycloak as the web app's confidential client. All values are bound from the
+/// <c>Keycloak</c> configuration section; <see cref="ClientId"/> and <see cref="ClientSecret"/> are required.
 /// </summary>
 public class KeycloakOptions
 {

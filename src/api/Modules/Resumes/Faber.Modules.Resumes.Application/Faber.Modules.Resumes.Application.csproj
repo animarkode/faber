@@ -21,7 +21,6 @@
         <ProjectReference Include="..\..\Auth\Faber.Modules.Auth.PublicApi\Faber.Modules.Auth.PublicApi.csproj"/>
         <ProjectReference Include="..\..\Common\Faber.Modules.Common.PublicApi\Faber.Modules.Common.PublicApi.csproj"/>
         <ProjectReference Include="..\..\Documents\Faber.Modules.Documents.Application\Faber.Modules.Documents.Application.csproj"/>
-        <ProjectReference Include="..\..\Vault\Faber.Modules.Vault.PublicApi\Faber.Modules.Vault.PublicApi.csproj"/>
         <ProjectReference Include="..\Faber.Modules.Resumes.Domain\Faber.Modules.Resumes.Domain.csproj"/>
         <ProjectReference Include="..\Faber.Modules.Resumes.Infrastructure\Faber.Modules.Resumes.Infrastructure.csproj"/>
         <ProjectReference Include="..\Faber.Modules.Resumes.PublicApi\Faber.Modules.Resumes.PublicApi.csproj"/>
