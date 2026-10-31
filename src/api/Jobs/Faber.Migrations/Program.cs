@@ -1,9 +1,9 @@
+using System.Globalization;
 using Faber.Migrations;
 using Faber.Modules.Auth.Infrastructure.Database;
 using Faber.Modules.Resumes.Infrastructure.Database;
 using Faber.ServiceDefaults;
 using Microsoft.EntityFrameworkCore;
-using System.Globalization;
 using Serilog;
 using AuthDbConst = Faber.Modules.Auth.Infrastructure.Database.DbConstants;
 using ResumesDbConst = Faber.Modules.Resumes.Infrastructure.Database.DbConstants;

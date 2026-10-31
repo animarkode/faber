@@ -1,7 +1,7 @@
-using Faber.Modules.Resumes.Application.Groups;
-using FastEndpoints;
 using ErrorOr;
 using Faber.Modules.Common.PublicApi.RateLimiting;
+using Faber.Modules.Resumes.Application.Groups;
+using FastEndpoints;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;

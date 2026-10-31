@@ -1,8 +1,8 @@
 using System.Globalization;
 using Faber.Api.Caching;
 using Faber.Api.ExceptionHandlers;
-using Faber.Api.Http;
 using Faber.Api.Health;
+using Faber.Api.Http;
 using Faber.Api.OpenApi;
 using Faber.Api.RateLimiting;
 using Faber.Modules.Auth.Application;

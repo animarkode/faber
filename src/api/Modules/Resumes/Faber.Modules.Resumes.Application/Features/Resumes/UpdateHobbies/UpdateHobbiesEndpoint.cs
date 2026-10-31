@@ -1,5 +1,5 @@
-using Faber.Modules.Common.PublicApi.RateLimiting;
 using Faber.Modules.Auth.PublicApi;
+using Faber.Modules.Common.PublicApi.RateLimiting;
 using Faber.Modules.Resumes.Application.Groups;
 using FastEndpoints;
 using Microsoft.AspNetCore.Builder;

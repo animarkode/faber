@@ -1,5 +1,5 @@
-using FastEndpoints;
 using Faber.Modules.Resumes.Application.Features.Resumes.Shared;
+using FastEndpoints;
 using FluentValidation;
 
 namespace Faber.Modules.Resumes.Application.Features.Projects.UpdateProject;
