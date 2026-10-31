@@ -3,6 +3,7 @@ using Faber.Modules.Auth.Application.Features.BackchannelLogout;
 using Faber.Modules.Auth.Application.Options;
 using Faber.Modules.Auth.Application.Sessions;
 using Faber.Modules.Auth.Infrastructure.Database;
+using Faber.Modules.Common.PublicApi;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.EntityFrameworkCore;
@@ -30,11 +31,7 @@ public static class DependencyInjection
             .ValidateOnStart();
         services.TryAddSingleton(TimeProvider.System);
 
-        var connectionString = configuration.GetConnectionString("faberdb");
-        if (string.IsNullOrEmpty(connectionString))
-        {
-            throw new InvalidOperationException("Connection string 'ConnectionStrings:faberdb' is not configured.");
-        }
+        var connectionString = configuration.GetRequiredConnectionString("faberdb");
 
         services.AddDbContext<AuthDbContext>(o => o
             .UseNpgsql(connectionString, npgsql =>

@@ -1,3 +1,4 @@
+using Faber.Modules.Common.PublicApi;
 using Faber.Modules.Resumes.Application.Authorization;
 using Faber.Modules.Resumes.Application.Caching;
 using Faber.Modules.Resumes.Application.Features.Documents.Shared;
@@ -37,12 +38,7 @@ public static class DependencyInjection
                 p =>
                     p.Requirements.Add(new ResumeOwnershipRequirement()));
 
-        var connectionString = configuration.GetConnectionString("faberdb");
-
-        if (string.IsNullOrEmpty(connectionString))
-        {
-            throw new InvalidOperationException("Connection string 'ConnectionStrings:faberdb' is not configured.");
-        }
+        var connectionString = configuration.GetRequiredConnectionString("faberdb");
 
         services.AddDbContext<ResumesDbContext>((sp, o) => o
             .UseNpgsql(
