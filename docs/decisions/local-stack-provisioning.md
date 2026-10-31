@@ -18,7 +18,7 @@ secret is an AppHost parameter that Aspire generates on the first run.
 
 Local development runs `Faber.Migrations` automatically once the `faberdb` database exists.
 Keycloak waits for migration completion before it starts, and the API waits for both
-migrations and bootstrap to complete. This keeps schema creation in the same migration path
+migrations and the realm steps to complete. This keeps schema creation in the same migration path
 used by deployed environments instead of maintaining a second local bootstrap mechanism, and removes
 the manual `dotnet ef database update` step together with its ephemeral-port and quoting pitfalls.
 
@@ -40,8 +40,10 @@ variables the AppHost passes in; the file itself holds no secret. Configuring th
 than importing an export once, keeps a long-lived realm (a developer's or a deployment's) from drifting
 away from the repository.
 
-`Faber.Bootstrap` runs once `keycloak-config` has completed. It only turns passkeys on, because
-keycloak-config-cli's realm model predates that setting and drops it on every import.
+`keycloak-passkeys` runs once `keycloak-config` has completed: a one-shot container of the Keycloak image
+that runs `infra/keycloak/passkeys.sh` (kcadm.sh). It only turns passkeys on, because keycloak-config-cli's
+realm model predates that setting and drops it on every import. It replaced the `Faber.Bootstrap` worker
+once that was all the worker did (#83).
 
 Update (#83): bootstrap used to regenerate the `faber-api` client secret on every start and write it
 to Vault at `secrets/keycloak`. The secret is now the AppHost parameter `faber-api-client-secret`,

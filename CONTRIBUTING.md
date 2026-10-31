@@ -61,9 +61,9 @@ The stack brings itself up with no further manual step:
 
 - `Faber.Migrations` applies migrations and creates the `keycloak` schema.
 - Keycloak (the stock `quay.io/keycloak/keycloak` image) starts, and `keycloak-config` applies the realm from `infra/keycloak/config/faber.json`. It runs on every start, so the realm always matches the repository; users and their data are left alone.
-- `Faber.Bootstrap` turns passkeys on (the config tool cannot express that setting yet). It writes nothing else.
+- `keycloak-passkeys` turns passkeys on by running `infra/keycloak/passkeys.sh` (the config tool cannot express that setting yet). It writes nothing else.
 
-Every service becomes healthy, and the one-shot `migrations`, `keycloak-config` and `bootstrap` finish with exit code 0. There is no `dotnet ef database update`, no Keycloak admin-console step and no manual secret seeding.
+Every service becomes healthy, and the one-shot `migrations`, `keycloak-config` and `keycloak-passkeys` finish with exit code 0. There is no `dotnet ef database update`, no Keycloak admin-console step and no manual secret seeding.
 
 Sign-in, registration, password reset and e-mail verification all happen on Keycloak's own pages. Registration asks for e-mail and name only; the password is set after following the verification link. Keycloak sends its mail (verification, password reset) to Mailpit in Development; open the `mailpit` resource from the Aspire dashboard to read it.
 
@@ -145,7 +145,7 @@ docker ps -aq --filter volume="$volume" | xargs -r docker rm -f
 docker volume rm "$volume"
 ```
 
-`xargs -r` skips `docker rm` when no container holds the volume, so the same commands work whether one does. The next start creates a fresh volume with the current parameters; migrations, `keycloak-config` and bootstrap then rebuild everything, so no manual step follows. Local data such as registered users is lost.
+`xargs -r` skips `docker rm` when no container holds the volume, so the same commands work whether one does. The next start creates a fresh volume with the current parameters; migrations, `keycloak-config` and `keycloak-passkeys` then rebuild everything, so no manual step follows. Local data such as registered users is lost.
 
 A checkout created before the per-checkout volume was introduced may still have the old fixed-name `faber-postgres-data` volume. Nothing uses it anymore; remove it the same way with `volume=faber-postgres-data`.
 

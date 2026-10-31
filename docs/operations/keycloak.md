@@ -26,7 +26,7 @@ One e-mail is one account, and e-mail is the login.
 
 **Never change the realm in the admin console.** The next deployment overwrites the change. Edit `faber.json`, test it, and deploy.
 
-Run the image `adorsys/keycloak-config-cli:6.5.1-26.1.0` as a one-shot job after Keycloak is healthy and before `Faber.Bootstrap` and the API. Mount `infra/keycloak/config` read-only at `/config`, and set:
+Run the image `adorsys/keycloak-config-cli:6.5.1-26.1.0` as a one-shot job after Keycloak is healthy and before the passkeys step and the API. Mount `infra/keycloak/config` read-only at `/config`, and set:
 
 | Variable | Value |
 |---|---|
@@ -46,7 +46,7 @@ Run the image `adorsys/keycloak-config-cli:6.5.1-26.1.0` as a one-shot job after
 
 The job exits with code 0 on success. A non-zero exit must stop the deployment.
 
-`Faber.Bootstrap` then runs, as in Development. It only turns passkeys on (the config tool's realm model cannot express that setting yet and drops it on every import). It does not touch the client secret. In Development the secret is the AppHost parameter `faber-api-client-secret`, generated on the first run and kept in the AppHost user-secrets. In production it is an environment variable from the platform's secret store.
+The passkeys step then runs, as `keycloak-passkeys` in Development. Run the Keycloak image (the same tag as the server) as a one-shot job after keycloak-config, with `infra/keycloak/passkeys.sh` mounted read-only, the entrypoint `/bin/bash`, the script's path as the only argument, and the environment variables `KEYCLOAK_URL`, `KEYCLOAK_USER` and `KEYCLOAK_PASSWORD` (the same values as for keycloak-config; keep the credentials out of the arguments). It only turns passkeys on with `kcadm.sh`, because the config tool's realm model cannot express that setting yet and drops it on every import. A non-zero exit must stop the deployment. It does not touch the client secret. In Development the secret is the AppHost parameter `faber-api-client-secret`, generated on the first run and kept in the AppHost user-secrets. In production it is an environment variable from the platform's secret store.
 
 ## 3. Keycloak itself
 
