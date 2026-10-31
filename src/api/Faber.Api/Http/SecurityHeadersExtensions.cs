@@ -24,7 +24,7 @@ public static class SecurityHeadersExtensions
             headers["Referrer-Policy"] = "no-referrer";
 
             var isDocumentation = environment.IsDevelopment()
-                                  && DevelopmentDocumentationPaths.Any(path => context.Request.Path.StartsWithSegments(path));
+                                  && DevelopmentDocumentationPaths.Any(path => context.Request.Path.StartsWithSegments(path, StringComparison.OrdinalIgnoreCase));
             if (!isDocumentation)
             {
                 headers.ContentSecurityPolicy = "default-src 'none'; frame-ancestors 'none'";

@@ -12,7 +12,10 @@ public class ValidationExceptionHandler(ILogger<ValidationExceptionHandler> logg
         Exception exception,
         CancellationToken cancellationToken)
     {
-        if (exception is not ValidationException validationException) return false;
+        if (exception is not ValidationException validationException)
+        {
+            return false;
+        }
 
         logger.LogWarning(
             "Validation exception at {Path}: {Errors}",
@@ -27,10 +30,11 @@ public class ValidationExceptionHandler(ILogger<ValidationExceptionHandler> logg
             Extensions =
             {
                 ["errors"] = validationException.Errors
-                    .GroupBy(e => e.PropertyName)
+                    .GroupBy(e => e.PropertyName, StringComparer.Ordinal)
                     .ToDictionary(
                         g => g.Key,
-                        g => g.Select(e => e.ErrorMessage).ToArray())
+                        g => g.Select(e => e.ErrorMessage).ToArray(),
+                        StringComparer.Ordinal)
             }
         };
 

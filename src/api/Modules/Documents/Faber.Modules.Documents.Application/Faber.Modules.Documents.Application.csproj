@@ -2,6 +2,7 @@
 
     <PropertyGroup>
         <AddRazorSupportForMVC>true</AddRazorSupportForMVC>
+        <NeutralLanguage>en</NeutralLanguage>
     </PropertyGroup>
 
     <ItemGroup>

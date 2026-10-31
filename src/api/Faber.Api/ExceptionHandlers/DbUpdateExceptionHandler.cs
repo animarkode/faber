@@ -12,7 +12,10 @@ public class DbUpdateExceptionHandler(ILogger<DbUpdateExceptionHandler> logger) 
         Exception exception,
         CancellationToken cancellationToken)
     {
-        if (exception is not DbUpdateException dbUpdateException) return false;
+        if (exception is not DbUpdateException dbUpdateException)
+        {
+            return false;
+        }
 
         logger.LogError(dbUpdateException, "Database update exception at {Path}", httpContext.Request.Path.Value);
 

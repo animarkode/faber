@@ -1,3 +1,4 @@
+using System.Globalization;
 using Faber.Api.Caching;
 using Faber.Api.ExceptionHandlers;
 using Faber.Api.Http;
@@ -50,7 +51,7 @@ builder.Services.AddProblemDetails();
 builder.Services.AddFaberForwardedHeaders(builder.Configuration);
 builder.Services.AddFaberRateLimiting();
 
-builder.Host.UseSerilog((_, config) => config.WriteTo.Console(), writeToProviders: true);
+builder.Host.UseSerilog((_, config) => config.WriteTo.Console(formatProvider: CultureInfo.InvariantCulture), writeToProviders: true);
 
 var app = builder.Build();
 
@@ -71,9 +72,7 @@ app
 
         c.Endpoints.Filter = ep =>
         {
-            if (ep.EndpointTags?.Contains("ToBeDeleted") == true) return false;
-
-            return true;
+            return ep.EndpointTags?.Contains("ToBeDeleted") != true;
         };
     });
 
@@ -105,6 +104,6 @@ app.UseFaberRateLimiting();
 
 app.UseAuthorization();
 
-app.Run();
+await app.RunAsync();
 
 public partial class Program;

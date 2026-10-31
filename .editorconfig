@@ -173,3 +173,11 @@ generated_code = true
 dotnet_diagnostic.CA1707.severity = none
 # xUnit test methods are not suffixed with Async.
 dotnet_naming_rule.async_methods_end_with_async.severity = none
+
+# --------------------------------------------------------------------------
+# AppHost
+# --------------------------------------------------------------------------
+[src/api/Aspire/Faber.AppHost/**.cs]
+# Every http:// URL here is a container-to-container or localhost endpoint of the local dev stack
+# (Keycloak, Mailpit, the Angular dev server, the API); none leaves the machine.
+dotnet_diagnostic.S5332.severity = none

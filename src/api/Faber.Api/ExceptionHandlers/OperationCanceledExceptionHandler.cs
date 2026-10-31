@@ -9,7 +9,10 @@ public class OperationCanceledExceptionHandler(ILogger<OperationCanceledExceptio
         Exception exception,
         CancellationToken cancellationToken)
     {
-        if (exception is not OperationCanceledException) return ValueTask.FromResult(false);
+        if (exception is not OperationCanceledException)
+        {
+            return ValueTask.FromResult(false);
+        }
 
         logger.LogDebug("Request was cancelled at {Path}", httpContext.Request.Path.Value);
 
