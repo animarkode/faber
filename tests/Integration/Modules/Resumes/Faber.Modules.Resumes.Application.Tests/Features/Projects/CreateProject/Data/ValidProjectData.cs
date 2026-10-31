@@ -11,7 +11,9 @@ public class ValidProjectData : IEnumerable<TheoryDataRow<CreateProjectRequest>>
     public IEnumerator<TheoryDataRow<CreateProjectRequest>> GetEnumerator()
     {
         foreach (var r in new CreateProjectRequestFaker(Guid.Empty).Generate(Count))
+        {
             yield return new TheoryDataRow<CreateProjectRequest>(r);
+        }
 
         yield return new TheoryDataRow<CreateProjectRequest>(
             new CreateProjectRequest(Guid.Empty, null, null, null, null, null, null));

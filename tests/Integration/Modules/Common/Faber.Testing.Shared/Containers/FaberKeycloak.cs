@@ -84,15 +84,15 @@ public sealed class FaberKeycloak : IAsyncDisposable
     public async Task<JsonObject> GetTokensAsync(string email, string password, CancellationToken ct = default)
     {
         using var http = new HttpClient { BaseAddress = new Uri(BaseAddress) };
-        using var response = await http.PostAsync($"realms/{Realm}/protocol/openid-connect/token",
-            new FormUrlEncodedContent(new Dictionary<string, string>
+        using var content = new FormUrlEncodedContent(new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 ["grant_type"] = "password",
                 ["client_id"] = TestClientId,
                 ["scope"] = "openid",
                 ["username"] = email,
                 ["password"] = password
-            }), ct);
+            });
+        using var response = await http.PostAsync($"realms/{Realm}/protocol/openid-connect/token", content, ct);
         response.EnsureSuccessStatusCode();
 
         return (await response.Content.ReadFromJsonAsync<JsonObject>(ct))!;
@@ -174,7 +174,7 @@ public sealed class FaberKeycloak : IAsyncDisposable
             name,
             protocol = "openid-connect",
             protocolMapper = "oidc-audience-mapper",
-            config = new Dictionary<string, string>
+            config = new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 ["included.client.audience"] = ClientId,
                 ["access.token.claim"] = "true",

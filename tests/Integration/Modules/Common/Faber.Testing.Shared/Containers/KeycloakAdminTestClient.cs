@@ -34,7 +34,7 @@ public sealed class KeycloakAdminTestClient(string baseAddress, string adminUser
         }, ct);
         response.EnsureSuccessStatusCode();
 
-        return response.Headers.Location!.Segments.Last();
+        return response.Headers.Location!.Segments[^1];
     }
 
     public async Task<string?> FindUserIdAsync(string email, CancellationToken ct = default)
@@ -135,14 +135,14 @@ public sealed class KeycloakAdminTestClient(string baseAddress, string adminUser
 
     private async Task AuthorizeAsync(CancellationToken ct)
     {
-        using var response = await _http.PostAsync("realms/master/protocol/openid-connect/token",
-            new FormUrlEncodedContent(new Dictionary<string, string>
+        using var content = new FormUrlEncodedContent(new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 ["grant_type"] = "password",
                 ["client_id"] = "admin-cli",
                 ["username"] = adminUsername,
                 ["password"] = adminPassword
-            }), ct);
+            });
+        using var response = await _http.PostAsync("realms/master/protocol/openid-connect/token", content, ct);
         response.EnsureSuccessStatusCode();
         var token = (await response.Content.ReadFromJsonAsync<JsonObject>(ct))!["access_token"]!.GetValue<string>();
         _http.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);

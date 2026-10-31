@@ -12,7 +12,9 @@ public class ValidLanguageData : IEnumerable<TheoryDataRow<CreateLanguageRequest
     public IEnumerator<TheoryDataRow<CreateLanguageRequest>> GetEnumerator()
     {
         foreach (var r in new CreateLanguageRequestFaker(Guid.Empty, LanguageSeed).Generate(Count))
+        {
             yield return new TheoryDataRow<CreateLanguageRequest>(r);
+        }
 
         yield return new TheoryDataRow<CreateLanguageRequest>(
             new CreateLanguageRequest(Guid.Empty, null, null));

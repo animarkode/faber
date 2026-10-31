@@ -1,3 +1,4 @@
+using System.Globalization;
 using Faber.Migrations;
 using Faber.Modules.Auth.Infrastructure.Database;
 using Faber.Modules.Resumes.Infrastructure.Database;
@@ -17,75 +18,18 @@ using ResumesDbConst = Faber.Modules.Resumes.Infrastructure.Database.DbConstants
 
 namespace Faber.Migrations.Tests;
 
-[CollectionDefinition(Name, DisableParallelization = true)]
-public sealed class MigrationExitCodeCollection
-{
-    public const string Name = "Migration exit code";
-}
-
-[Collection(MigrationExitCodeCollection.Name)]
-public class MigrationWorkerSetupFailureTests
-{
-    [Fact]
-    public async Task MissingDbContextRegistration_ShouldSetExitCode1AndStopApplication()
-    {
-        Environment.ExitCode = 0;
-        using var serviceProvider = new ServiceCollection()
-            .AddLogging()
-            .BuildServiceProvider();
-        using var lifetime = new TestApplicationLifetime();
-        var worker = new TestableMigrationWorker(
-            serviceProvider.GetRequiredService<IServiceScopeFactory>(),
-            Options.Create(new MigrationOptions { ExternalSchemas = ["keycloak"] }),
-            lifetime,
-            serviceProvider.GetRequiredService<ILogger<MigrationWorker>>());
-
-        try
-        {
-            await worker.RunAsync(TestContext.Current.CancellationToken);
-
-            Environment.ExitCode.ShouldBe(1);
-            lifetime.ApplicationStopping.IsCancellationRequested.ShouldBeTrue();
-        }
-        finally
-        {
-            Environment.ExitCode = 0;
-        }
-    }
-
-    private sealed class TestableMigrationWorker(
-        IServiceScopeFactory scopeFactory,
-        IOptions<MigrationOptions> options,
-        IHostApplicationLifetime lifetime,
-        ILogger<MigrationWorker> logger) : MigrationWorker(scopeFactory, options, lifetime, logger)
-    {
-        public Task RunAsync(CancellationToken cancellationToken) => ExecuteAsync(cancellationToken);
-    }
-
-    private sealed class TestApplicationLifetime : IHostApplicationLifetime, IDisposable
-    {
-        private readonly CancellationTokenSource _stopping = new();
-
-        public CancellationToken ApplicationStarted => CancellationToken.None;
-
-        public CancellationToken ApplicationStopping => _stopping.Token;
-
-        public CancellationToken ApplicationStopped => CancellationToken.None;
-
-        public void StopApplication() => _stopping.Cancel();
-
-        public void Dispose() => _stopping.Dispose();
-    }
-}
-
-[Collection(MigrationExitCodeCollection.Name)]
+[Collection(MigrationExitCodeGroup.Name)]
 public class MigrationWorkerTests : IAsyncLifetime
 {
-    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder().Build();
+    private readonly PostgreSqlContainer _postgres = new PostgreSqlBuilder("postgres:17.6").Build();
 
     public async ValueTask InitializeAsync() => await _postgres.StartAsync();
 
-    public async ValueTask DisposeAsync() => await _postgres.DisposeAsync();
+    public async ValueTask DisposeAsync()
+    {
+        await _postgres.DisposeAsync();
+        GC.SuppressFinalize(this);
+    }
 
     [Fact]
     public async Task RunWorker_AppliesMigrationsForBothContexts()
@@ -323,7 +267,7 @@ public class MigrationWorkerTests : IAsyncLifetime
         await using var cmd = conn.CreateCommand();
         cmd.CommandText = sql;
         var result = await cmd.ExecuteScalarAsync(ct);
-        return Convert.ToInt64(result);
+        return Convert.ToInt64(result, CultureInfo.InvariantCulture);
     }
 
     private static ResumesDbContext BuildResumesContext(string connectionString)

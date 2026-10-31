@@ -173,6 +173,25 @@ generated_code = true
 dotnet_diagnostic.CA1707.severity = none
 # xUnit test methods are not suffixed with Async.
 dotnet_naming_rule.async_methods_end_with_async.severity = none
+# Test fixtures and helpers expose List<T>/Dictionary<K,V> and take collection literals; the
+# "return an abstraction" rule is about public API design, which test code does not have.
+dotnet_diagnostic.MA0016.severity = none
+# Constant arrays in test data (reorder id lists, [InlineData]-style arguments) are written inline
+# for readability; hoisting them into static fields is a production-performance concern.
+dotnet_diagnostic.CA1861.severity = none
+# Caching a CompositeFormat or narrowing a return type to the concrete type is a hot-path
+# optimisation that does not matter in tests.
+dotnet_diagnostic.CA1863.severity = none
+dotnet_diagnostic.CA1859.severity = none
+# The SQL helpers in the migration tests run test-controlled constants against a throwaway
+# container; there is no untrusted input to inject.
+dotnet_diagnostic.CA2100.severity = none
+# Lower-casing is used to normalise test data (user names, cookie attributes) before an ordinal
+# comparison, not to build a comparison key that needs the upper-case round trip.
+dotnet_diagnostic.CA1308.severity = none
+# FastEndpoints' AppFixture declares its overridable members with one-letter parameter names
+# (a, s); the fixtures keep readable names (builder, services) instead of mirroring them.
+dotnet_diagnostic.CA1725.severity = none
 
 # --------------------------------------------------------------------------
 # AppHost

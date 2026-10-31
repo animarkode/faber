@@ -14,7 +14,7 @@ namespace Faber.Modules.Auth.Application.Tests.Features.Linking;
 [Collection<CollectionAuth>]
 public class AccountLinkingTests(WebApp app)
 {
-    private CancellationToken Ct => TestContext.Current.CancellationToken;
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
     public async Task NewEmail_ShouldCreateTheAccountAndSignIn()
@@ -58,9 +58,9 @@ public class AccountLinkingTests(WebApp app)
         var (confirmPage, _) = await SignInAtProviderAsync(driver, owner.ProviderUsername, owner.ProviderPassword);
 
         using var confirmed = await driver.SubmitAsync(confirmPage!, "kc-register-form",
-            new Dictionary<string, string> { ["submitAction"] = "linkAccount" }, Ct);
+            new Dictionary<string, string>(StringComparer.Ordinal) { ["submitAction"] = "linkAccount" }, Ct);
         var (reauthPage, _) = await driver.FollowAsync(confirmed, Ct);
-        using var reauthenticated = await driver.SubmitAsync(reauthPage!, "kc-form-login", new Dictionary<string, string>
+        using var reauthenticated = await driver.SubmitAsync(reauthPage!, "kc-form-login", new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["username"] = owner.User.Email,
             ["password"] = owner.User.Password,
@@ -83,9 +83,9 @@ public class AccountLinkingTests(WebApp app)
         var (confirmPage, _) = await SignInAtProviderAsync(driver, owner.ProviderUsername, owner.ProviderPassword);
 
         using var confirmed = await driver.SubmitAsync(confirmPage!, "kc-register-form",
-            new Dictionary<string, string> { ["submitAction"] = "linkAccount" }, Ct);
+            new Dictionary<string, string>(StringComparer.Ordinal) { ["submitAction"] = "linkAccount" }, Ct);
         var (reauthPage, _) = await driver.FollowAsync(confirmed, Ct);
-        using var guessed = await driver.SubmitAsync(reauthPage!, "kc-form-login", new Dictionary<string, string>
+        using var guessed = await driver.SubmitAsync(reauthPage!, "kc-form-login", new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["username"] = owner.User.Email,
             ["password"] = "a-guess-1234",
@@ -112,12 +112,12 @@ public class AccountLinkingTests(WebApp app)
         (await app.Keycloak.Admin.FindUserIdAsync(email, Ct)).ShouldBeNull();
     }
 
-    private async Task<(string? Page, HttpResponseMessage? Api)> SignInAtProviderAsync(
+    private static async Task<(string? Page, HttpResponseMessage? Api)> SignInAtProviderAsync(
         KeycloakLoginDriver driver, string providerUsername, string providerPassword)
     {
         var loginPage = await driver.StartAsync("api/v1/auth/login", Ct);
         var providerPage = await driver.ClickAsync(loginPage, $"social-{WebApp.StandIn.Alias}", Ct);
-        using var submitted = await driver.SubmitAsync(providerPage, "kc-form-login", new Dictionary<string, string>
+        using var submitted = await driver.SubmitAsync(providerPage, "kc-form-login", new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["username"] = providerUsername,
             ["password"] = providerPassword,
@@ -131,7 +131,7 @@ public class AccountLinkingTests(WebApp app)
     private async Task<(TestUser User, string UserId, string ProviderUsername, string ProviderPassword)>
         CreateOwnerWithProviderAccountAsync(string name)
     {
-        var user = new TestUserFaker(name.GetHashCode()).Generate() with { Email = $"{name}@standin.test" };
+        var user = new TestUserFaker(StringComparer.Ordinal.GetHashCode(name)).Generate() with { Email = $"{name}@standin.test" };
         var userId = await app.Keycloak.Admin.CreateUserAsync(user, ct: Ct);
         var providerUsername = $"{name}.provider";
         const string providerPassword = "provider-password-3";

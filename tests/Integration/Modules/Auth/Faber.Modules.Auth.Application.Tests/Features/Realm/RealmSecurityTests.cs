@@ -14,7 +14,7 @@ namespace Faber.Modules.Auth.Application.Tests.Features.Realm;
 [Collection<CollectionAuth>]
 public class RealmSecurityTests(WebApp app)
 {
-    private CancellationToken Ct => TestContext.Current.CancellationToken;
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
     public async Task Realm_ShouldUseEmailAsLoginAndRequireAVerifiedEmail()
@@ -84,14 +84,14 @@ public class RealmSecurityTests(WebApp app)
         var user = app.Users[0];
         using var http = new HttpClient { BaseAddress = new Uri(app.Keycloak.BaseAddress) };
 
-        using var response = await http.PostAsync($"realms/{FaberKeycloak.Realm}/protocol/openid-connect/token",
-            new FormUrlEncodedContent(new Dictionary<string, string>
+        using var content = new FormUrlEncodedContent(new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 ["grant_type"] = "password",
                 ["client_id"] = "admin-cli",
                 ["username"] = user.Email,
                 ["password"] = user.Password
-            }), Ct);
+            });
+        using var response = await http.PostAsync($"realms/{FaberKeycloak.Realm}/protocol/openid-connect/token", content, Ct);
 
         response.IsSuccessStatusCode.ShouldBeFalse();
     }
@@ -125,7 +125,7 @@ public class RealmSecurityTests(WebApp app)
         var executions = await app.Keycloak.Admin.GetFlowExecutionsAsync("faber first broker login", Ct);
         var byProvider = executions
             .Where(e => e!["providerId"] is not null)
-            .ToDictionary(e => e!["providerId"]!.GetValue<string>(), e => e!["requirement"]!.GetValue<string>());
+            .ToDictionary(e => e!["providerId"]!.GetValue<string>(), e => e!["requirement"]!.GetValue<string>(), StringComparer.Ordinal);
 
         byProvider.ShouldNotContainKey("idp-auto-link");
         byProvider.ShouldNotContainKey("idp-email-verification");
@@ -156,7 +156,7 @@ public class RealmSecurityTests(WebApp app)
         using var driver = new KeycloakLoginDriver(client);
         var page = await driver.StartAsync("api/v1/auth/login", Ct);
 
-        return await driver.SubmitAsync(page, "kc-form-login", new Dictionary<string, string>
+        return await driver.SubmitAsync(page, "kc-form-login", new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["username"] = email,
             ["password"] = password,

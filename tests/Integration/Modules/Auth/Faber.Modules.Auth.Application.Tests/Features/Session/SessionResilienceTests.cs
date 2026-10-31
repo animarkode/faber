@@ -21,7 +21,7 @@ namespace Faber.Modules.Auth.Application.Tests.Features.Session;
 [Collection<CollectionAuth>]
 public class SessionResilienceTests(WebApp app)
 {
-    private CancellationToken Ct => TestContext.Current.CancellationToken;
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
     public async Task RequestAbortedDuringRefresh_ShouldStillKeepTheRotatedTokens()

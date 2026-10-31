@@ -10,7 +10,7 @@ namespace Faber.Modules.Auth.Application.Tests.Features.Realm;
 [Collection<CollectionAuth>]
 public class RealmPasskeysTests(WebApp app)
 {
-    private CancellationToken Ct => TestContext.Current.CancellationToken;
+    private static CancellationToken Ct => TestContext.Current.CancellationToken;
 
     [Fact]
     public async Task Realm_AfterStartup_ShouldHavePasskeysEnabled()

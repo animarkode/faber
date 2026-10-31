@@ -25,7 +25,7 @@ public class SummaryFormattingRenderTests
         return await htmlRenderer.Dispatcher.InvokeAsync(async () =>
         {
             var root = await htmlRenderer.RenderComponentAsync<FirstTemplate>(
-                ParameterView.FromDictionary(new Dictionary<string, object?> { ["Resume"] = resume }));
+                ParameterView.FromDictionary(new Dictionary<string, object?>(StringComparer.Ordinal) { ["Resume"] = resume }));
             return root.ToHtmlString();
         });
     }

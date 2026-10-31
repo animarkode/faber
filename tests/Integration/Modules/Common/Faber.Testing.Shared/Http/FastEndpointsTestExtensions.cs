@@ -20,11 +20,11 @@ public static class FastEndpointsTestExtensions
         string requestUri,
         TRequest request,
         Cookie cookie,
-        Dictionary<string, string>? headers = null,
+        IReadOnlyDictionary<string, string>? headers = null,
         CancellationToken ct = default)
         where TRequest : notnull
     {
-        var message = new HttpRequestMessage(HttpMethod.Post, $"{client.BaseAddress}{requestUri.TrimStart('/')}")
+        using var message = new HttpRequestMessage(HttpMethod.Post, $"{client.BaseAddress}{requestUri.TrimStart('/')}")
         {
             Content = request.ToHttpContent()
         };
@@ -35,15 +35,38 @@ public static class FastEndpointsTestExtensions
         return await client.SendAsync(message, ct);
     }
 
+    public static async Task<(HttpResponseMessage httpResponse, TResponse?)> PostWithCookiesAsync<TRequest, TResponse>(
+        this HttpClient client,
+        string requestUri,
+        TRequest request,
+        Cookie cookie,
+        IReadOnlyDictionary<string, string>? headers = null,
+        CancellationToken ct = default)
+        where TRequest : notnull
+    {
+        var httpResponse = await client.PostWithCookiesAsync(requestUri, request, cookie, headers, ct);
+
+        var json = await httpResponse.Content.ReadAsStringAsync(ct);
+
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return (httpResponse, default);
+        }
+
+        var response = JsonSerializer.Deserialize<TResponse>(json, JsonOptions);
+
+        return (httpResponse, response);
+    }
+
     public static async Task<HttpResponseMessage> PostWithHeadersAsync<TRequest>(
         this HttpClient client,
         string requestUri,
         TRequest request,
-        Dictionary<string, string>? headers = null,
+        IReadOnlyDictionary<string, string>? headers = null,
         CancellationToken ct = default)
         where TRequest : notnull
     {
-        var message = new HttpRequestMessage(HttpMethod.Post, $"{client.BaseAddress}{requestUri.TrimStart('/')}")
+        using var message = new HttpRequestMessage(HttpMethod.Post, $"{client.BaseAddress}{requestUri.TrimStart('/')}")
         {
             Content = request.ToHttpContent()
         };
@@ -53,13 +76,35 @@ public static class FastEndpointsTestExtensions
         return await client.SendAsync(message, ct);
     }
 
+    public static async Task<(HttpResponseMessage httpResponse, TResponse?)> PostWithHeadersAsync<TRequest, TResponse>(
+        this HttpClient client,
+        string requestUri,
+        TRequest request,
+        IReadOnlyDictionary<string, string>? headers = null,
+        CancellationToken ct = default)
+        where TRequest : notnull
+    {
+        var httpResponse = await client.PostWithHeadersAsync(requestUri, request, headers, ct);
+
+        var json = await httpResponse.Content.ReadAsStringAsync(ct);
+
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return (httpResponse, default);
+        }
+
+        var response = JsonSerializer.Deserialize<TResponse>(json, JsonOptions);
+
+        return (httpResponse, response);
+    }
+
     public static async Task<HttpResponseMessage> GetWithHeadersAsync(
         this HttpClient client,
         string requestUri,
-        Dictionary<string, string>? headers = null,
+        IReadOnlyDictionary<string, string>? headers = null,
         CancellationToken ct = default)
     {
-        var message = new HttpRequestMessage(HttpMethod.Get, $"{client.BaseAddress}{requestUri.TrimStart('/')}");
+        using var message = new HttpRequestMessage(HttpMethod.Get, $"{client.BaseAddress}{requestUri.TrimStart('/')}");
 
         AddHeaders(message, headers);
 
@@ -69,53 +114,17 @@ public static class FastEndpointsTestExtensions
     public static async Task<(HttpResponseMessage httpResponse, TResponse?)> GetWithHeadersAsync<TResponse>(
         this HttpClient client,
         string requestUri,
-        Dictionary<string, string>? headers = null,
+        IReadOnlyDictionary<string, string>? headers = null,
         CancellationToken ct = default)
     {
         var httpResponse = await client.GetWithHeadersAsync(requestUri, headers, ct);
 
         var json = await httpResponse.Content.ReadAsStringAsync(ct);
 
-        if (string.IsNullOrWhiteSpace(json)) return (httpResponse, default);
-
-        var response = JsonSerializer.Deserialize<TResponse>(json, JsonOptions);
-
-        return (httpResponse, response);
-    }
-
-    public static async Task<(HttpResponseMessage httpResponse, TResponse?)> PostWithCookiesAsync<TRequest, TResponse>(
-        this HttpClient client,
-        string requestUri,
-        TRequest request,
-        Cookie cookie,
-        Dictionary<string, string>? headers = null,
-        CancellationToken ct = default)
-        where TRequest : notnull
-    {
-        var httpResponse = await client.PostWithCookiesAsync(requestUri, request, cookie, headers, ct);
-
-        var json = await httpResponse.Content.ReadAsStringAsync(ct);
-
-        if (string.IsNullOrWhiteSpace(json)) return (httpResponse, default);
-
-        var response = JsonSerializer.Deserialize<TResponse>(json, JsonOptions);
-
-        return (httpResponse, response);
-    }
-
-    public static async Task<(HttpResponseMessage httpResponse, TResponse?)> PostWithHeadersAsync<TRequest, TResponse>(
-        this HttpClient client,
-        string requestUri,
-        TRequest request,
-        Dictionary<string, string>? headers = null,
-        CancellationToken ct = default)
-        where TRequest : notnull
-    {
-        var httpResponse = await client.PostWithHeadersAsync(requestUri, request, headers, ct);
-
-        var json = await httpResponse.Content.ReadAsStringAsync(ct);
-
-        if (string.IsNullOrWhiteSpace(json)) return (httpResponse, default);
+        if (string.IsNullOrWhiteSpace(json))
+        {
+            return (httpResponse, default);
+        }
 
         var response = JsonSerializer.Deserialize<TResponse>(json, JsonOptions);
 
@@ -130,11 +139,16 @@ public static class FastEndpointsTestExtensions
         return content;
     }
 
-    private static void AddHeaders(HttpRequestMessage message, Dictionary<string, string>? headers)
+    private static void AddHeaders(HttpRequestMessage message, IReadOnlyDictionary<string, string>? headers)
     {
-        if (headers is null) return;
+        if (headers is null)
+        {
+            return;
+        }
 
         foreach (var (key, value) in headers)
+        {
             message.Headers.Add(key, value);
+        }
     }
 }

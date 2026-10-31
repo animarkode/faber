@@ -26,7 +26,7 @@ public class SignInTests(WebApp app)
         query["code_challenge"].ShouldNotBeNullOrWhiteSpace();
         query["state"].ShouldNotBeNullOrWhiteSpace();
         query["redirect_uri"].ShouldBe($"{WebApp.AppOrigin.ToString().TrimEnd('/')}/api/v1/auth/callback");
-        query["scope"]!.Split(' ').ShouldNotContain("offline_access");
+        query["scope"]!.Split(' ').ShouldNotContain("offline_access", StringComparer.Ordinal);
     }
 
     [Fact]
@@ -49,10 +49,10 @@ public class SignInTests(WebApp app)
         callback.StatusCode.ShouldBe(HttpStatusCode.Redirect);
         var cookie = callback.Headers.GetValues("Set-Cookie").Single(c => c.StartsWith("__Host-faber=", StringComparison.Ordinal));
         var attributes = cookie.Split(';', StringSplitOptions.TrimEntries).Select(a => a.ToLowerInvariant()).ToList();
-        attributes.ShouldContain("httponly");
-        attributes.ShouldContain("secure");
-        attributes.ShouldContain("samesite=strict");
-        attributes.ShouldContain("path=/");
+        attributes.ShouldContain("httponly", StringComparer.Ordinal);
+        attributes.ShouldContain("secure", StringComparer.Ordinal);
+        attributes.ShouldContain("samesite=strict", StringComparer.Ordinal);
+        attributes.ShouldContain("path=/", StringComparer.Ordinal);
         attributes.ShouldNotContain(a => a.StartsWith("domain=", StringComparison.Ordinal));
         attributes.ShouldNotContain(a => a.StartsWith("expires=", StringComparison.Ordinal),
             "without remember me the session must end with the browser");
@@ -110,7 +110,7 @@ public class SignInTests(WebApp app)
         using var driver = new KeycloakLoginDriver(client);
         var page = await driver.StartAsync("api/v1/auth/login", TestContext.Current.CancellationToken);
 
-        using var response = await driver.SubmitAsync(page, "kc-form-login", new Dictionary<string, string>
+        using var response = await driver.SubmitAsync(page, "kc-form-login", new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["username"] = app.Users[3].Email,
             ["password"] = "not-the-password",

@@ -12,7 +12,9 @@ public class ValidExperienceData : IEnumerable<TheoryDataRow<CreateExperienceReq
     public IEnumerator<TheoryDataRow<CreateExperienceRequest>> GetEnumerator()
     {
         foreach (var r in new CreateExperienceRequestFaker(Guid.Empty, ExperienceSeed).Generate(Count))
+        {
             yield return new TheoryDataRow<CreateExperienceRequest>(r);
+        }
 
         yield return new TheoryDataRow<CreateExperienceRequest>(
             new CreateExperienceRequest(Guid.Empty, null, null, null, null, null, null));

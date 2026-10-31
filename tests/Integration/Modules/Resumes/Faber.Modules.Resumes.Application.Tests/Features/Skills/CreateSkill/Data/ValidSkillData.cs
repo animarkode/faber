@@ -12,7 +12,9 @@ public class ValidSkillData : IEnumerable<TheoryDataRow<CreateSkillRequest>>
     public IEnumerator<TheoryDataRow<CreateSkillRequest>> GetEnumerator()
     {
         foreach (var r in new CreateSkillRequestFaker(Guid.Empty, SkillSeed).Generate(Count))
+        {
             yield return new TheoryDataRow<CreateSkillRequest>(r);
+        }
 
         yield return new TheoryDataRow<CreateSkillRequest>(
             new CreateSkillRequest(Guid.Empty, null, null));

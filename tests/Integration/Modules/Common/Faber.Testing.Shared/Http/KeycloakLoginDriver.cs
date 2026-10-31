@@ -35,7 +35,7 @@ public sealed partial class KeycloakLoginDriver(HttpClient apiClient) : IDisposa
     {
         var loginPage = await StartAsync($"api/v1/auth/login?returnUrl={Uri.EscapeDataString(returnUrl)}", ct);
 
-        var form = new Dictionary<string, string>
+        var form = new Dictionary<string, string>(StringComparer.Ordinal)
         {
             ["username"] = email,
             ["password"] = password,
@@ -47,8 +47,8 @@ public sealed partial class KeycloakLoginDriver(HttpClient apiClient) : IDisposa
             form["rememberMe"] = "on";
         }
 
-        using var submitted = await _keycloak.PostAsync(FormAction(loginPage, "kc-form-login"),
-            new FormUrlEncodedContent(form), ct);
+        using var content = new FormUrlEncodedContent(form);
+        using var submitted = await _keycloak.PostAsync(FormAction(loginPage, "kc-form-login"), content, ct);
 
         return await FinishAtApiAsync(submitted, ct);
     }
@@ -80,10 +80,11 @@ public sealed partial class KeycloakLoginDriver(HttpClient apiClient) : IDisposa
     }
 
     /// <summary>Submits a form on a Keycloak page and returns the response without following it.</summary>
-    public Task<HttpResponseMessage> SubmitAsync(string page, string formId, Dictionary<string, string> fields,
+    public async Task<HttpResponseMessage> SubmitAsync(string page, string formId, Dictionary<string, string> fields,
         CancellationToken ct = default)
     {
-        return _keycloak.PostAsync(FormAction(page, formId), new FormUrlEncodedContent(fields), ct);
+        using var content = new FormUrlEncodedContent(fields);
+        return await _keycloak.PostAsync(FormAction(page, formId), content, ct);
     }
 
     /// <summary>
@@ -96,7 +97,7 @@ public sealed partial class KeycloakLoginDriver(HttpClient apiClient) : IDisposa
             ?? throw new InvalidOperationException(
                 $"Keycloak did not redirect ({(int)keycloakResponse.StatusCode}): {await keycloakResponse.Content.ReadAsStringAsync(ct)}");
 
-        while (location.IsAbsoluteUri && location.Host != apiClient.BaseAddress!.Host)
+        while (location.IsAbsoluteUri && !string.Equals(location.Host, apiClient.BaseAddress!.Host, StringComparison.OrdinalIgnoreCase))
         {
             using var hop = await _keycloak.GetAsync(location, ct);
             location = hop.Headers.Location
@@ -121,7 +122,7 @@ public sealed partial class KeycloakLoginDriver(HttpClient apiClient) : IDisposa
                 return (await response.Content.ReadAsStringAsync(ct), null);
             }
 
-            if (location.IsAbsoluteUri && location.Host == apiClient.BaseAddress!.Host)
+            if (location.IsAbsoluteUri && string.Equals(location.Host, apiClient.BaseAddress!.Host, StringComparison.OrdinalIgnoreCase))
             {
                 return (null, await apiClient.GetAsync(location.PathAndQuery, ct));
             }
@@ -194,7 +195,7 @@ public sealed partial class KeycloakLoginDriver(HttpClient apiClient) : IDisposa
         private void Store(string setCookie)
         {
             var parts = setCookie.Split(';', StringSplitOptions.TrimEntries);
-            var separator = parts[0].IndexOf('=');
+            var separator = parts[0].IndexOf('=', StringComparison.Ordinal);
             var name = parts[0][..separator];
             var value = parts[0][(separator + 1)..];
             var path = parts.Skip(1)
@@ -214,15 +215,17 @@ public sealed partial class KeycloakLoginDriver(HttpClient apiClient) : IDisposa
         }
     }
 
-    [GeneratedRegex("<a[^>]*>", RegexOptions.IgnoreCase)]
+    private const int RegexTimeoutMilliseconds = 1000;
+
+    [GeneratedRegex("<a[^>]*>", RegexOptions.IgnoreCase, matchTimeoutMilliseconds: RegexTimeoutMilliseconds)]
     private static partial Regex AnchorTag();
 
-    [GeneratedRegex("href=\"([^\"]+)\"", RegexOptions.IgnoreCase)]
+    [GeneratedRegex("href=\"(?<value>[^\"]+)\"", RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: RegexTimeoutMilliseconds)]
     private static partial Regex HrefAttribute();
 
-    [GeneratedRegex("<form[^>]*>", RegexOptions.IgnoreCase)]
+    [GeneratedRegex("<form[^>]*>", RegexOptions.IgnoreCase, matchTimeoutMilliseconds: RegexTimeoutMilliseconds)]
     private static partial Regex FormTag();
 
-    [GeneratedRegex("action=\"([^\"]+)\"", RegexOptions.IgnoreCase)]
+    [GeneratedRegex("action=\"(?<value>[^\"]+)\"", RegexOptions.IgnoreCase | RegexOptions.ExplicitCapture, matchTimeoutMilliseconds: RegexTimeoutMilliseconds)]
     private static partial Regex ActionAttribute();
 }

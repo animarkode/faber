@@ -72,7 +72,7 @@ public class ResumePdfCacheTests(WebApp app) : TestBase
             .POSTAsync<GenerateDocumentEndpoint, DocumentRequest, GenerateDocumentResponse>(
                 new DocumentRequest(resume.Id));
 
-        Convert.FromBase64String(generateResponse!.Base64Pdf).ShouldBe(downloadedBytes);
+        Convert.FromBase64String(generateResponse.Base64Pdf).ShouldBe(downloadedBytes);
         AssertRenderCount(resume.Id, 1);
     }
 
@@ -97,7 +97,7 @@ public class ResumePdfCacheTests(WebApp app) : TestBase
             .WithAuthToken(accessToken)
             .PUTAsync<UpdatePersonEndpoint, UpdatePersonRequest>(
                 new UpdatePersonRequest(
-                    person!.Id,
+                    person.Id,
                     resume.Id,
                     "Updated Job Title",
                     person.Firstname,
@@ -156,7 +156,7 @@ public class ResumePdfCacheTests(WebApp app) : TestBase
     {
         var documentsModuleApi = app.Services.GetRequiredService<IDocumentsModuleApi>();
 
-        documentsModuleApi.Received(expectedCount).RenderToPdfAsync<FirstTemplate>(
+        _ = documentsModuleApi.Received(expectedCount).RenderToPdfAsync<FirstTemplate>(
             Arg.Is<IReadOnlyDictionary<string, object?>>(d => ((Resume)d["Resume"]!).Id == resumeId),
             Arg.Any<CancellationToken>());
     }

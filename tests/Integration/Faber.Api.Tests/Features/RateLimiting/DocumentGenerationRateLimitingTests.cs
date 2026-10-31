@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -70,7 +71,7 @@ public class DocumentGenerationRateLimitingTests(WebApp app) : TestBase
     private static Task<HttpResponseMessage> GenerateAsync(HttpClient client, Guid resumeId)
     {
         return client.PostAsJsonAsync(
-            string.Format(ResumeGenerateUriFormat, resumeId),
+            string.Format(CultureInfo.InvariantCulture, ResumeGenerateUriFormat, resumeId),
             new { },
             TestContext.Current.CancellationToken);
     }
@@ -78,7 +79,7 @@ public class DocumentGenerationRateLimitingTests(WebApp app) : TestBase
     private static Task<HttpResponseMessage> DownloadAsync(HttpClient client, Guid resumeId)
     {
         return client.GetAsync(
-            string.Format(ResumeDownloadUriFormat, resumeId),
+            string.Format(CultureInfo.InvariantCulture, ResumeDownloadUriFormat, resumeId),
             TestContext.Current.CancellationToken);
     }
 
@@ -106,8 +107,8 @@ public class DocumentGenerationRateLimitingTests(WebApp app) : TestBase
 
         rejected.StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
         rejected.Headers.RetryAfter.ShouldNotBeNull();
-        rejected.Headers.RetryAfter!.Delta.ShouldNotBeNull();
-        rejected.Headers.RetryAfter.Delta!.Value.TotalSeconds.ShouldBeGreaterThan(0);
+        rejected.Headers.RetryAfter.Delta.ShouldNotBeNull();
+        rejected.Headers.RetryAfter.Delta.Value.TotalSeconds.ShouldBeGreaterThan(0);
         rejected.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
 
         var body = await rejected.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);

@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Bogus;
 using Faber.Modules.Resumes.Application.Features.Educations.CreateEducation;
 
@@ -5,6 +6,8 @@ namespace Faber.Modules.Resumes.Application.Tests.Features.Shared.Data;
 
 public class CreateEducationRequestFaker : Faker<CreateEducationRequest>
 {
+    [SuppressMessage("Usage", "MA0056:Do not call overridable members in constructor",
+        Justification = "Bogus configures a Faker through its virtual fluent methods; the faker is not subclassed further.")]
     public CreateEducationRequestFaker(Guid resumeId, int seed = ResumesTestConstants.EducationSeed)
     {
         UseSeed(seed);
