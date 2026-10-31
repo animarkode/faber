@@ -1,4 +1,5 @@
-// Wires the theme toggle. The initial class is set by the pre-paint script in template.ftl.
+// Wires the theme toggle. The initial class is set by the pre-paint script in template.ftl; the
+// button's icon and accessible name follow html.dark through faber.css, so this only flips and saves.
 (function () {
   'use strict';
 
@@ -8,12 +9,7 @@
     return;
   }
 
-  function sync() {
-    var dark = root.classList.contains('dark');
-    // The label names the action: in dark mode the button switches back to light.
-    button.setAttribute('aria-label', dark ? button.dataset.labelToLight : button.dataset.labelToDark);
-  }
-
+  // Host-only: Keycloak's pages are served on the web app's host, so both read the same cookie.
   function persist(theme) {
     var cookie = 'faber-theme=' + theme + '; Path=/; SameSite=Lax; Max-Age=31536000';
     if (location.protocol === 'https:') {
@@ -27,8 +23,5 @@
     // PatternFly's own dark palette, for the v2 components faber.css does not restyle.
     root.classList.toggle('pf-v5-theme-dark', dark);
     persist(dark ? 'dark' : 'light');
-    sync();
   });
-
-  sync();
 })();

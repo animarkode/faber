@@ -163,9 +163,11 @@
 <#-- Shell: brand and theme toggle -->
 <header class="fb-header">
       <span class="fb-brand">microcivi.com</span>
-      <button type="button" id="fb-theme-toggle" class="fb-icon-btn"
-              aria-label="${msg("fbSwitchToDark")}"
-              data-label-to-dark="${msg("fbSwitchToDark")}" data-label-to-light="${msg("fbSwitchToLight")}">
+      <#-- Both labels are rendered; faber.css hides the one that does not fit html.dark, and a
+           display:none element drops out of the accessibility tree, so the name is right before any JS runs. -->
+      <button type="button" id="fb-theme-toggle" class="fb-icon-btn">
+        <span class="fb-sr-only fb-label-to-dark">${msg("fbSwitchToDark")}</span>
+        <span class="fb-sr-only fb-label-to-light">${msg("fbSwitchToLight")}</span>
         <svg class="fb-icon-moon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>
         <svg class="fb-icon-sun" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
       </button>

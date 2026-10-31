@@ -246,6 +246,13 @@ html.login-pf body {
 .fb-icon-btn:hover { border-radius: 0.75rem; }
 html.dark .fb-icon-moon, html:not(.dark) .fb-icon-sun { display: none; }
 
+/* The toggle's accessible name: the label for the current theme only, without JS. */
+.fb-sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+html.dark .fb-label-to-dark, html:not(.dark) .fb-label-to-light { display: none; }
+
 html .pf-v5-c-login {
   display: flex; align-items: center; justify-content: center;
   min-height: 100vh; padding: 88px 24px 40px;
