@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using ErrorOr;
 using Faber.Modules.Auth.Application.Authentication;
@@ -10,8 +11,6 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace Faber.Modules.Auth.Application.Features.BackchannelLogout;
 
-/// <summary>The session a valid logout token ends: a Keycloak session id, or failing that the user id.</summary>
-public record LogoutTarget(string? KeycloakSessionId, string? Subject);
 
 /// <summary>
 /// Checks a logout token as OpenID Connect Back-Channel Logout 1.0 requires: signed by Keycloak's realm keys,
@@ -22,8 +21,12 @@ public class LogoutTokenValidator(
     IOptionsMonitor<OpenIdConnectOptions> oidc,
     IOptions<KeycloakOptions> keycloak)
 {
+    // An event-type identifier defined by OpenID Connect Back-Channel Logout 1.0, compared as a string; never fetched.
+    [SuppressMessage("Security", "S5332:Using http protocol is insecure", Justification = "Spec-defined event identifier, not a network address.")]
     private const string BackchannelLogoutEvent = "http://schemas.openid.net/event/backchannel-logout";
 
+    [SuppressMessage("Security", "CA5404:Do not disable token validation checks",
+        Justification = "Deliberate: a logout token may omit exp. An exp that is present is still validated; signature, issuer, audience and the logout event are required.")]
     public async Task<ErrorOr<LogoutTarget>> ValidateAsync(string logoutToken, CancellationToken ct)
     {
         var configurationManager = oidc.Get(AuthSchemes.Keycloak).ConfigurationManager!;
@@ -35,6 +38,9 @@ public class LogoutTokenValidator(
             ValidAudience = keycloak.Value.ClientId,
             IssuerSigningKeys = configuration.SigningKeys,
             ValidAlgorithms = [SecurityAlgorithms.RsaSha256],
+            // A logout token is not a credential: a missing exp is tolerated, but an exp that is present is still
+            // validated (ValidateLifetime stays on). Signature, issuer, audience, algorithm and the logout event
+            // are all required.
             RequireExpirationTime = false,
             ClockSkew = TimeSpan.FromMinutes(2)
         });

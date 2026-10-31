@@ -152,7 +152,7 @@ internal static class AuthenticationRegistration
         {
             OnTokenValidated = context =>
             {
-                if (context.Principal?.FindFirst(JwtClaimTypes.Registered.Typ)?.Value != "Bearer")
+                if (!string.Equals(context.Principal?.FindFirst(JwtClaimTypes.Registered.Typ)?.Value, "Bearer", StringComparison.Ordinal))
                 {
                     context.Fail("Only access tokens are accepted.");
                 }
@@ -161,9 +161,4 @@ internal static class AuthenticationRegistration
             }
         };
     }
-}
-
-internal static class OidcParameters
-{
-    public const string Prompt = "prompt";
 }

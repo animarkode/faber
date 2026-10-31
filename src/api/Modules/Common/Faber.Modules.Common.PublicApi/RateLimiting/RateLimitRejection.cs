@@ -1,3 +1,4 @@
+using System.Globalization;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
 
@@ -27,12 +28,12 @@ public static class RateLimitRejection
     /// <returns>A 429 <see cref="ProblemHttpResult"/> with the shared title, detail and trace id.</returns>
     public static ProblemHttpResult Problem(HttpContext context, int retryAfterSeconds)
     {
-        context.Response.Headers.RetryAfter = retryAfterSeconds.ToString();
+        context.Response.Headers.RetryAfter = retryAfterSeconds.ToString(CultureInfo.InvariantCulture);
 
         return TypedResults.Problem(
             statusCode: StatusCodes.Status429TooManyRequests,
             title: Title,
             detail: Detail,
-            extensions: new Dictionary<string, object?> { ["traceId"] = context.TraceIdentifier });
+            extensions: new Dictionary<string, object?>(StringComparer.Ordinal) { ["traceId"] = context.TraceIdentifier });
     }
 }

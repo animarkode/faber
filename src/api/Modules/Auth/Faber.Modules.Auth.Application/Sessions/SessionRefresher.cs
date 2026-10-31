@@ -80,7 +80,17 @@ public sealed class SessionRefresher(
                 return;
         }
 
-        var tokens = result.Tokens!;
+        await SaveRefreshedAsync(context, session, stored, key, result.Tokens!, transaction);
+    }
+
+    private async Task SaveRefreshedAsync(
+        CookieValidatePrincipalContext context,
+        AuthSession session,
+        AuthenticationTicket stored,
+        string key,
+        TokenResponse tokens,
+        Microsoft.EntityFrameworkCore.Storage.IDbContextTransaction transaction)
+    {
         var principal = new ClaimsPrincipal(stored.Principal.Identities.Select(identity => identity.Clone()));
         SessionClaims.ApplyAccessToken((ClaimsIdentity)principal.Identity!, tokens.AccessToken);
         StoreTokens(stored.Properties, tokens);
@@ -103,7 +113,7 @@ public sealed class SessionRefresher(
 
     private void StoreTokens(AuthenticationProperties properties, TokenResponse tokens)
     {
-        var updated = properties.GetTokens().ToDictionary(token => token.Name, token => token.Value);
+        var updated = properties.GetTokens().ToDictionary(token => token.Name, token => token.Value, StringComparer.Ordinal);
         updated["access_token"] = tokens.AccessToken;
         updated["expires_at"] = time.GetUtcNow().AddSeconds(tokens.ExpiresIn).ToString("o", CultureInfo.InvariantCulture);
 
