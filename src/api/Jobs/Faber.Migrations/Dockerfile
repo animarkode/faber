@@ -2,6 +2,9 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
+# Shared build settings and central package versions; restore needs them before any project.
+COPY ["Directory.Build.props", "Directory.Packages.props", "./"]
+
 COPY ["src/api/Jobs/Faber.Migrations/Faber.Migrations.csproj", "src/api/Jobs/Faber.Migrations/"]
 COPY ["src/api/Aspire/Faber.ServiceDefaults/Faber.ServiceDefaults.csproj", "src/api/Aspire/Faber.ServiceDefaults/"]
 COPY ["src/api/Modules/Resumes/Faber.Modules.Resumes.Infrastructure/Faber.Modules.Resumes.Infrastructure.csproj", "src/api/Modules/Resumes/Faber.Modules.Resumes.Infrastructure/"]
