@@ -21,10 +21,13 @@ realm="${KEYCLOAK_REALM:-faber}"
 # The image runs as a non-root user, so keep kcadm's session file somewhere writable.
 kcadm=(/opt/keycloak/bin/kcadm.sh)
 config=/tmp/kcadm.config
+# The session file holds admin tokens; don't let it outlive the run.
+trap 'rm -f "$config"' EXIT
 
-"${kcadm[@]}" config credentials --config "$config" \
+# kcadm reads the password from KC_CLI_PASSWORD when --password is absent, so it never becomes an argument.
+KC_CLI_PASSWORD="$KEYCLOAK_PASSWORD" "${kcadm[@]}" config credentials --config "$config" \
   --server "$KEYCLOAK_URL" --realm master \
-  --user "$KEYCLOAK_USER" --password "$KEYCLOAK_PASSWORD"
+  --user "$KEYCLOAK_USER"
 
 "${kcadm[@]}" update "realms/$realm" --config "$config" \
   -s webAuthnPolicyPasswordlessPasskeysEnabled=true \
