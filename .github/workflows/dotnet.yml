@@ -17,6 +17,9 @@ jobs:
       - name: Verify third-party notices
         run: bash scripts/verify-third-party-notices.sh
 
+      - name: Verify Keycloak version
+        run: bash scripts/verify-keycloak-version.sh
+
       - name: Set up .NET
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:

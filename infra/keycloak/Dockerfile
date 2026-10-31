@@ -2,7 +2,7 @@
 #
 # This tag must match keycloakTag in src/api/Aspire/Faber.AppHost/Program.cs and
 # FaberKeycloak.Image in the auth test fixture, so dev, tests and production run
-# the same Keycloak.
+# the same Keycloak. scripts/verify-keycloak-version.sh checks this in CI.
 ARG KEYCLOAK_VERSION=26.8.1
 
 FROM quay.io/keycloak/keycloak:${KEYCLOAK_VERSION} AS builder
