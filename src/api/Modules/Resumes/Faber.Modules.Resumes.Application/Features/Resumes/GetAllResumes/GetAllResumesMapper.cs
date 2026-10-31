@@ -5,8 +5,8 @@ namespace Faber.Modules.Resumes.Application.Features.Resumes.GetAllResumes;
 
 public static class GetAllResumesMapper
 {
-    public static GetAllResumesResponse MapToResponse(this List<Resume> resumes)
+    public static GetAllResumesResponse MapToResponse(this IReadOnlyList<Resume> resumes)
     {
-        return new GetAllResumesResponse(resumes.ConvertAll(r => r.ToResponse()));
+        return new GetAllResumesResponse(resumes.Select(r => r.ToResponse()).ToList());
     }
 }

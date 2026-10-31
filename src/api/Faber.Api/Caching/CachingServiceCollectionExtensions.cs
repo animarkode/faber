@@ -1,4 +1,5 @@
 using Microsoft.Extensions.Caching.Hybrid;
+using Microsoft.Extensions.Caching.StackExchangeRedis;
 using StackExchange.Redis;
 
 namespace Faber.Api.Caching;
@@ -33,6 +34,8 @@ public static class CachingServiceCollectionExtensions
     /// Redis is wired in as its L2 store with <see cref="ConfigurationOptions.AbortOnConnectFail"/>
     /// disabled and short timeouts, so a Redis outage fails fast instead of blocking requests —
     /// callers fall back to the database/renderer instead of queuing behind Redis's default backlog.
+    /// The <see cref="IConnectionMultiplexer"/> is registered as a singleton and shared between the
+    /// cache and OpenTelemetry's Redis tracing instrumentation.
     /// </summary>
     /// <param name="services">The service collection to add caching to.</param>
     /// <param name="configuration">Read for the <c>ConnectionStrings:redis</c> value injected by the Aspire AppHost.</param>
@@ -56,18 +59,28 @@ public static class CachingServiceCollectionExtensions
             return services;
         }
 
+        var configurationOptions = ConfigurationOptions.Parse(redisConnectionString);
+        configurationOptions.AbortOnConnectFail = false;
+        configurationOptions.BacklogPolicy = BacklogPolicy.FailFast;
+        configurationOptions.ConnectTimeout = (int)RedisTimeout.TotalMilliseconds;
+        configurationOptions.SyncTimeout = (int)RedisTimeout.TotalMilliseconds;
+        configurationOptions.AsyncTimeout = (int)RedisTimeout.TotalMilliseconds;
+
+        // One multiplexer for the cache and for OpenTelemetry's Redis instrumentation, which
+        // resolves IConnectionMultiplexer from DI. Connected lazily and once; AbortOnConnectFail=false
+        // means connecting never throws while Redis is down.
+        var sharedConnection = new Lazy<Task<IConnectionMultiplexer>>(
+            async () => await ConnectionMultiplexer.ConnectAsync(configurationOptions));
+
+        services.AddSingleton<IConnectionMultiplexer>(_ => sharedConnection.Value.GetAwaiter().GetResult());
+
         services.AddStackExchangeRedisCache(o =>
         {
             o.InstanceName = "faber:";
 
-            var configurationOptions = ConfigurationOptions.Parse(redisConnectionString);
-            configurationOptions.AbortOnConnectFail = false;
-            configurationOptions.BacklogPolicy = BacklogPolicy.FailFast;
-            configurationOptions.ConnectTimeout = (int)RedisTimeout.TotalMilliseconds;
-            configurationOptions.SyncTimeout = (int)RedisTimeout.TotalMilliseconds;
-            configurationOptions.AsyncTimeout = (int)RedisTimeout.TotalMilliseconds;
-
+            // The factory wins over this, but it keeps the fail-fast settings inspectable.
             o.ConfigurationOptions = configurationOptions;
+            o.ConnectionMultiplexerFactory = () => sharedConnection.Value;
         });
 
         return services;

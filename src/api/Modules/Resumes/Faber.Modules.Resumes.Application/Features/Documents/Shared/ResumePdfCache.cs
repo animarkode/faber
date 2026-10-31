@@ -55,7 +55,7 @@ public class ResumePdfCache(
                 }
 
                 var resume = result.Value;
-                var parameters = new Dictionary<string, object?> { { "Resume", resume } };
+                var parameters = new Dictionary<string, object?>(StringComparer.Ordinal) { { "Resume", resume } };
 
                 var documentsModuleApi = scope.ServiceProvider.GetRequiredService<IDocumentsModuleApi>();
                 var stream = await documentsModuleApi.RenderToPdfAsync<FirstTemplate>(parameters, cacheCt);

@@ -1,0 +1,24 @@
+<Project>
+
+  <!-- Shared settings for every project in the repository. -->
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+  </PropertyGroup>
+
+  <!--
+    Static analysis: rules are tuned in .editorconfig, and any warning fails the build.
+    AnalysisLevel is pinned to the version of the NetAnalyzers package in Directory.Packages.props.
+    "latest" would resolve to the SDK's own level (8 on CI, 10 locally) and the two would run
+    different CA rules. Bump both together.
+  -->
+  <PropertyGroup>
+    <AnalysisLevel>10.0</AnalysisLevel>
+    <AnalysisMode>All</AnalysisMode>
+    <EnforceCodeStyleInBuild>true</EnforceCodeStyleInBuild>
+    <TreatWarningsAsErrors>true</TreatWarningsAsErrors>
+    <CodeAnalysisTreatWarningsAsErrors>true</CodeAnalysisTreatWarningsAsErrors>
+  </PropertyGroup>
+
+</Project>

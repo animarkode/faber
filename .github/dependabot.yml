@@ -64,8 +64,8 @@ updates:
     directory: "/"
     schedule:
       interval: weekly
-    # Package references live in many projects. Keep the review queue to one
-    # coherent change rather than opening the same update once per .csproj.
+    # Versions live in one place, Directory.Packages.props. Keep the review
+    # queue to one coherent change rather than one PR per package.
     open-pull-requests-limit: 1
     commit-message:
       prefix: "chore(api)"
@@ -94,3 +94,7 @@ updates:
         versions: ["[10.0.0,)"]
       - dependency-name: "Microsoft.VisualStudio.Web.CodeGeneration.Design"
         versions: ["[10.0.0,)"]
+      # AnalysisLevel in Directory.Build.props is pinned to this package's major, and
+      # CI's SDK 8 compiler must be able to load it. Bump both together, by hand.
+      - dependency-name: "Microsoft.CodeAnalysis.NetAnalyzers"
+        update-types: ["version-update:semver-major"]

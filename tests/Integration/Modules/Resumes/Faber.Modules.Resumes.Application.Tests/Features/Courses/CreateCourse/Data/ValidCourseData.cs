@@ -11,7 +11,9 @@ public class ValidCourseData : IEnumerable<TheoryDataRow<CreateCourseRequest>>
     public IEnumerator<TheoryDataRow<CreateCourseRequest>> GetEnumerator()
     {
         foreach (var r in new CreateCourseRequestFaker(Guid.Empty).Generate(Count))
+        {
             yield return new TheoryDataRow<CreateCourseRequest>(r);
+        }
 
         yield return new TheoryDataRow<CreateCourseRequest>(
             new CreateCourseRequest(Guid.Empty, null, null, null, null, null));

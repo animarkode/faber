@@ -8,14 +8,14 @@ namespace Faber.Modules.Documents.Application.Razor;
 public class Render(HtmlRenderer htmlRenderer, PlaywrightService playwrightService) : IRender
 {
     public async Task<string> RazorToHtmlAsync<TComponent>(
-        Dictionary<string, object?> parameters,
+        IReadOnlyDictionary<string, object?> parameters,
         CancellationToken ct = default)
         where TComponent : IComponent
     {
         var html = await htmlRenderer.Dispatcher.InvokeAsync(async () =>
         {
             var htmlRootComponent =
-                await htmlRenderer.RenderComponentAsync<TComponent>(ParameterView.FromDictionary(parameters));
+                await htmlRenderer.RenderComponentAsync<TComponent>(ParameterView.FromDictionary(parameters.ToDictionary(p => p.Key, p => p.Value, StringComparer.Ordinal)));
 
             return htmlRootComponent.ToHtmlString();
         });
@@ -43,7 +43,10 @@ public class Render(HtmlRenderer htmlRenderer, PlaywrightService playwrightServi
 
         var browser = playwrightService.Browser;
 
-        if (browser is null) return Stream.Null;
+        if (browser is null)
+        {
+            return Stream.Null;
+        }
 
         var page = await browser.NewPageAsync();
         await page.SetContentAsync(await html());

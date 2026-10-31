@@ -5,7 +5,7 @@ namespace Faber.Api.OpenApi;
 
 public sealed class TagGroupsDocumentProcessor : IDocumentProcessor
 {
-    private static readonly Dictionary<string, string> SubEntityTags = new()
+    private static readonly Dictionary<string, string> SubEntityTags = new(StringComparer.Ordinal)
     {
         { "/persons", "Persons" },
         { "/experiences", "Experiences" },
@@ -22,29 +22,29 @@ public sealed class TagGroupsDocumentProcessor : IDocumentProcessor
 
         foreach (var (path, item) in document.Paths)
         {
-            if (!path.StartsWith("/api/v1/resumes"))
+            if (!path.StartsWith("/api/v1/resumes", StringComparison.Ordinal))
             {
                 continue;
             }
 
             foreach (var (segment, tag) in SubEntityTags)
             {
-                if (!path.Contains(segment))
+                if (!path.Contains(segment, StringComparison.Ordinal))
                 {
                     continue;
                 }
 
-                foreach (var operation in item.Values)
+                foreach (var tags in item.Values.Select(operation => operation.Tags))
                 {
-                    operation.Tags.Clear();
-                    operation.Tags.Add(tag);
+                    tags.Clear();
+                    tags.Add(tag);
                 }
 
                 break;
             }
         }
 
-        document.ExtensionData ??= new Dictionary<string, object?>();
+        document.ExtensionData ??= new Dictionary<string, object?>(StringComparer.Ordinal);
         document.ExtensionData["x-tagGroups"] = new object[]
         {
             new { name = "Auth", tags = new[] { "Auth" } },

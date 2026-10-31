@@ -1,3 +1,4 @@
+using System.Globalization;
 using Faber.Migrations;
 using Faber.Modules.Auth.Infrastructure.Database;
 using Faber.Modules.Resumes.Infrastructure.Database;
@@ -11,7 +12,7 @@ var builder = Host.CreateApplicationBuilder(args);
 
 builder.AddServiceDefaults();
 
-builder.Services.AddSerilog((_, config) => config.WriteTo.Console(), writeToProviders: true);
+builder.Services.AddSerilog((_, config) => config.WriteTo.Console(formatProvider: CultureInfo.InvariantCulture), writeToProviders: true);
 
 var connectionString = builder.Configuration.GetConnectionString("faberdb")
     ?? throw new InvalidOperationException("Connection string 'faberdb' is required.");
@@ -40,4 +41,4 @@ builder.Services.AddOptions<MigrationOptions>()
 builder.Services.AddHostedService<MigrationWorker>();
 
 var host = builder.Build();
-host.Run();
+await host.RunAsync();

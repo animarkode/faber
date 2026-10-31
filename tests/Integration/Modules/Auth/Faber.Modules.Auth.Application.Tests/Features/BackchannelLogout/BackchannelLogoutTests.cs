@@ -39,8 +39,8 @@ public class BackchannelLogoutTests(WebApp app)
         using var client = app.CreateClient(new FastEndpoints.Testing.ClientOptions { BaseAddress = WebApp.AppOrigin });
         const string forged = "eyJhbGciOiJub25lIn0.eyJzaWQiOiJ4In0.";
 
-        using var response = await client.PostAsync("api/v1/auth/backchannel-logout",
-            new FormUrlEncodedContent(new Dictionary<string, string> { ["logout_token"] = forged }),
+        using var content = new FormUrlEncodedContent(new Dictionary<string, string>(StringComparer.Ordinal) { ["logout_token"] = forged });
+        using var response = await client.PostAsync("api/v1/auth/backchannel-logout", content,
             TestContext.Current.CancellationToken);
 
         response.StatusCode.ShouldBe(HttpStatusCode.BadRequest);

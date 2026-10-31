@@ -12,7 +12,9 @@ public class ValidLinkData : IEnumerable<TheoryDataRow<CreateLinkRequest>>
     public IEnumerator<TheoryDataRow<CreateLinkRequest>> GetEnumerator()
     {
         foreach (var r in new CreateLinkRequestFaker(Guid.Empty, LinkSeed).Generate(Count))
+        {
             yield return new TheoryDataRow<CreateLinkRequest>(r);
+        }
 
         yield return new TheoryDataRow<CreateLinkRequest>(
             new CreateLinkRequest(Guid.Empty, null, null));

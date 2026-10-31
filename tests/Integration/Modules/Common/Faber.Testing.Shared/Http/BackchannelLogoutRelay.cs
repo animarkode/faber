@@ -30,7 +30,7 @@ public sealed class BackchannelLogoutRelay : IAsyncDisposable
     public void Start(Func<HttpClient> createApiClient)
     {
         _listener.Start();
-        _loop = Task.Run(() => RelayAsync(createApiClient, _stopping.Token));
+        _loop = Task.Run(() => RelayAsync(createApiClient, _stopping.Token), _stopping.Token);
     }
 
     public async ValueTask DisposeAsync()

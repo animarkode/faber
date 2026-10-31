@@ -26,30 +26,3 @@ public class LoginEndpoint : EndpointWithoutRequest<Results<ChallengeHttpResult,
         return Task.FromResult(KeycloakChallenge.For(User, Query<string>("returnUrl", isRequired: false), prompt: null));
     }
 }
-
-internal static class KeycloakChallenge
-{
-    /// <summary>
-    /// A challenge that redirects to Keycloak, or a plain redirect when the browser is already signed in.
-    /// </summary>
-    public static Results<ChallengeHttpResult, RedirectHttpResult> For(
-        System.Security.Claims.ClaimsPrincipal user,
-        string? returnUrl,
-        string? prompt)
-    {
-        var target = LocalReturnUrl.From(returnUrl);
-
-        if (user.Identity?.IsAuthenticated == true)
-        {
-            return TypedResults.LocalRedirect(target);
-        }
-
-        var properties = new AuthenticationProperties { RedirectUri = target };
-        if (prompt is not null)
-        {
-            properties.Items[OidcParameters.Prompt] = prompt;
-        }
-
-        return TypedResults.Challenge(properties, [AuthSchemes.Keycloak]);
-    }
-}

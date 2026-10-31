@@ -36,7 +36,7 @@ public class ResumeCacheTests(WebApp app) : TestBase
             .WithAuthToken(accessToken)
             .GETAsync<GetResumeEndpoint, GetResumeRequest, ResumeResponse>(new GetResumeRequest(resume.Id));
 
-        primedResponse!.Title.ShouldBeNull();
+        primedResponse.Title.ShouldBeNull();
 
         await BypassInvalidationAndUpdateTitleAsync(resume.Id, "Changed Behind The Cache", ct);
 
@@ -44,7 +44,7 @@ public class ResumeCacheTests(WebApp app) : TestBase
             .WithAuthToken(accessToken)
             .GETAsync<GetResumeEndpoint, GetResumeRequest, ResumeResponse>(new GetResumeRequest(resume.Id));
 
-        secondResponse!.Title.ShouldBeNull();
+        secondResponse.Title.ShouldBeNull();
     }
 
     [Fact]
@@ -59,7 +59,7 @@ public class ResumeCacheTests(WebApp app) : TestBase
             .WithAuthToken(accessToken)
             .GETAsync<GetAllResumesEndpoint, GetAllResumesResponse>();
 
-        primedResponse!.Items.Single(r => r.Id == resume.Id).Title.ShouldBeNull();
+        primedResponse.Items.Single(r => r.Id == resume.Id).Title.ShouldBeNull();
 
         await BypassInvalidationAndUpdateTitleAsync(resume.Id, "Changed Behind The Cache", ct);
 
@@ -67,7 +67,7 @@ public class ResumeCacheTests(WebApp app) : TestBase
             .WithAuthToken(accessToken)
             .GETAsync<GetAllResumesEndpoint, GetAllResumesResponse>();
 
-        secondResponse!.Items.Single(r => r.Id == resume.Id).Title.ShouldBeNull();
+        secondResponse.Items.Single(r => r.Id == resume.Id).Title.ShouldBeNull();
     }
 
     [Fact]
@@ -92,7 +92,7 @@ public class ResumeCacheTests(WebApp app) : TestBase
             .WithAuthToken(accessToken)
             .GETAsync<GetResumeEndpoint, GetResumeRequest, ResumeResponse>(new GetResumeRequest(resume.Id));
 
-        getResponse!.Title.ShouldBe("Fresh Title");
+        getResponse.Title.ShouldBe("Fresh Title");
     }
 
     [Fact]
@@ -117,7 +117,7 @@ public class ResumeCacheTests(WebApp app) : TestBase
             .WithAuthToken(accessToken)
             .GETAsync<GetAllResumesEndpoint, GetAllResumesResponse>();
 
-        getAllResponse!.Items.Single(r => r.Id == resume.Id).Title.ShouldBe("Fresh List Title");
+        getAllResponse.Items.Single(r => r.Id == resume.Id).Title.ShouldBe("Fresh List Title");
     }
 
     [Fact]
@@ -146,13 +146,13 @@ public class ResumeCacheTests(WebApp app) : TestBase
             .WithAuthToken(accessToken)
             .GETAsync<GetResumeEndpoint, GetResumeRequest, ResumeResponse>(new GetResumeRequest(resume.Id));
 
-        getResponse!.Skills.ShouldContain(s => s.Id == createSkillResponse.Id);
+        getResponse.Skills.ShouldContain(s => s.Id == createSkillResponse.Id);
 
         var (_, getAllResponse) = await app.Client
             .WithAuthToken(accessToken)
             .GETAsync<GetAllResumesEndpoint, GetAllResumesResponse>();
 
-        getAllResponse!.Items.Single(r => r.Id == resume.Id).Skills.ShouldContain(s => s.Id == createSkillResponse.Id);
+        getAllResponse.Items.Single(r => r.Id == resume.Id).Skills.ShouldContain(s => s.Id == createSkillResponse.Id);
     }
 
     [Fact]
@@ -174,7 +174,7 @@ public class ResumeCacheTests(WebApp app) : TestBase
             .WithAuthToken(accessToken)
             .GETAsync<GetResumeEndpoint, GetResumeRequest, ResumeResponse>(new GetResumeRequest(resume.Id));
 
-        primedResponse!.Experience.ShouldContain(e => e.Id == createExperienceResponse.Id);
+        primedResponse.Experience.ShouldContain(e => e.Id == createExperienceResponse.Id);
 
         var deleteResponse = await app.Client
             .WithAuthToken(accessToken)
@@ -187,7 +187,7 @@ public class ResumeCacheTests(WebApp app) : TestBase
             .WithAuthToken(accessToken)
             .GETAsync<GetResumeEndpoint, GetResumeRequest, ResumeResponse>(new GetResumeRequest(resume.Id));
 
-        getResponse!.Experience.ShouldNotContain(e => e.Id == createExperienceResponse.Id);
+        getResponse.Experience.ShouldNotContain(e => e.Id == createExperienceResponse.Id);
     }
 
     [Fact]
@@ -202,7 +202,7 @@ public class ResumeCacheTests(WebApp app) : TestBase
             .WithAuthToken(accessToken)
             .GETAsync<GetAllResumesEndpoint, GetAllResumesResponse>();
 
-        primedResponse!.Items.ShouldContain(r => r.Id == resume.Id);
+        primedResponse.Items.ShouldContain(r => r.Id == resume.Id);
 
         var deleteResponse = await app.Client
             .WithAuthToken(accessToken)
@@ -214,7 +214,7 @@ public class ResumeCacheTests(WebApp app) : TestBase
             .WithAuthToken(accessToken)
             .GETAsync<GetAllResumesEndpoint, GetAllResumesResponse>();
 
-        getAllResponse!.Items.ShouldNotContain(r => r.Id == resume.Id);
+        getAllResponse.Items.ShouldNotContain(r => r.Id == resume.Id);
     }
 
     [Fact]
@@ -234,7 +234,7 @@ public class ResumeCacheTests(WebApp app) : TestBase
             .WithAuthToken(accessToken)
             .GETAsync<GetAllResumesEndpoint, GetAllResumesResponse>();
 
-        getAllResponse!.Items.ShouldContain(r => r.Id == newResume.Id);
+        getAllResponse.Items.ShouldContain(r => r.Id == newResume.Id);
     }
 
     private async Task BypassInvalidationAndUpdateTitleAsync(Guid resumeId, string title, CancellationToken ct)

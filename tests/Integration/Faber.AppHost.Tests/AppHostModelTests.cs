@@ -26,12 +26,12 @@ public class AppHostModelTests
             TestConfiguration,
             TestContext.Current.CancellationToken);
 
-        var faberDb = builder.Resources.Single(resource => resource.Name == "faberdb");
-        var migrations = builder.Resources.Single(resource => resource.Name == "migrations");
-        var keycloak = builder.Resources.Single(resource => resource.Name == "keycloak");
-        var keycloakConfig = builder.Resources.Single(resource => resource.Name == "keycloak-config");
-        var keycloakPasskeys = builder.Resources.Single(resource => resource.Name == "keycloak-passkeys");
-        var api = builder.Resources.Single(resource => resource.Name == "faberapi");
+        var faberDb = builder.Resources.Single(resource => string.Equals(resource.Name, "faberdb", StringComparison.Ordinal));
+        var migrations = builder.Resources.Single(resource => string.Equals(resource.Name, "migrations", StringComparison.Ordinal));
+        var keycloak = builder.Resources.Single(resource => string.Equals(resource.Name, "keycloak", StringComparison.Ordinal));
+        var keycloakConfig = builder.Resources.Single(resource => string.Equals(resource.Name, "keycloak-config", StringComparison.Ordinal));
+        var keycloakPasskeys = builder.Resources.Single(resource => string.Equals(resource.Name, "keycloak-passkeys", StringComparison.Ordinal));
+        var api = builder.Resources.Single(resource => string.Equals(resource.Name, "faberapi", StringComparison.Ordinal));
 
         migrations.ShouldWaitFor(faberDb, WaitType.WaitUntilHealthy);
         keycloak.ShouldWaitFor(migrations, WaitType.WaitForCompletion);
@@ -47,7 +47,7 @@ public class AppHostModelTests
         var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.Faber_AppHost>(
             TestConfiguration,
             TestContext.Current.CancellationToken);
-        var keycloak = builder.Resources.Single(resource => resource.Name == "keycloak");
+        var keycloak = builder.Resources.Single(resource => string.Equals(resource.Name, "keycloak", StringComparison.Ordinal));
 
         var image = keycloak.Annotations.OfType<ContainerImageAnnotation>().Single();
         image.Registry.ShouldBe("quay.io");
@@ -67,7 +67,7 @@ public class AppHostModelTests
         configuration.Exception.ShouldBeNull();
         configuration.Arguments.Select(argument => argument.Value).ShouldBe(["start-dev"]);
 
-        var environment = configuration.EnvironmentVariables.ToDictionary(variable => variable.Key, variable => variable.Value);
+        var environment = configuration.EnvironmentVariables.ToDictionary(variable => variable.Key, variable => variable.Value, StringComparer.Ordinal);
         environment["KC_DB"].ShouldBe("postgres");
         environment["KC_DB_SCHEMA"].ShouldBe("keycloak");
         // Keycloak must use the database the migration service created its schema in. Asserted by
@@ -83,7 +83,7 @@ public class AppHostModelTests
         var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.Faber_AppHost>(
             TestConfiguration,
             TestContext.Current.CancellationToken);
-        var keycloakConfig = builder.Resources.Single(resource => resource.Name == "keycloak-config");
+        var keycloakConfig = builder.Resources.Single(resource => string.Equals(resource.Name, "keycloak-config", StringComparison.Ordinal));
 
         var mount = keycloakConfig.Annotations.OfType<ContainerMountAnnotation>().Single();
         mount.Type.ShouldBe(ContainerMountType.BindMount);
@@ -108,8 +108,8 @@ public class AppHostModelTests
         var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.Faber_AppHost>(
             TestConfiguration,
             TestContext.Current.CancellationToken);
-        var keycloak = builder.Resources.Single(resource => resource.Name == "keycloak");
-        var passkeys = builder.Resources.Single(resource => resource.Name == "keycloak-passkeys");
+        var keycloak = builder.Resources.Single(resource => string.Equals(resource.Name, "keycloak", StringComparison.Ordinal));
+        var passkeys = builder.Resources.Single(resource => string.Equals(resource.Name, "keycloak-passkeys", StringComparison.Ordinal));
 
         var keycloakImage = keycloak.Annotations.OfType<ContainerImageAnnotation>().Single();
         var image = passkeys.Annotations.OfType<ContainerImageAnnotation>().Single();
@@ -134,7 +134,7 @@ public class AppHostModelTests
 
         configuration.Exception.ShouldBeNull();
         configuration.Arguments.Select(argument => argument.Value).ShouldBe([mount.Target]);
-        var environment = configuration.EnvironmentVariables.ToDictionary(variable => variable.Key, variable => variable.Value);
+        var environment = configuration.EnvironmentVariables.ToDictionary(variable => variable.Key, variable => variable.Value, StringComparer.Ordinal);
         environment["KEYCLOAK_USER"].ShouldBe("test-keycloak-admin");
         environment["KEYCLOAK_PASSWORD"].ShouldBe("test-keycloak-password");
     }
@@ -145,11 +145,11 @@ public class AppHostModelTests
         var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.Faber_AppHost>(
             TestConfiguration,
             TestContext.Current.CancellationToken);
-        var keycloakConfig = builder.Resources.Single(resource => resource.Name == "keycloak-config");
-        var api = builder.Resources.Single(resource => resource.Name == "faberapi");
+        var keycloakConfig = builder.Resources.Single(resource => string.Equals(resource.Name, "keycloak-config", StringComparison.Ordinal));
+        var api = builder.Resources.Single(resource => string.Equals(resource.Name, "faberapi", StringComparison.Ordinal));
 
         var secret = builder.Resources.OfType<ParameterResource>()
-            .Single(resource => resource.Name == "faber-api-client-secret");
+            .Single(resource => string.Equals(resource.Name, "faber-api-client-secret", StringComparison.Ordinal));
 
         var configEnvironment = await GetDeclaredEnvironmentAsync(keycloakConfig);
         var apiEnvironment = await GetDeclaredEnvironmentAsync(api);
@@ -157,7 +157,7 @@ public class AppHostModelTests
         secret.Secret.ShouldBeTrue();
         configEnvironment["FABER_API_CLIENT_SECRET"].ShouldBeSameAs(secret);
         apiEnvironment["Keycloak__ClientSecret"].ShouldBeSameAs(secret);
-        apiEnvironment.Keys.ShouldNotContain("Keycloak__ClientId", "the client ID comes from the API's appsettings.json");
+        apiEnvironment.Keys.ShouldNotContain("Keycloak__ClientId", StringComparer.Ordinal, "the client ID comes from the API's appsettings.json");
     }
 
     [Fact]
@@ -166,14 +166,14 @@ public class AppHostModelTests
         var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.Faber_AppHost>(
             TestConfiguration,
             TestContext.Current.CancellationToken);
-        var keycloakConfig = builder.Resources.Single(resource => resource.Name == "keycloak-config");
+        var keycloakConfig = builder.Resources.Single(resource => string.Equals(resource.Name, "keycloak-config", StringComparison.Ordinal));
 
         var environment = await GetDeclaredEnvironmentAsync(keycloakConfig);
 
         environment["GOOGLE_ENABLED"].ShouldBe("false");
         environment["GITHUB_ENABLED"].ShouldBe("false");
-        environment.Keys.ShouldNotContain("GOOGLE_CLIENT_SECRET");
-        environment.Keys.ShouldNotContain("GITHUB_CLIENT_SECRET");
+        environment.Keys.ShouldNotContain("GOOGLE_CLIENT_SECRET", StringComparer.Ordinal);
+        environment.Keys.ShouldNotContain("GITHUB_CLIENT_SECRET", StringComparer.Ordinal);
     }
 
     [Fact]
@@ -186,14 +186,14 @@ public class AppHostModelTests
                 "--Parameters:google-client-secret=test-google-secret"
             ],
             TestContext.Current.CancellationToken);
-        var keycloakConfig = builder.Resources.Single(resource => resource.Name == "keycloak-config");
+        var keycloakConfig = builder.Resources.Single(resource => string.Equals(resource.Name, "keycloak-config", StringComparison.Ordinal));
 
         var environment = await GetDeclaredEnvironmentAsync(keycloakConfig);
 
         environment["GOOGLE_ENABLED"].ShouldBe("true");
         environment["GITHUB_ENABLED"].ShouldBe("false");
-        environment.Keys.ShouldContain("GOOGLE_CLIENT_ID");
-        environment.Keys.ShouldContain("GOOGLE_CLIENT_SECRET");
+        environment.Keys.ShouldContain("GOOGLE_CLIENT_ID", StringComparer.Ordinal);
+        environment.Keys.ShouldContain("GOOGLE_CLIENT_SECRET", StringComparer.Ordinal);
     }
 
     [Fact]
@@ -232,8 +232,8 @@ public class AppHostModelTests
         var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.Faber_AppHost>(
             TestConfiguration,
             TestContext.Current.CancellationToken);
-        var migrations = builder.Resources.Single(resource => resource.Name == "migrations");
-        var keycloak = builder.Resources.Single(resource => resource.Name == "keycloak");
+        var migrations = builder.Resources.Single(resource => string.Equals(resource.Name, "migrations", StringComparison.Ordinal));
+        var keycloak = builder.Resources.Single(resource => string.Equals(resource.Name, "keycloak", StringComparison.Ordinal));
 
         var migrationsEnvironment = await GetDeclaredEnvironmentAsync(migrations);
         var keycloakEnvironment = await GetDeclaredEnvironmentAsync(keycloak);
@@ -246,8 +246,8 @@ public class AppHostModelTests
     private static async Task<IReadOnlyCollection<string>> CollectKeycloakConfigStartWarningsAsync(
         IDistributedApplicationTestingBuilder builder)
     {
-        var keycloakConfig = builder.Resources.Single(resource => resource.Name == "keycloak-config");
-        var logs = new CollectingLoggerProvider();
+        var keycloakConfig = builder.Resources.Single(resource => string.Equals(resource.Name, "keycloak-config", StringComparison.Ordinal));
+        using var logs = new CollectingLoggerProvider();
         await using var services = new ServiceCollection()
             .AddLogging(logging => logging.AddProvider(logs))
             .AddSingleton<ResourceLoggerService>()
@@ -275,15 +275,5 @@ public class AppHostModelTests
         }
 
         return context.EnvironmentVariables;
-    }
-}
-
-internal static class ResourceAssertionExtensions
-{
-    internal static void ShouldWaitFor(this IResource resource, IResource dependency, WaitType waitType)
-    {
-        resource.Annotations
-            .OfType<WaitAnnotation>()
-            .ShouldContain(annotation => annotation.Resource == dependency && annotation.WaitType == waitType);
     }
 }

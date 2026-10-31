@@ -1,16 +1,10 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-    </PropertyGroup>
-
     <ItemGroup>
-        <PackageReference Include="ErrorOr" Version="2.1.1" />
-        <PackageReference Include="FastEndpoints" Version="8.3.0" />
-        <PackageReference Include="HtmlSanitizer" Version="9.2.1039" />
-        <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="10.10.0" />
+        <PackageReference Include="ErrorOr" />
+        <PackageReference Include="FastEndpoints" />
+        <PackageReference Include="HtmlSanitizer" />
+        <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" />
     </ItemGroup>
 
     <ItemGroup>

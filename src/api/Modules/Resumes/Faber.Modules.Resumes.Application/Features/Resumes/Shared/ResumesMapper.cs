@@ -14,13 +14,13 @@ public static class ResumesMapper
             resume.Summary,
             resume.Hobbies,
             resume.Person?.ToResponse(),
-            resume.Experiences.ConvertAll(e => e.ToResponse()),
-            resume.Educations.ConvertAll(e => e.ToResponse()),
-            resume.Skills.ConvertAll(s => s.ToResponse()),
-            resume.Languages.ConvertAll(l => l.ToResponse()),
-            resume.Courses.ConvertAll(c => c.ToResponse()),
-            resume.Projects.ConvertAll(p => p.ToResponse()),
-            resume.Links.ConvertAll(l => l.ToResponse()));
+            resume.Experiences.Select(e => e.ToResponse()).ToList(),
+            resume.Educations.Select(e => e.ToResponse()).ToList(),
+            resume.Skills.Select(s => s.ToResponse()).ToList(),
+            resume.Languages.Select(l => l.ToResponse()).ToList(),
+            resume.Courses.Select(c => c.ToResponse()).ToList(),
+            resume.Projects.Select(p => p.ToResponse()).ToList(),
+            resume.Links.Select(l => l.ToResponse()).ToList());
     }
 
     public static PersonResponse ToResponse(this Person person)

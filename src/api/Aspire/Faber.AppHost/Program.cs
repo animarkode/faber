@@ -133,4 +133,4 @@ faberApi.WithUrls(context =>
         context.Urls.Insert(0, new ResourceUrlAnnotation { Url = $"{baseUrl}/scalar/v1", DisplayText = "Scalar" });
     });
 
-builder.Build().Run();
+await builder.Build().RunAsync();

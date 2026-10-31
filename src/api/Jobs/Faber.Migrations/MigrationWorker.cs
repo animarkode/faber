@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Faber.Modules.Auth.Infrastructure.Database;
 using Faber.Modules.Resumes.Infrastructure.Database;
 using Microsoft.EntityFrameworkCore;
@@ -18,6 +19,8 @@ public class MigrationWorker(
     IHostApplicationLifetime lifetime,
     ILogger<MigrationWorker> logger) : BackgroundService
 {
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types",
+        Justification = "Last-resort handler: log, set a failing exit code and stop the host.")]
     protected override async Task ExecuteAsync(CancellationToken stoppingToken)
     {
         var succeeded = true;
@@ -39,16 +42,23 @@ public class MigrationWorker(
         finally
         {
             if (!succeeded)
+            {
                 Environment.ExitCode = 1;
+            }
 
             lifetime.StopApplication();
         }
     }
 
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types",
+        Justification = "Any failure is logged and reported through the bool result, which fails the job.")]
     private async Task<bool> TryEnsureExternalSchemasAsync(CancellationToken ct)
     {
         var schemas = options.Value.ExternalSchemas;
-        if (schemas.Length == 0) return true;
+        if (schemas.Length == 0)
+        {
+            return true;
+        }
 
         using var scope = scopeFactory.CreateScope();
         // Every context shares the faberdb connection; this one is only the way to reach it.
@@ -77,6 +87,8 @@ public class MigrationWorker(
         }
     }
 
+    [SuppressMessage("Design", "CA1031:Do not catch general exception types",
+        Justification = "Any failure is logged and reported through the bool result, which fails the job.")]
     private async Task<bool> TryMigrateAsync<TContext>(string contextName, CancellationToken ct)
         where TContext : DbContext
     {

@@ -110,8 +110,19 @@ public class WebApp : AppFixture<Program>
 
     protected override async ValueTask TearDownAsync()
     {
-        if (_keycloak is not null) await _keycloak.DisposeAsync();
-        if (_postgresContainer is not null) await _postgresContainer.DisposeAsync();
-        if (_network is not null) await _network.DisposeAsync();
+        if (_keycloak is not null)
+        {
+            await _keycloak.DisposeAsync();
+        }
+
+        if (_postgresContainer is not null)
+        {
+            await _postgresContainer.DisposeAsync();
+        }
+
+        if (_network is not null)
+        {
+            await _network.DisposeAsync();
+        }
     }
 }

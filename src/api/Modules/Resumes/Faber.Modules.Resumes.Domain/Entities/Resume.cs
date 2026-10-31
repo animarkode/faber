@@ -18,17 +18,17 @@ public class Resume
 
     public string? Hobbies { get; set; }
 
-    public List<Experience> Experiences { get; set; } = [];
+    public ICollection<Experience> Experiences { get; set; } = [];
 
-    public List<Education> Educations { get; set; } = [];
+    public ICollection<Education> Educations { get; set; } = [];
 
-    public List<Link> Links { get; set; } = [];
+    public ICollection<Link> Links { get; set; } = [];
 
-    public List<Skill> Skills { get; set; } = [];
+    public ICollection<Skill> Skills { get; set; } = [];
 
-    public List<Language> Languages { get; set; } = [];
+    public ICollection<Language> Languages { get; set; } = [];
 
-    public List<Course> Courses { get; set; } = [];
+    public ICollection<Course> Courses { get; set; } = [];
 
-    public List<Project> Projects { get; set; } = [];
+    public ICollection<Project> Projects { get; set; } = [];
 }

@@ -1,0 +1,205 @@
+root = true
+
+[*]
+charset = utf-8
+end_of_line = lf
+insert_final_newline = true
+indent_style = space
+indent_size = 4
+
+[*.{csproj,props,targets,json,yml,yaml,xml,razor,html}]
+indent_size = 2
+
+[*.md]
+trim_trailing_whitespace = false
+
+# --------------------------------------------------------------------------
+# C#
+# --------------------------------------------------------------------------
+[*.cs]
+
+# --- Namespaces and constructors -------------------------------------------
+# Hard rule from backend-patterns.md; the whole codebase is already file-scoped.
+csharp_style_namespace_declarations = file_scoped:error
+# Primary constructors for DI and simple state (backend-patterns.md).
+csharp_style_prefer_primary_constructors = true:warning
+dotnet_diagnostic.IDE0290.severity = warning
+
+# --- var -------------------------------------------------------------------
+# The code base uses `var` everywhere.
+csharp_style_var_for_built_in_types = true:suggestion
+csharp_style_var_when_type_is_apparent = true:suggestion
+csharp_style_var_elsewhere = true:suggestion
+dotnet_diagnostic.IDE0007.severity = warning
+
+# --- No `this.` ------------------------------------------------------------
+dotnet_style_qualification_for_field = false:warning
+dotnet_style_qualification_for_property = false:warning
+dotnet_style_qualification_for_method = false:warning
+dotnet_style_qualification_for_event = false:warning
+dotnet_diagnostic.IDE0003.severity = warning
+
+# --- Braces on every block -------------------------------------------------
+csharp_prefer_braces = true:warning
+dotnet_diagnostic.IDE0011.severity = warning
+
+# --- Modern language use ---------------------------------------------------
+dotnet_style_predefined_type_for_locals_parameters_members = true:warning
+dotnet_style_predefined_type_for_member_access = true:warning
+csharp_style_expression_bodied_methods = when_on_single_line:suggestion
+csharp_style_prefer_switch_expression = true:suggestion
+csharp_style_prefer_pattern_matching = true:suggestion
+csharp_style_prefer_not_pattern = true:suggestion
+csharp_style_prefer_collection_expression = when_types_loosely_match:suggestion
+dotnet_style_readonly_field = true:warning
+dotnet_diagnostic.IDE0044.severity = warning
+
+# --- Ordering --------------------------------------------------------------
+dotnet_sort_system_directives_first = true
+dotnet_separate_import_directive_groups = false
+
+# --- Naming ----------------------------------------------------------------
+dotnet_naming_symbols.interfaces.applicable_kinds = interface
+dotnet_naming_style.begins_with_i.required_prefix = I
+dotnet_naming_style.begins_with_i.capitalization = pascal_case
+dotnet_naming_rule.interfaces_begin_with_i.symbols = interfaces
+dotnet_naming_rule.interfaces_begin_with_i.style = begins_with_i
+dotnet_naming_rule.interfaces_begin_with_i.severity = warning
+
+# Constants and static readonly fields are PascalCase (HandlerName, SupportedTypes); the
+# first matching rule wins, so these come before the private-field rule.
+dotnet_naming_symbols.constants.applicable_kinds = field
+dotnet_naming_symbols.constants.required_modifiers = const
+dotnet_naming_symbols.static_readonly_fields.applicable_kinds = field
+dotnet_naming_symbols.static_readonly_fields.required_modifiers = static, readonly
+dotnet_naming_style.pascal_case_style.capitalization = pascal_case
+dotnet_naming_rule.constants_pascal_case.symbols = constants
+dotnet_naming_rule.constants_pascal_case.style = pascal_case_style
+dotnet_naming_rule.constants_pascal_case.severity = warning
+dotnet_naming_rule.static_readonly_pascal_case.symbols = static_readonly_fields
+dotnet_naming_rule.static_readonly_pascal_case.style = pascal_case_style
+dotnet_naming_rule.static_readonly_pascal_case.severity = warning
+
+dotnet_naming_symbols.private_fields.applicable_kinds = field
+dotnet_naming_symbols.private_fields.applicable_accessibilities = private, private_protected
+dotnet_naming_style.underscore_camel_case.required_prefix = _
+dotnet_naming_style.underscore_camel_case.capitalization = camel_case
+dotnet_naming_rule.private_fields_underscore_camel_case.symbols = private_fields
+dotnet_naming_rule.private_fields_underscore_camel_case.style = underscore_camel_case
+dotnet_naming_rule.private_fields_underscore_camel_case.severity = warning
+
+dotnet_naming_symbols.async_methods.applicable_kinds = method, local_function
+dotnet_naming_symbols.async_methods.required_modifiers = async
+dotnet_naming_style.ends_with_async.required_suffix = Async
+dotnet_naming_style.ends_with_async.capitalization = pascal_case
+dotnet_naming_rule.async_methods_end_with_async.symbols = async_methods
+dotnet_naming_rule.async_methods_end_with_async.style = ends_with_async
+dotnet_naming_rule.async_methods_end_with_async.severity = warning
+
+# --- IDE rules in the build --------------------------------------------------
+# SDK 8 (CI) turns every IDE rule on under AnalysisMode=All, SDK 10 does not. Style rules are
+# switched off as a category and the ones above are enabled by id, so both SDKs agree.
+# SDK 8 also lists these ids explicitly in its AnalysisMode=All config, which beats the
+# category setting, so they are switched off by id too. None of them is a project convention.
+dotnet_analyzer_diagnostic.category-Style.severity = none
+dotnet_diagnostic.IDE0010.severity = none
+dotnet_diagnostic.IDE0028.severity = none
+dotnet_diagnostic.IDE0042.severity = none
+dotnet_diagnostic.IDE0046.severity = none
+dotnet_diagnostic.IDE0055.severity = none
+dotnet_diagnostic.IDE0058.severity = none
+dotnet_diagnostic.IDE0060.severity = none
+dotnet_diagnostic.IDE0061.severity = none
+dotnet_diagnostic.IDE0062.severity = none
+dotnet_diagnostic.IDE0230.severity = none
+dotnet_diagnostic.IDE0300.severity = none
+# Unused usings: enforcing it in the build needs GenerateDocumentationFile (roslyn#41640), and
+# SDK 8 otherwise reports EnableGenerateDocumentationFile, which fails the Docker image build.
+dotnet_diagnostic.IDE0005.severity = none
+dotnet_diagnostic.IDE0049.severity = warning
+dotnet_diagnostic.IDE0161.severity = error
+dotnet_diagnostic.IDE1006.severity = warning
+
+# --- Rule tuning -----------------------------------------------------------
+# Nullable reference types already cover argument null checks.
+dotnet_diagnostic.CA1062.severity = none
+# ASP.NET Core has no SynchronizationContext, so ConfigureAwait(false) is noise.
+dotnet_diagnostic.CA2007.severity = none
+# Duplicate of CA2007, which is disabled for the same reason.
+dotnet_diagnostic.MA0004.severity = none
+# Public types are the point here: module contracts cross assemblies, and xUnit and
+# FastEndpoints need public test and endpoint types. The rule targets standalone apps.
+dotnet_diagnostic.CA1515.severity = none
+# Source-generated LoggerMessage delegates for every call site add boilerplate and fight
+# the structured-template style used across the code base; log volume is low.
+dotnet_diagnostic.CA1848.severity = none
+# Info-level log arguments here are cheap property reads; the per-call params array is not
+# worth ~240 rewrites. Revisit together with CA1848 (drop or source-generate those logs).
+dotnet_diagnostic.CA1873.severity = none
+# URLs in DTOs, options and config binding are plain strings by contract (JSON and
+# IConfiguration); forcing System.Uri would add converters for no benefit.
+dotnet_diagnostic.CA1054.severity = none
+dotnet_diagnostic.CA1056.severity = none
+dotnet_diagnostic.CA2234.severity = none
+# Suggests Collection<T>, which is worse than IReadOnlyList<T>; MA0016 gives the better fix.
+dotnet_diagnostic.CA1002.severity = none
+# EF Core navigation collections and bound options need public setters.
+dotnet_diagnostic.CA2227.severity = none
+# "Shared" is the established folder and namespace name (Features/*/Shared); the VB keyword clash is irrelevant.
+dotnet_diagnostic.CA1716.severity = none
+# Extensions and DependencyInjection are the conventional names for registration classes.
+dotnet_diagnostic.CA1724.severity = none
+# Duplicate of CA1725 (parameter name must match the overridden member).
+dotnet_diagnostic.S927.severity = none
+# Duplicate of CA1822 (member can be static).
+dotnet_diagnostic.S2325.severity = none
+# Nested static classes group related constants (JwtClaimTypes.Registered.Sub,
+# ConfigurationConstants.Sections.Keycloak); the nesting is the readable call-site API.
+dotnet_diagnostic.CA1034.severity = none
+# False positive on `public partial class Program`, which WebApplicationFactory needs.
+dotnet_diagnostic.S1118.severity = none
+
+# --------------------------------------------------------------------------
+# Generated code
+# --------------------------------------------------------------------------
+[**/Migrations/*.cs]
+generated_code = true
+
+[**/*.Designer.cs]
+generated_code = true
+
+# --------------------------------------------------------------------------
+# Tests
+# --------------------------------------------------------------------------
+[tests/**.cs]
+# Test methods are named {Scenario}_Should{Outcome}; underscores are intended.
+dotnet_diagnostic.CA1707.severity = none
+# xUnit test methods are not suffixed with Async.
+dotnet_naming_rule.async_methods_end_with_async.severity = none
+# Test fixtures and helpers expose List<T>/Dictionary<K,V> and take collection literals; the
+# "return an abstraction" rule is about public API design, which test code does not have.
+dotnet_diagnostic.MA0016.severity = none
+# Constant arrays in test data (reorder id lists, [InlineData]-style arguments) are written inline
+# for readability; hoisting them into static fields is a production-performance concern.
+dotnet_diagnostic.CA1861.severity = none
+# Caching a CompositeFormat or narrowing a return type to the concrete type is a hot-path
+# optimisation that does not matter in tests.
+dotnet_diagnostic.CA1863.severity = none
+dotnet_diagnostic.CA1859.severity = none
+# The SQL helpers in the migration tests run test-controlled constants against a throwaway
+# container; there is no untrusted input to inject.
+dotnet_diagnostic.CA2100.severity = none
+# Lower-casing is used to normalise test data (user names, cookie attributes) before an ordinal
+# comparison, not to build a comparison key that needs the upper-case round trip.
+dotnet_diagnostic.CA1308.severity = none
+# FastEndpoints' AppFixture declares its overridable members with one-letter parameter names
+# (a, s); the fixtures keep readable names (builder, services) instead of mirroring them.
+dotnet_diagnostic.CA1725.severity = none
+
+# --------------------------------------------------------------------------
+# AppHost
+# --------------------------------------------------------------------------
+[src/api/Aspire/Faber.AppHost/**.cs]
+# Every http:// URL here is a container-to-container or localhost endpoint of the local dev stack
+# (Keycloak, Mailpit, the Angular dev server, the API); none leaves the machine.
+dotnet_diagnostic.S5332.severity = none

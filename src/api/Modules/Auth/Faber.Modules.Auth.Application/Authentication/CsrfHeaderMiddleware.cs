@@ -24,7 +24,7 @@ public sealed class CsrfHeaderMiddleware(RequestDelegate next)
     public Task InvokeAsync(HttpContext context)
     {
         var request = context.Request;
-        var needsHeader = request.Path.StartsWithSegments(Api)
+        var needsHeader = request.Path.StartsWithSegments(Api, StringComparison.OrdinalIgnoreCase)
                           && request.Cookies.ContainsKey(AuthSchemes.SessionCookieName)
                           && !AuthSchemes.IsBearerRequest(request)
                           && !Navigations.Any(path => request.Path.Equals(path, StringComparison.OrdinalIgnoreCase));

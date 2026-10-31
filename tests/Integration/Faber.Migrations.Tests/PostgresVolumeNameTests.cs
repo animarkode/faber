@@ -22,7 +22,7 @@ public class PostgresVolumeNameTests
         var first = PostgresVolumeName.FromCheckoutPath(Path.Combine(Path.GetTempPath(), "faber", "checkout-a"));
         var second = PostgresVolumeName.FromCheckoutPath(Path.Combine(Path.GetTempPath(), "faber", "checkout-b"));
 
-        second.ShouldNotBe(first);
+        second.ShouldNotBe(first, StringComparer.Ordinal);
     }
 
     [Fact]

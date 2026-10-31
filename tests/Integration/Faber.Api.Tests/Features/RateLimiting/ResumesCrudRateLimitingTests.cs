@@ -1,3 +1,4 @@
+using System.Globalization;
 using System.Net;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -77,8 +78,8 @@ public class ResumesCrudRateLimitingTests(WebApp app) : TestBase
 
         rejected.StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);
         rejected.Headers.RetryAfter.ShouldNotBeNull();
-        rejected.Headers.RetryAfter!.Delta.ShouldNotBeNull();
-        rejected.Headers.RetryAfter.Delta!.Value.TotalSeconds.ShouldBeGreaterThan(0);
+        rejected.Headers.RetryAfter.Delta.ShouldNotBeNull();
+        rejected.Headers.RetryAfter.Delta.Value.TotalSeconds.ShouldBeGreaterThan(0);
         rejected.Content.Headers.ContentType?.MediaType.ShouldBe("application/problem+json");
 
         var body = await rejected.Content.ReadAsStringAsync(TestContext.Current.CancellationToken);
@@ -131,7 +132,7 @@ public class ResumesCrudRateLimitingTests(WebApp app) : TestBase
         // deliberately unowned: without the limiter this call answers 403 from ResumeOwnerPolicy,
         // and the rate limiter runs before UseAuthorization, so a 429 here can only be the limiter.
         var nested = await client.GetAsync(
-            string.Format(ResumeEducationsUriFormat, Guid.NewGuid()),
+            string.Format(CultureInfo.InvariantCulture, ResumeEducationsUriFormat, Guid.NewGuid()),
             TestContext.Current.CancellationToken);
 
         nested.StatusCode.ShouldBe(HttpStatusCode.TooManyRequests);

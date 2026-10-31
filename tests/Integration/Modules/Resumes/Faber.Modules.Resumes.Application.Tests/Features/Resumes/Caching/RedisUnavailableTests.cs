@@ -34,7 +34,7 @@ public class RedisUnavailableTests(RedisUnavailableWebApp app) : TestBase
             .GETAsync<GetResumeEndpoint, GetResumeRequest, ResumeResponse>(new GetResumeRequest(resume.Id));
 
         response.StatusCode.ShouldBe(HttpStatusCode.OK);
-        getResponse!.Id.ShouldBe(resume.Id);
+        getResponse.Id.ShouldBe(resume.Id);
     }
 
     /// <summary>
@@ -81,7 +81,7 @@ public class RedisUnavailableTests(RedisUnavailableWebApp app) : TestBase
             .WithAuthToken(accessToken)
             .GETAsync<GetResumeEndpoint, GetResumeRequest, ResumeResponse>(new GetResumeRequest(resume.Id));
 
-        getResponse!.Title.ShouldBe("Fresh Title");
+        getResponse.Title.ShouldBe("Fresh Title");
     }
 
     [Fact]

@@ -1,5 +1,4 @@
 using System.Text.Json;
-using System.Text.Json.Serialization;
 using Faber.Modules.Auth.PublicApi;
 using Faber.Modules.Resumes.Application.Options;
 using Faber.Modules.Resumes.Infrastructure.Database;
@@ -61,10 +60,4 @@ public class MaxResumeCreationHandler(
 
         context.Succeed(requirement);
     }
-}
-
-internal class RealmAccess
-{
-    [JsonPropertyName("roles")]
-    public string[] Roles { get; init; } = [];
 }

@@ -1,20 +1,8 @@
-using System.Net;
 using FastEndpoints.Testing;
-using Microsoft.AspNetCore.Hosting;
+using System.Net;
 using Shouldly;
 
 namespace Faber.Api.Tests.Features.Health;
-
-public sealed class ProductionHealthWebApp : WebApp
-{
-    protected override void ConfigureApp(IWebHostBuilder builder)
-    {
-        base.ConfigureApp(builder);
-        builder.UseEnvironment("Production");
-    }
-}
-
-public sealed class CollectionHealth : TestCollection<ProductionHealthWebApp>;
 
 [Collection<CollectionHealth>]
 public sealed class HealthEndpointTests(ProductionHealthWebApp app) : TestBase

@@ -1,17 +1,11 @@
 <Project Sdk="Microsoft.NET.Sdk">
 
-    <PropertyGroup>
-        <TargetFramework>net8.0</TargetFramework>
-        <ImplicitUsings>enable</ImplicitUsings>
-        <Nullable>enable</Nullable>
-    </PropertyGroup>
-
     <ItemGroup>
-        <PackageReference Include="ErrorOr" Version="2.1.1" />
-        <PackageReference Include="FastEndpoints" Version="8.3.0" />
-        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.31" />
-        <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" Version="8.0.31" />
-        <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" Version="8.22.0" />
+        <PackageReference Include="ErrorOr" />
+        <PackageReference Include="FastEndpoints" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" />
+        <PackageReference Include="Microsoft.AspNetCore.Authentication.OpenIdConnect" />
+        <PackageReference Include="Microsoft.IdentityModel.JsonWebTokens" />
     </ItemGroup>
 
     <ItemGroup>

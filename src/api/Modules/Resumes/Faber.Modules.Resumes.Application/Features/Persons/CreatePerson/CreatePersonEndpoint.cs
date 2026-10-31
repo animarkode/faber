@@ -1,7 +1,7 @@
-using Faber.Modules.Resumes.Application.Groups;
-using FastEndpoints;
 using ErrorOr;
 using Faber.Modules.Common.PublicApi.RateLimiting;
+using Faber.Modules.Resumes.Application.Groups;
+using FastEndpoints;
 using Microsoft.AspNetCore.Builder;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -35,7 +35,9 @@ public class CreatePersonEndpoint(ILogger<CreatePersonEndpoint> logger)
             logger.LogWarning("[HTTP POST] {Path} failed: {Error}", path, result.FirstError.Description);
 
             if (result.FirstError.Type == ErrorType.Conflict)
+            {
                 return TypedResults.Conflict();
+            }
 
             return TypedResults.NotFound();
         }

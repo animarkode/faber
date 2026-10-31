@@ -1,5 +1,5 @@
-using FastEndpoints;
 using Faber.Modules.Resumes.Application.Features.Resumes.Shared;
+using FastEndpoints;
 using FluentValidation;
 
 namespace Faber.Modules.Resumes.Application.Features.Projects.UpdateProject;
@@ -32,5 +32,6 @@ public class UpdateProjectValidator : Validator<UpdateProjectRequest>
     private static bool IsValidUrl(string? url) =>
         !string.IsNullOrWhiteSpace(url) &&
         Uri.TryCreate(url, UriKind.Absolute, out var result) &&
-        (result.Scheme == Uri.UriSchemeHttp || result.Scheme == Uri.UriSchemeHttps);
+        (string.Equals(result.Scheme, Uri.UriSchemeHttp, StringComparison.Ordinal) ||
+               string.Equals(result.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal));
 }

@@ -8,10 +8,10 @@ public record ResumeResponse(
     string? Summary,
     string? Hobbies,
     PersonResponse? Person,
-    List<ExperienceResponse> Experience,
-    List<EducationResponse> Educations,
-    List<SkillResponse> Skills,
-    List<LanguageResponse> Languages,
-    List<CourseResponse> Courses,
-    List<ProjectResponse> Projects,
-    List<LinkResponse> Links);
+    IReadOnlyList<ExperienceResponse> Experience,
+    IReadOnlyList<EducationResponse> Educations,
+    IReadOnlyList<SkillResponse> Skills,
+    IReadOnlyList<LanguageResponse> Languages,
+    IReadOnlyList<CourseResponse> Courses,
+    IReadOnlyList<ProjectResponse> Projects,
+    IReadOnlyList<LinkResponse> Links);

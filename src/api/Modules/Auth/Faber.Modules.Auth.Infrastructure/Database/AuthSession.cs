@@ -1,3 +1,5 @@
+using System.Diagnostics.CodeAnalysis;
+
 namespace Faber.Modules.Auth.Infrastructure.Database;
 
 /// <summary>
@@ -17,6 +19,8 @@ public class AuthSession
     public string? KeycloakSessionId { get; set; }
 
     /// <summary>The protected authentication ticket: claims plus access, refresh and ID tokens.</summary>
+    [SuppressMessage("Performance", "CA1819:Properties should not return arrays",
+        Justification = "EF Core maps this property to a bytea column, which requires byte[].")]
     public byte[] Ticket { get; set; } = [];
 
     public DateTimeOffset CreatedAt { get; set; }

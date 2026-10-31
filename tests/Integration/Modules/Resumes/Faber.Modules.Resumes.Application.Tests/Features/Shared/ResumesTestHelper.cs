@@ -34,6 +34,6 @@ public static class ResumesTestHelper
             .POSTAsync<CreateResumeEndpoint, CreateResumeRequest, CreateResumeResponse>(
                 new CreateResumeRequest(localization));
 
-        return response!;
+        return response;
     }
 }

@@ -277,14 +277,14 @@ public static class KeycloakContainerExtensions
     {
         using var http = new HttpClient { BaseAddress = new Uri(container.GetBaseAddress()) };
 
-        using var tokenResponse = await http.PostAsync("realms/master/protocol/openid-connect/token",
-            new FormUrlEncodedContent(new Dictionary<string, string>
+        using var content = new FormUrlEncodedContent(new Dictionary<string, string>(StringComparer.Ordinal)
             {
                 ["grant_type"] = "password",
                 ["client_id"] = "admin-cli",
                 ["username"] = adminUsername,
                 ["password"] = adminPassword
-            }), cancellationToken);
+            });
+        using var tokenResponse = await http.PostAsync("realms/master/protocol/openid-connect/token", content, cancellationToken);
         tokenResponse.EnsureSuccessStatusCode();
         var token = JsonNode.Parse(await tokenResponse.Content.ReadAsStringAsync(cancellationToken))!["access_token"]!
             .GetValue<string>();
@@ -294,14 +294,14 @@ public static class KeycloakContainerExtensions
         var profile = JsonNode.Parse(await http.GetStringAsync(profileUrl, cancellationToken))!;
         foreach (var attribute in profile["attributes"]!.AsArray())
         {
-            if (attribute!["name"]!.GetValue<string>() == "email")
+            if (string.Equals(attribute!["name"]!.GetValue<string>(), "email", StringComparison.Ordinal))
             {
                 attribute.AsObject().Remove("required");
             }
         }
 
-        using var update = await http.PutAsync(profileUrl,
-            new StringContent(profile.ToJsonString(), Encoding.UTF8, "application/json"), cancellationToken);
+        using var profileContent = new StringContent(profile.ToJsonString(), Encoding.UTF8, "application/json");
+        using var update = await http.PutAsync(profileUrl, profileContent, cancellationToken);
         update.EnsureSuccessStatusCode();
     }
 

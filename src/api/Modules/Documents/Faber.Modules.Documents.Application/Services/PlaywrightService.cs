@@ -13,6 +13,8 @@ public class PlaywrightService : IAsyncDisposable
             await Browser.CloseAsync();
             await Browser.DisposeAsync();
         }
+
+        GC.SuppressFinalize(this);
     }
 
     public async Task InitBrowserAsync()

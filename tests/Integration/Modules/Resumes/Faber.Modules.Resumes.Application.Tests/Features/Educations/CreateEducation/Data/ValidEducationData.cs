@@ -12,7 +12,9 @@ public class ValidEducationData : IEnumerable<TheoryDataRow<CreateEducationReque
     public IEnumerator<TheoryDataRow<CreateEducationRequest>> GetEnumerator()
     {
         foreach (var r in new CreateEducationRequestFaker(Guid.Empty, EducationSeed).Generate(Count))
+        {
             yield return new TheoryDataRow<CreateEducationRequest>(r);
+        }
 
         yield return new TheoryDataRow<CreateEducationRequest>(
             new CreateEducationRequest(Guid.Empty, null, null, null, null, null, null));

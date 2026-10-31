@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using System.Text.Json;
 using ErrorOr;
 using Faber.Modules.Auth.Application.Authentication;
@@ -10,18 +11,18 @@ using Microsoft.IdentityModel.Tokens;
 
 namespace Faber.Modules.Auth.Application.Features.BackchannelLogout;
 
-/// <summary>The session a valid logout token ends: a Keycloak session id, or failing that the user id.</summary>
-public record LogoutTarget(string? KeycloakSessionId, string? Subject);
 
 /// <summary>
 /// Checks a logout token as OpenID Connect Back-Channel Logout 1.0 requires: signed by Keycloak's realm keys,
-/// issued by the realm, addressed to this client, carrying the back-channel logout event and a <c>sid</c> or
+/// issued by the realm, addressed to this client, unexpired (<c>exp</c> is required), carrying the back-channel logout event and a <c>sid</c> or
 /// <c>sub</c>, and no <c>nonce</c> (which would make it an ID token).
 /// </summary>
 public class LogoutTokenValidator(
     IOptionsMonitor<OpenIdConnectOptions> oidc,
     IOptions<KeycloakOptions> keycloak)
 {
+    // An event-type identifier defined by OpenID Connect Back-Channel Logout 1.0, compared as a string; never fetched.
+    [SuppressMessage("Security", "S5332:Using http protocol is insecure", Justification = "Spec-defined event identifier, not a network address.")]
     private const string BackchannelLogoutEvent = "http://schemas.openid.net/event/backchannel-logout";
 
     public async Task<ErrorOr<LogoutTarget>> ValidateAsync(string logoutToken, CancellationToken ct)
@@ -35,7 +36,7 @@ public class LogoutTokenValidator(
             ValidAudience = keycloak.Value.ClientId,
             IssuerSigningKeys = configuration.SigningKeys,
             ValidAlgorithms = [SecurityAlgorithms.RsaSha256],
-            RequireExpirationTime = false,
+            // Back-Channel Logout 1.0 §2.4 makes exp REQUIRED; the default RequireExpirationTime = true enforces it.
             ClockSkew = TimeSpan.FromMinutes(2)
         });
 

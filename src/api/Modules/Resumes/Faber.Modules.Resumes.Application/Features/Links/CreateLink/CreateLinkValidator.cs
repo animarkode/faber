@@ -20,6 +20,7 @@ public class CreateLinkValidator : Validator<CreateLinkRequest>
     {
         return !string.IsNullOrWhiteSpace(uri) &&
                Uri.TryCreate(uri, UriKind.Absolute, out var result) &&
-               (result.Scheme == Uri.UriSchemeHttp || result.Scheme == Uri.UriSchemeHttps);
+               (string.Equals(result.Scheme, Uri.UriSchemeHttp, StringComparison.Ordinal) ||
+               string.Equals(result.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal));
     }
 }

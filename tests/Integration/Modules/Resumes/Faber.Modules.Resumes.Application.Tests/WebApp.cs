@@ -94,7 +94,7 @@ public class WebApp : AppFixture<Program>
 
             documentsModuleApiMock
                 .RenderToPdfAsync<FirstTemplate>(
-                    Arg.Any<Dictionary<string, object?>>(),
+                    Arg.Any<IReadOnlyDictionary<string, object?>>(),
                     Arg.Any<CancellationToken>())
                 .Returns(_ => new MemoryStream(new byte[] { 0x25, 0x50, 0x44, 0x46 }));
 
@@ -120,9 +120,24 @@ public class WebApp : AppFixture<Program>
 
     protected override async ValueTask TearDownAsync()
     {
-        if (_redisContainer is not null) await _redisContainer.DisposeAsync();
-        if (_keycloak is not null) await _keycloak.DisposeAsync();
-        if (_postgresContainer is not null) await _postgresContainer.DisposeAsync();
-        if (_network is not null) await _network.DisposeAsync();
+        if (_redisContainer is not null)
+        {
+            await _redisContainer.DisposeAsync();
+        }
+
+        if (_keycloak is not null)
+        {
+            await _keycloak.DisposeAsync();
+        }
+
+        if (_postgresContainer is not null)
+        {
+            await _postgresContainer.DisposeAsync();
+        }
+
+        if (_network is not null)
+        {
+            await _network.DisposeAsync();
+        }
     }
 }
