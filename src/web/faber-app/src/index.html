@@ -14,11 +14,16 @@
     />
     <link href="https://fonts.googleapis.com/icon?family=Material+Icons" rel="stylesheet" />
     <script>
-      // Apply the stored theme before first paint to prevent a flash of the
-      // wrong theme on hard reload. Must stay in sync with ThemeService
-      // (storage key 'faber-theme', dark value 'dark').
+      // Apply the theme before first paint to prevent a flash of the wrong theme
+      // on hard reload. Same order as ThemeService and the Keycloak login theme:
+      // the shared 'faber-theme' cookie, then localStorage, then the OS preference.
       try {
-        if (localStorage.getItem('faber-theme') === 'dark') {
+        var m = document.cookie.match(/(?:^|; )faber-theme=(dark|light)/);
+        var stored = m ? m[1] : localStorage.getItem('faber-theme');
+        var dark = stored === 'dark' || stored === 'light'
+          ? stored === 'dark'
+          : window.matchMedia('(prefers-color-scheme: dark)').matches;
+        if (dark) {
           document.documentElement.classList.add('dark');
         }
       } catch (e) {}
