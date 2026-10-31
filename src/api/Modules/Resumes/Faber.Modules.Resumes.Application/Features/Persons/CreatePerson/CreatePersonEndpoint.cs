@@ -35,7 +35,9 @@ public class CreatePersonEndpoint(ILogger<CreatePersonEndpoint> logger)
             logger.LogWarning("[HTTP POST] {Path} failed: {Error}", path, result.FirstError.Description);
 
             if (result.FirstError.Type == ErrorType.Conflict)
+            {
                 return TypedResults.Conflict();
+            }
 
             return TypedResults.NotFound();
         }

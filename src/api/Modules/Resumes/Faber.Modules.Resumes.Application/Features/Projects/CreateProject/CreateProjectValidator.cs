@@ -37,5 +37,6 @@ public class CreateProjectValidator : Validator<CreateProjectRequest>
     private static bool IsValidUrl(string? url) =>
         !string.IsNullOrWhiteSpace(url) &&
         Uri.TryCreate(url, UriKind.Absolute, out var result) &&
-        (result.Scheme == Uri.UriSchemeHttp || result.Scheme == Uri.UriSchemeHttps);
+        (string.Equals(result.Scheme, Uri.UriSchemeHttp, StringComparison.Ordinal) ||
+               string.Equals(result.Scheme, Uri.UriSchemeHttps, StringComparison.Ordinal));
 }

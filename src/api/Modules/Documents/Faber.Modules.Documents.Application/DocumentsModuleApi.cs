@@ -7,7 +7,7 @@ namespace Faber.Modules.Documents.Application;
 public class DocumentsModuleApi(IRender render) : IDocumentsModuleApi
 {
     public async Task<Stream> RenderToPdfAsync<TComponent>(
-        Dictionary<string, object?> parameters,
+        IReadOnlyDictionary<string, object?> parameters,
         CancellationToken ct)
         where TComponent : IComponent
     {
@@ -18,7 +18,7 @@ public class DocumentsModuleApi(IRender render) : IDocumentsModuleApi
     }
 
     public async Task<string> RenderToHtmlAsync<TComponent>(
-        Dictionary<string, object?> parameters,
+        IReadOnlyDictionary<string, object?> parameters,
         CancellationToken ct)
         where TComponent : IComponent
     {

@@ -5,7 +5,7 @@ namespace Faber.Modules.Documents.Application.Razor;
 public interface IRender
 {
     Task<string> RazorToHtmlAsync<TComponent>(
-        Dictionary<string, object?> parameters,
+        IReadOnlyDictionary<string, object?> parameters,
         CancellationToken ct = default)
         where TComponent : IComponent;
 

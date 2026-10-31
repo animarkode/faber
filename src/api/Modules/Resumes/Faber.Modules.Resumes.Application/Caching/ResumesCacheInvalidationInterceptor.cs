@@ -1,3 +1,4 @@
+using System.Diagnostics.CodeAnalysis;
 using Faber.Modules.Resumes.Domain.Entities;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.ChangeTracking;
@@ -84,7 +85,7 @@ public class ResumesCacheInvalidationInterceptor(
 
     private static HashSet<string> CollectPendingTags(DbContext? context)
     {
-        var tags = new HashSet<string>();
+        var tags = new HashSet<string>(StringComparer.Ordinal);
 
         if (context is null)
         {
@@ -114,7 +115,7 @@ public class ResumesCacheInvalidationInterceptor(
 
     private static async Task<HashSet<string>> CollectPendingTagsAsync(DbContext? context, CancellationToken ct)
     {
-        var tags = new HashSet<string>();
+        var tags = new HashSet<string>(StringComparer.Ordinal);
 
         if (context is null)
         {
@@ -180,6 +181,10 @@ public class ResumesCacheInvalidationInterceptor(
         return sectionResumeIds;
     }
 
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "Fail-soft by design: a committed write must not fail because cache invalidation (Redis) is unavailable.")]
     private void InvalidatePendingTags()
     {
         var tags = _pendingTags;
@@ -203,6 +208,10 @@ public class ResumesCacheInvalidationInterceptor(
         }
     }
 
+    [SuppressMessage(
+        "Design",
+        "CA1031:Do not catch general exception types",
+        Justification = "Fail-soft by design: a committed write must not fail because cache invalidation (Redis) is unavailable.")]
     private async ValueTask InvalidatePendingTagsAsync()
     {
         var tags = _pendingTags;

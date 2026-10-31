@@ -5,7 +5,7 @@ namespace Faber.Modules.Documents.PublicApi;
 public interface IDocumentsModuleApi
 {
     Task<Stream> RenderToPdfAsync<TComponent>(
-        Dictionary<string, object?> parameters,
+        IReadOnlyDictionary<string, object?> parameters,
         CancellationToken ct)
         where TComponent : IComponent;
 
@@ -17,7 +17,7 @@ public interface IDocumentsModuleApi
     /// <param name="ct">The cancellation token.</param>
     /// <returns>The rendered HTML markup.</returns>
     Task<string> RenderToHtmlAsync<TComponent>(
-        Dictionary<string, object?> parameters,
+        IReadOnlyDictionary<string, object?> parameters,
         CancellationToken ct)
         where TComponent : IComponent;
 }

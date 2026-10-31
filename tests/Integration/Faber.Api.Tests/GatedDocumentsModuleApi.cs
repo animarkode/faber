@@ -27,7 +27,7 @@ public sealed class GatedDocumentsModuleApi : IDocumentsModuleApi
     /// <param name="ct">The request's cancellation token.</param>
     /// <returns>A stream over a four-byte stub PDF.</returns>
     public async Task<Stream> RenderToPdfAsync<TComponent>(
-        Dictionary<string, object?> parameters,
+        IReadOnlyDictionary<string, object?> parameters,
         CancellationToken ct)
         where TComponent : IComponent
     {
@@ -53,7 +53,7 @@ public sealed class GatedDocumentsModuleApi : IDocumentsModuleApi
     /// <param name="ct">The request's cancellation token.</param>
     /// <returns>A fixed stub HTML fragment.</returns>
     public Task<string> RenderToHtmlAsync<TComponent>(
-        Dictionary<string, object?> parameters,
+        IReadOnlyDictionary<string, object?> parameters,
         CancellationToken ct)
         where TComponent : IComponent
         => Task.FromResult(StubHtml);

@@ -157,7 +157,7 @@ public class ResumePdfCacheTests(WebApp app) : TestBase
         var documentsModuleApi = app.Services.GetRequiredService<IDocumentsModuleApi>();
 
         documentsModuleApi.Received(expectedCount).RenderToPdfAsync<FirstTemplate>(
-            Arg.Is<Dictionary<string, object?>>(d => ((Resume)d["Resume"]!).Id == resumeId),
+            Arg.Is<IReadOnlyDictionary<string, object?>>(d => ((Resume)d["Resume"]!).Id == resumeId),
             Arg.Any<CancellationToken>());
     }
 }

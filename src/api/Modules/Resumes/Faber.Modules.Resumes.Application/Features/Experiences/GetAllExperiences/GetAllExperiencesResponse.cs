@@ -1,14 +1,3 @@
 namespace Faber.Modules.Resumes.Application.Features.Experiences.GetAllExperiences;
 
-public record GetAllExperiencesResponse(List<GetAllExperiencesItem> Items);
-
-public record GetAllExperiencesItem(
-    Guid Id,
-    Guid ResumeId,
-    string? JobTitle,
-    string? Employer,
-    DateOnly? StartDate,
-    DateOnly? EndDate,
-    string? City,
-    string? Description,
-    int Order);
+public record GetAllExperiencesResponse(IReadOnlyList<GetAllExperiencesItem> Items);

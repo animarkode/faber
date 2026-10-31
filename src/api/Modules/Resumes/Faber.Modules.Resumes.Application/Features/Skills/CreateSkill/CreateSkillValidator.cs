@@ -13,7 +13,7 @@ public class CreateSkillValidator : Validator<CreateSkillRequest>
             .MaximumLength(100).WithMessage("'Name' must not exceed 100 characters.");
 
         RuleFor(x => x.Level)
-            .Must(level => ValidLevels.Contains(level!))
+            .Must(level => ValidLevels.Contains(level!, StringComparer.Ordinal))
             .WithMessage($"'Level' must be one of: {string.Join(", ", ValidLevels)}.")
             .When(x => !string.IsNullOrWhiteSpace(x.Level));
     }
