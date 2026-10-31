@@ -6,20 +6,20 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="FastEndpoints" Version="8.3.0" />
-        <PackageReference Include="FastEndpoints.Swagger" Version="8.3.0" />
-        <PackageReference Include="Microsoft.EntityFrameworkCore.Design" Version="9.0.20">
+        <PackageReference Include="FastEndpoints" />
+        <PackageReference Include="FastEndpoints.Swagger" />
+        <PackageReference Include="Microsoft.EntityFrameworkCore.Design">
             <PrivateAssets>all</PrivateAssets>
             <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
         </PackageReference>
-        <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" Version="10.10.0" />
-        <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" Version="10.0.12" />
-        <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design" Version="9.0.0"/>
-        <PackageReference Include="Scalar.AspNetCore" Version="2.17.3" />
-        <PackageReference Include="Scrutor" Version="7.0.0" />
-        <PackageReference Include="Serilog.AspNetCore" Version="10.0.0" />
-        <PackageReference Include="StackExchange.Redis" Version="3.1.31" />
-        <PackageReference Include="Microsoft.Playwright" Version="1.62.0" />
+        <PackageReference Include="Microsoft.Extensions.Caching.Hybrid" />
+        <PackageReference Include="Microsoft.Extensions.Caching.StackExchangeRedis" />
+        <PackageReference Include="Microsoft.VisualStudio.Web.CodeGeneration.Design"/>
+        <PackageReference Include="Scalar.AspNetCore" />
+        <PackageReference Include="Scrutor" />
+        <PackageReference Include="Serilog.AspNetCore" />
+        <PackageReference Include="StackExchange.Redis" />
+        <PackageReference Include="Microsoft.Playwright" />
     </ItemGroup>
 
     <ItemGroup>

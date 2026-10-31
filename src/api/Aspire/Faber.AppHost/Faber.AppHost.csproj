@@ -8,10 +8,10 @@
     </PropertyGroup>
 
     <ItemGroup>
-        <PackageReference Include="Aspire.Hosting" Version="13.5.3" />
-        <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.5.3" />
-        <PackageReference Include="Aspire.Hosting.Redis" Version="13.5.3" />
-        <PackageReference Include="CommunityToolkit.Aspire.Hosting.MailPit" Version="13.5.0" />
+        <PackageReference Include="Aspire.Hosting" />
+        <PackageReference Include="Aspire.Hosting.PostgreSQL" />
+        <PackageReference Include="Aspire.Hosting.Redis" />
+        <PackageReference Include="CommunityToolkit.Aspire.Hosting.MailPit" />
     </ItemGroup>
 
     <ItemGroup>
