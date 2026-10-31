@@ -10,20 +10,13 @@ namespace Faber.AppHost.Tests;
 
 public class AppHostModelTests
 {
-    // What a clean clone has before Vault is initialised: everything except the Vault token.
-    private static readonly string[] ConfigurationBeforeVaultInit =
+    private static readonly string[] TestConfiguration =
     [
         "--Parameters:postgres-username=test-postgres-user",
         "--Parameters:postgres-password=test-postgres-password",
         "--Parameters:keycloak-admin=test-keycloak-admin",
         "--Parameters:keycloak-password=test-keycloak-password",
         "--Parameters:faber-api-client-secret=test-faber-api-client-secret"
-    ];
-
-    private static readonly string[] TestConfiguration =
-    [
-        .. ConfigurationBeforeVaultInit,
-        "--Parameters:vault-token=test-vault-token"
     ];
 
     [Fact]
@@ -37,7 +30,6 @@ public class AppHostModelTests
         var migrations = builder.Resources.Single(resource => resource.Name == "migrations");
         var keycloak = builder.Resources.Single(resource => resource.Name == "keycloak");
         var keycloakConfig = builder.Resources.Single(resource => resource.Name == "keycloak-config");
-        var vault = builder.Resources.Single(resource => resource.Name == "vault");
         var bootstrap = builder.Resources.Single(resource => resource.Name == "bootstrap");
         var api = builder.Resources.Single(resource => resource.Name == "faberapi");
 
@@ -45,7 +37,6 @@ public class AppHostModelTests
         keycloak.ShouldWaitFor(migrations, WaitType.WaitForCompletion);
         keycloakConfig.ShouldWaitFor(keycloak, WaitType.WaitUntilHealthy);
         bootstrap.ShouldWaitFor(keycloakConfig, WaitType.WaitForCompletion);
-        bootstrap.Annotations.OfType<WaitAnnotation>().ShouldNotContain(annotation => annotation.Resource == vault);
         api.ShouldWaitFor(migrations, WaitType.WaitForCompletion);
         api.ShouldWaitFor(bootstrap, WaitType.WaitForCompletion);
     }
@@ -199,20 +190,6 @@ public class AppHostModelTests
     }
 
     [Fact]
-    public async Task Vault_WithoutVaultToken_ShouldResolveItsConfiguration()
-    {
-        var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.Faber_AppHost>(
-            ConfigurationBeforeVaultInit,
-            TestContext.Current.CancellationToken);
-        var vault = builder.Resources.Single(resource => resource.Name == "vault");
-
-        var (exception, environment) = await ResolveConfigurationAsync(vault);
-
-        exception.ShouldBeNull("Vault's configuration must resolve on a clean clone");
-        environment.Keys.ShouldNotContain("VAULT_TOKEN");
-    }
-
-    [Fact]
     public async Task KeycloakSchema_ShouldBeDeclaredToMigrations()
     {
         var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.Faber_AppHost>(
@@ -261,26 +238,6 @@ public class AppHostModelTests
         }
 
         return context.EnvironmentVariables;
-    }
-
-    private static async Task<(Exception? Exception, IReadOnlyDictionary<string, string> Environment)>
-        ResolveConfigurationAsync(IResource resource)
-    {
-        // Bounded, so a value that can never resolve fails the test instead of hanging it.
-        using var timeout = CancellationTokenSource.CreateLinkedTokenSource(TestContext.Current.CancellationToken);
-        timeout.CancelAfter(TimeSpan.FromSeconds(10));
-
-        var configuration = await ExecutionConfigurationBuilder
-            .Create(resource)
-            .WithEnvironmentVariablesConfig()
-            .BuildAsync(
-                new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
-                NullLogger.Instance,
-                timeout.Token);
-
-        return (
-            configuration.Exception,
-            configuration.EnvironmentVariables.ToDictionary(variable => variable.Key, variable => variable.Value));
     }
 }
 

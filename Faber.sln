@@ -10,11 +10,6 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "keycloak", "keycloak", "{24
 		infra\keycloak\realm-export.json = infra\keycloak\realm-export.json
 	EndProjectSection
 EndProject
-Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "vault", "vault", "{29E5F61C-7026-47EB-B318-A40F32B9B6EE}"
-	ProjectSection(SolutionItems) = preProject
-		infra\vault\config\config.hcl = infra\vault\config\config.hcl
-	EndProjectSection
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "manage", "manage", "{ABF7544F-1FF8-45D3-A098-06B7B7762D72}"
 	ProjectSection(SolutionItems) = preProject
 		CLAUDE.md = CLAUDE.md
@@ -396,7 +391,6 @@ Global
 	EndGlobalSection
 	GlobalSection(NestedProjects) = preSolution
 		{242AFBC5-5B60-4B67-A47A-72F6B86E8DF1} = {83D2AB24-B493-4005-ADB0-554DF267A5CB}
-		{29E5F61C-7026-47EB-B318-A40F32B9B6EE} = {83D2AB24-B493-4005-ADB0-554DF267A5CB}
 		{45670F7F-F71F-45C9-9FD3-39649F539182} = {8DFE3C65-AB17-41A3-AE73-C613D30F49FF}
 		{532E8BF5-5BD2-48EE-872A-FBDD505B7B59} = {45670F7F-F71F-45C9-9FD3-39649F539182}
 		{9B19A252-B474-4E15-AD4E-3B5621F77781} = {45670F7F-F71F-45C9-9FD3-39649F539182}

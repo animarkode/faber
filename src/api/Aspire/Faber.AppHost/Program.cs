@@ -1,22 +1,10 @@
 using Faber.AppHost;
-using Faber.AppHost.Vault;
 using Projects;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
 var solutionRoot = Path.GetFullPath(Path.Combine(builder.AppHostDirectory, "..", "..", "..", ".."));
-var vaultDir = Path.Combine(solutionRoot, "infra/vault");
 var keycloakDir = Path.Combine(solutionRoot, "infra/keycloak");
-var vaultToken = builder.AddParameter("vault-token", secret: true)
-    .WithDescription(
-        "Root token printed once by `vault operator init`. Vault itself starts without it; secret " +
-        "bootstrap and the API wait until it is set.",
-        enableMarkdown: true);
-
-builder.AddVaultIntegration(options =>
-{
-    options.UnsealKeysFile = Path.Combine(vaultDir, ".vault-unseal-keys");
-});
 
 // RedisInsight gets a random host port: it's reached through the dashboard link, not a fixed
 // address, so it doesn't need a slot in this file's hard-pinned port list.
@@ -44,19 +32,6 @@ var migrations = builder.AddProject<Faber_Migrations>("migrations")
     .WithReference(faberDb)
     .WithEnvironment("Migrations__ExternalSchemas__0", keycloakSchema)
     .WaitFor(faberDb);
-
-var vault = builder.AddContainer("vault", "hashicorp/vault", "1.19.4")
-    .WithHttpEndpoint(port: 8200, targetPort: 8200, name: "vault-http")
-    .WithHttpHealthCheck(path: "/v1/sys/health", endpointName: "vault-http")
-    .WithBindMount(Path.Combine(vaultDir, "file"), "/vault/file")
-    .WithBindMount(Path.Combine(vaultDir, "config"), "/vault/config")
-    .WithArgs("vault", "server", "-config=/vault/config/config.hcl")
-    // No VAULT_TOKEN here: the token only exists after `vault operator init` has run against this
-    // container, so requiring it would keep Vault from starting on a clean clone. Only the
-    // resources that read or write secrets (bootstrap, faberapi) take the vault-token parameter.
-    .WithEnvironment("VAULT_ADDR", "http://127.0.0.1:8200")
-    .WithEnvironment("VAULT_API_ADDR", "http://127.0.0.1:8200")
-    .WithUnsealHook();
 
 // Generated on first run and kept in user-secrets: keycloak-config sets it on the faber-api client and
 // the API presents it back, so both read the same value and nothing has to read it out of Keycloak.
@@ -131,11 +106,8 @@ var faberApi = builder.AddProject<Faber_Api>("faberapi")
     .WaitFor(faberDb)
     .WaitForCompletion(migrations)
     .WaitForCompletion(bootstrap)
-    .WaitFor(vault)
     .WaitFor(keycloak)
     .WaitFor(mailpit)
-    .WithEnvironment("VAULT_ADDR", "http://localhost:8200")
-    .WithEnvironment("VAULT_TOKEN", vaultToken)
     .WithEnvironment("Keycloak__ClientId", "faber-api")
     .WithEnvironment("Keycloak__ClientSecret", faberApiClientSecret)
     .WithReference(redis)
