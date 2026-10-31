@@ -1,5 +1,27 @@
 # Changelog
 
+## [0.4.0](https://github.com/animarkode/faber/compare/faber-v0.3.1...faber-v0.4.0) (2026-10-31)
+
+
+### Features
+
+* **auth:** add external sign-in redirect and callback endpoints ([#58](https://github.com/animarkode/faber/issues/58)) ([cf238e7](https://github.com/animarkode/faber/commit/cf238e74dcf613bbc3c14724d5daf5c0e38b89dc))
+* **auth:** add Google and GitHub sign-in with verified e-mail account linking ([#62](https://github.com/animarkode/faber/issues/62)) ([cd7b5ea](https://github.com/animarkode/faber/commit/cd7b5ea3a5300c15c3e0a8207f62a0eccf77a078))
+* **auth:** lead the auth pages with Google and GitHub sign-in ([#78](https://github.com/animarkode/faber/issues/78)) ([a5c7dc4](https://github.com/animarkode/faber/commit/a5c7dc41440fd7f1feaed004825ca95ead127b59))
+* **auth:** move sign-in to Keycloak hosted login with a BFF session ([#81](https://github.com/animarkode/faber/issues/81)) ([0fb929b](https://github.com/animarkode/faber/commit/0fb929b69b430edeaa3d55262d3e7bdee7d535d2))
+* **identity:** add Google and GitHub identity providers to the Keycloak realm ([#56](https://github.com/animarkode/faber/issues/56)) ([b1f584d](https://github.com/animarkode/faber/commit/b1f584d15c9c96703a316c69d76537f5a44704bd))
+
+
+### Bug Fixes
+
+* **auth:** fix Google sign-in from registration and warn on unconfigured providers ([#84](https://github.com/animarkode/faber/issues/84)) ([bb91005](https://github.com/animarkode/faber/commit/bb910057b32536752e5cc4dcc56d46227be0b900))
+* **notifications:** keep sign-up working when SMTP delivery fails ([#63](https://github.com/animarkode/faber/issues/63)) ([bbaabc6](https://github.com/animarkode/faber/commit/bbaabc674b54222d86dc98f154707f413f61d7c4))
+
+
+### Refactoring
+
+* **vault:** remove Vault; development uses user-secrets, production uses env ([#86](https://github.com/animarkode/faber/issues/86)) ([93466bf](https://github.com/animarkode/faber/commit/93466bf97aec711c5867c136b1306d8e473ee477))
+
 ## [0.3.1](https://github.com/animarkode/faber/compare/faber-v0.3.0...faber-v0.3.1) (2026-10-10)
 
 
