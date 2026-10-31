@@ -90,13 +90,7 @@ The theme extends `keycloak.v2` and overrides only two templates, `template.ftl`
 - **Tests:** the Testcontainers fixture `FaberKeycloak.cs` mounts the same directory.
 - **Production:** the theme is part of the `faber-keycloak` image, which the `build-images.yml` workflow builds and pushes with the other images on every release. The Keycloak version in `infra/keycloak/Dockerfile` must match `keycloakTag` in the AppHost and `FaberKeycloak.Image`.
 
-The light or dark choice is kept in the `faber-theme` cookie, shared between the web app and the Keycloak pages. When the two live on different subdomains, the cookie must be written for their common parent domain. Set this on Keycloak:
-
-```text
-FABER_COOKIE_DOMAIN=<PARENT-DOMAIN>
-```
-
-and set `cookieDomain` in `src/web/faber-app/src/environments/environment.prod.ts` to the same value before building the web image. The two must be identical, or each side keeps its own copy of the choice. Leave both empty when the app and Keycloak share a host.
+The light or dark choice is kept in the `faber-theme` cookie, which the web app and the Keycloak pages both read and write. The cookie is host-only, so **serve Keycloak's public pages on the same host name as the web app**, behind the same reverse proxy. A cookie is scoped to a host, not a port or a path, so this is what lets both sides see it, just as `localhost:4200` and `localhost:8080` share it in development. On a separate subdomain each side would keep its own copy of the choice.
 
 Upgrade checklist for a new Keycloak version:
 

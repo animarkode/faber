@@ -19,10 +19,6 @@
     if (location.protocol === 'https:') {
       cookie += '; Secure';
     }
-    // Production shares the preference with the app across subdomains.
-    if (button.dataset.cookieDomain) {
-      cookie += '; Domain=' + button.dataset.cookieDomain;
-    }
     document.cookie = cookie;
   }
 
