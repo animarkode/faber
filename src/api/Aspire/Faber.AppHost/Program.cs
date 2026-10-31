@@ -54,13 +54,16 @@ var keycloakUser = builder.AddParameter("keycloak-admin")
 var keycloakPass = builder.AddParameter("keycloak-password", secret: true)
     .WithDescription("Password for that Keycloak admin.");
 
-// The stock image: sign-in pages, account console and flows are all Keycloak's own. The realm is
-// not imported here; keycloak-config applies infra/keycloak/config on every start instead.
+// The stock image: flows and the account console are Keycloak's own; only the sign-in pages' look is ours,
+// the faber login theme mounted below. The realm is not imported here; keycloak-config applies
+// infra/keycloak/config on every start instead.
 var keycloak = builder.AddContainer("keycloak", keycloakImage, keycloakTag)
     .WithImageRegistry(keycloakRegistry)
     .WithHttpEndpoint(port: 8080, targetPort: 8080, name: "keycloak-http")
     .WithHttpEndpoint(port: 9000, targetPort: 9000, name: "keycloak-management")
     .WithHttpHealthCheck(path: "/health/ready", endpointName: "keycloak-management")
+    // start-dev turns the theme cache off, so CSS and template edits show on a browser refresh.
+    .WithBindMount(Path.Combine(keycloakDir, "themes/faber"), "/opt/keycloak/themes/faber", isReadOnly: true)
     .WithEnvironment("KC_BOOTSTRAP_ADMIN_USERNAME", keycloakUser)
     .WithEnvironment("KC_BOOTSTRAP_ADMIN_PASSWORD", keycloakPass)
     .WithEnvironment("KC_HTTP_ENABLED", "true")
