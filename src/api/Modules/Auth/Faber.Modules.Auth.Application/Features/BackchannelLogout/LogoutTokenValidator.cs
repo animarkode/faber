@@ -14,7 +14,7 @@ namespace Faber.Modules.Auth.Application.Features.BackchannelLogout;
 
 /// <summary>
 /// Checks a logout token as OpenID Connect Back-Channel Logout 1.0 requires: signed by Keycloak's realm keys,
-/// issued by the realm, addressed to this client, carrying the back-channel logout event and a <c>sid</c> or
+/// issued by the realm, addressed to this client, unexpired (<c>exp</c> is required), carrying the back-channel logout event and a <c>sid</c> or
 /// <c>sub</c>, and no <c>nonce</c> (which would make it an ID token).
 /// </summary>
 public class LogoutTokenValidator(
@@ -25,8 +25,6 @@ public class LogoutTokenValidator(
     [SuppressMessage("Security", "S5332:Using http protocol is insecure", Justification = "Spec-defined event identifier, not a network address.")]
     private const string BackchannelLogoutEvent = "http://schemas.openid.net/event/backchannel-logout";
 
-    [SuppressMessage("Security", "CA5404:Do not disable token validation checks",
-        Justification = "Deliberate: a logout token may omit exp. An exp that is present is still validated; signature, issuer, audience and the logout event are required.")]
     public async Task<ErrorOr<LogoutTarget>> ValidateAsync(string logoutToken, CancellationToken ct)
     {
         var configurationManager = oidc.Get(AuthSchemes.Keycloak).ConfigurationManager!;
@@ -38,10 +36,7 @@ public class LogoutTokenValidator(
             ValidAudience = keycloak.Value.ClientId,
             IssuerSigningKeys = configuration.SigningKeys,
             ValidAlgorithms = [SecurityAlgorithms.RsaSha256],
-            // A logout token is not a credential: a missing exp is tolerated, but an exp that is present is still
-            // validated (ValidateLifetime stays on). Signature, issuer, audience, algorithm and the logout event
-            // are all required.
-            RequireExpirationTime = false,
+            // Back-Channel Logout 1.0 §2.4 makes exp REQUIRED; the default RequireExpirationTime = true enforces it.
             ClockSkew = TimeSpan.FromMinutes(2)
         });
 
