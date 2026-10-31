@@ -5,7 +5,7 @@
 Faber is a full-stack CV/resume builder:
 
 - Backend: ASP.NET Core 8, FastEndpoints, EF Core/PostgreSQL, Redis, Keycloak,
-  Vault, and OpenTelemetry.
+  and OpenTelemetry.
 - Sign-in: Keycloak 26.8 hosted login (password, passkeys, Google, GitHub); the
   API is a backend-for-frontend that keeps tokens in a server-side session and
   gives the browser an HttpOnly cookie. The realm is code
@@ -22,7 +22,14 @@ Faber is a full-stack CV/resume builder:
 ## Working conventions
 
 - Preserve unrelated working-tree changes; keep changes scoped to the request.
-- Do not commit credentials or other secrets. Vault owns secrets.
+- Do not commit credentials or other secrets.
+- Secrets: code reads only `IConfiguration` (Options Pattern) and does not know
+  where a value comes from. In development every secret is an AppHost parameter
+  kept in its user-secrets (`Parameters:<name>`); generated ones need no manual
+  step, and only external ones (Google, GitHub) are set by hand. In production
+  the deployment injects every secret as an environment variable from the
+  platform's secret store. Never set a secret in both places at once, and never
+  in a shell profile.
 - Use Conventional Commits: `type(scope): description`. Do not add agent
   co-author trailers.
 - Keep commits focused; branches use `{issue-number}-{kebab-case-description}`.
@@ -84,7 +91,6 @@ plain Markdown, no special tooling required:
 | Adding a feature to an existing module | `.agents/skills/faber-feature-template/SKILL.md` |
 | Creating a new module from scratch | `.agents/skills/faber-module-bootstrapping/SKILL.md` |
 | Sign-in, sessions, the realm config / Keycloak | `.agents/skills/keycloak-aspnet-integration/SKILL.md` |
-| Vault secrets or the Vault module | `.agents/skills/vault-secrets-aspnet/SKILL.md` |
 | Implementing a GitHub issue end-to-end | `.agents/skills/impl-gh-issue/SKILL.md` |
 | Creating/labeling issues, opening PRs, handling a release | `.agents/skills/github-workflow/SKILL.md` |
 
@@ -104,7 +110,7 @@ plain Markdown, no special tooling required:
   ordinary control flow, regions, or `if`/`else` chains.
 - Tests use xUnit v3, Shouldly, NSubstitute, Bogus, and Testcontainers. Test
   names follow `{Scenario}_Should{Outcome}`. Mock external services only (such
-  as Vault or email), never infrastructure or internal abstractions.
+  as email), never infrastructure or internal abstractions.
 - For the full pattern reference (naming conventions, C# use/avoid list, test
   conventions), see `.claude/rules/backend-patterns.md`.
 

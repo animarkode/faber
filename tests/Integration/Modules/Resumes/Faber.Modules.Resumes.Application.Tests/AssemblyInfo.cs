@@ -4,11 +4,7 @@ using Xunit.v3;
 
 [assembly: EnableAdvancedTesting]
 
-// WebApp.PreSetupAsync sets VAULT_ADDR/VAULT_TOKEN via Environment.SetEnvironmentVariable, which is
-// process-wide. Vault.Application.DependencyInjection reads those env vars (not IConfiguration) when
-// each fixture's host is built. With more than one collection (WebApp, RedisUnavailableWebApp) xUnit v3
-// runs collections in parallel by default, so a second fixture's PreSetupAsync could overwrite the env
-// vars while the first fixture's host is still being built, pointing it at a Vault that isn't seeded
-// yet. The assembly only ever runs one collection's fixture setup meaningfully in parallel today, so
-// disabling test parallelization here costs nothing and removes the race for any future collection too.
+// Each collection fixture (WebApp, RedisUnavailableWebApp) starts its own Postgres and Keycloak, and
+// Keycloak is memory-hungry. Running the collections one after another keeps peak Docker memory at one
+// stack, which keeps Keycloak start-up from timing out on smaller machines and CI runners.
 [assembly: Parallelization(Mode = ParallelMode.None)]

@@ -51,57 +51,19 @@ dotnet run --project src/api/Aspire/Faber.AppHost
 
 `aspire run` from the repository root is equivalent — `aspire.config.json` points it at the AppHost. The Aspire dashboard opens automatically at `https://localhost:15xxx` (the port is printed in the console).
 
-On a clean clone, Vault is not initialized yet: it stays unhealthy, and `bootstrap` and `faberapi` wait for it (the dashboard names the missing `vault-token` parameter). Expect the following in the logs — all of it is harmless:
+On a clean clone nothing else has to be set by hand: the `faber-api` client secret is an AppHost parameter that Aspire generates on the first run and saves to the same user-secrets. Only Google and GitHub credentials, if you use those providers, are entered manually (see below). Expect the following in the logs, which is harmless:
 
-- `Couldn't start vault with IPC_LOCK. Disabling IPC_LOCK, please use --cap-add IPC_LOCK` — `infra/vault/config/config.hcl` sets `disable_mlock = true` deliberately, so memory locking is not wanted.
-- `core: security barrier not initialized`, repeating every few seconds — Vault waiting to be initialized, which the next step does.
 - On the first run against an empty database, `migrations` logs four `Failed executing DbCommand` errors for `SELECT migration_id, product_version FROM …_migrations_history` — EF Core queries the history table before it exists and handles the error itself; the service still exits with code 0, and they do not appear on later runs.
 
-### 5. Initialize Vault
+### 5. What starts
 
-Leave the AppHost running. The Vault container already ships the `vault` binary with `VAULT_ADDR` set, so drive it with `docker exec` instead of installing anything else; its container name has a random suffix, so resolve it with `docker ps`.
-
-1. Initialize — one key share and a threshold of one suit a local stack:
-
-```bash
-docker exec "$(docker ps -qf 'name=^vault-')" \
-  vault operator init -key-shares=1 -key-threshold=1
-```
-
-2. Create the key file the AppHost's unseal hook reads:
-
-```bash
-printf 'UNSEAL_KEY_1=%s\n' '<UNSEAL-KEY>' > infra/vault/.vault-unseal-keys
-```
-
-3. Store the root token outside the repository:
-
-```bash
-dotnet user-secrets set "Parameters:vault-token" "<ROOT-TOKEN>" \
-  --project src/api/Aspire/Faber.AppHost
-```
-
-`vault operator init` prints `Unseal Key 1` and `Initial Root Token` **once**; they cannot be retrieved again. If lost, reset Vault as described in [Resetting local state](#resetting-local-state) and initialize again. A second `init` on the same data fails with `Vault is already initialized`.
-
-Any number of shares and threshold works, the defaults of five and three included; the file only has to hold at least `threshold` keys. `infra/vault/.vault-unseal-keys` does not exist in a clean clone — the command above creates it, and Git ignores it.
-
-In that file, blank lines, lines starting with `#`, and any line that does not start with `UNSEAL_KEY` are ignored, so the suffix (`_1`, `_2`, …) is arbitrary. The key is everything after the first `=`, with surrounding whitespace and double quotes stripped. Only the first `threshold` keys are used.
-
-`docker exec "$(docker ps -qf 'name=^vault-')" vault status` reports the seal state. Right after initialization it shows `Sealed true`, which is expected until the restart below. It **exits 2 while Vault is sealed** (and before initialization) and 0 once unsealed — its documented way of reporting seal state, not a failure; a script run with `set -e` would otherwise stop there.
-
-As a browser alternative, open `http://127.0.0.1:8200/ui`, choose the same key shares/threshold, and copy the generated key and token into the same two places above.
-
-Never commit or share the generated keys, token, or local passwords.
-
-### 6. Restart once
-
-Stop the AppHost and start it again (step 4). The unseal hook reads the key file and unseals Vault; the stack then brings itself up with no further manual step:
+The stack brings itself up with no further manual step:
 
 - `Faber.Migrations` applies migrations and creates the `keycloak` schema.
 - Keycloak (the stock `quay.io/keycloak/keycloak` image) starts, and `keycloak-config` applies the realm from `infra/keycloak/config/faber.json`. It runs on every start, so the realm always matches the repository; users and their data are left alone.
-- `Faber.Bootstrap` turns passkeys on (the config tool cannot express that setting yet), regenerates the `faber-api` client secret and writes it to `secrets/keycloak` in Vault.
+- `keycloak-passkeys` turns passkeys on by running `infra/keycloak/passkeys.sh` (the config tool cannot express that setting yet). It writes nothing else.
 
-Every service becomes healthy, and the one-shot `migrations`, `keycloak-config` and `bootstrap` finish with exit code 0. There is no `dotnet ef database update`, no Keycloak admin-console step and no manual Vault seeding.
+Every service becomes healthy, and the one-shot `migrations`, `keycloak-config` and `keycloak-passkeys` finish with exit code 0. There is no `dotnet ef database update`, no Keycloak admin-console step and no manual secret seeding.
 
 Sign-in, registration, password reset and e-mail verification all happen on Keycloak's own pages. Registration asks for e-mail and name only; the password is set after following the verification link. Keycloak sends its mail (verification, password reset) to Mailpit in Development; open the `mailpit` resource from the Aspire dashboard to read it.
 
@@ -183,19 +145,27 @@ docker ps -aq --filter volume="$volume" | xargs -r docker rm -f
 docker volume rm "$volume"
 ```
 
-`xargs -r` skips `docker rm` when no container holds the volume, so the same commands work whether one does. The next start creates a fresh volume with the current parameters; migrations, `keycloak-config` and bootstrap then rebuild everything, so no manual step follows. Local data such as registered users is lost.
+`xargs -r` skips `docker rm` when no container holds the volume, so the same commands work whether one does. The next start creates a fresh volume with the current parameters; migrations, `keycloak-config` and `keycloak-passkeys` then rebuild everything, so no manual step follows. Local data such as registered users is lost.
 
 A checkout created before the per-checkout volume was introduced may still have the old fixed-name `faber-postgres-data` volume. Nothing uses it anymore; remove it the same way with `volume=faber-postgres-data`.
 
-**Vault — a lost unseal key or root token.** `vault operator init` output cannot be retrieved again, and `vault operator rekey` needs the existing keys, so the only recovery is to discard Vault's local data and initialize again. Stop the AppHost, then:
+**Coming from a clone that used Vault?** Vault was removed in #83 and nothing reads it anymore. Delete what it left behind. Stop the AppHost, then remove the old data, including the unseal keys:
 
 ```bash
-rm -rf infra/vault/file infra/vault/.vault-unseal-keys
+rm -rf infra/vault
 ```
 
-Both paths are ignored by Git. On Linux the files under `infra/vault/file` are owned by the container's user, so this may need `sudo`.
+On Linux the files under `infra/vault/file` are owned by the container's user, so this may need `sudo`. Remove the stale container and its data volume with `docker ps -a` and `docker volume ls` (look for names starting with `vault`) and then `docker rm -f <CONTAINER>` and `docker volume rm <VOLUME>`. Remove the stale user-secrets:
 
-Then repeat [step 4](#4-first-run), [step 5](#5-initialize-vault) and [step 6](#6-restart-once) of Getting set up, setting the new root token over the old `Parameters:vault-token`. Nothing else has to be recreated by hand: bootstrap creates the `secrets` mount and writes `secrets/keycloak` again on the next start.
+```bash
+dotnet user-secrets remove "Parameters:vault-token" --project src/api/Aspire/Faber.AppHost
+```
+
+```bash
+dotnet user-secrets remove "Vault:Token" --project src/api/Aspire/Faber.AppHost
+```
+
+Also delete any `VAULT_TOKEN` or `VAULT_ADDR` from your shell profile.
 
 ### Orchestration boundary
 
@@ -262,7 +232,7 @@ The PR body must contain `Closes #N` so the linked issue closes on merge.
 ## What a pull request needs
 
 - Builds pass — backend and frontend
-- Tests pass, and new behavior comes with tests. Backend tests are xUnit v3 + Shouldly + NSubstitute + Bogus + Testcontainers, named `{Scenario}_Should{Outcome}`. Mock external services only (Vault, email) — never infrastructure or internal abstractions
+- Tests pass, and new behavior comes with tests. Backend tests are xUnit v3 + Shouldly + NSubstitute + Bogus + Testcontainers, named `{Scenario}_Should{Outcome}`. Mock external services only (email) — never infrastructure or internal abstractions
 - Frontend changes keep WCAG AA and pass the AXE specs
 - No new credentials, keys, personal data, or machine-specific paths — GitHub secret scanning and push protection catch the obvious cases, but they are not a substitute for looking
 - Conventional PR title with a scope, and `Closes #N` in the body

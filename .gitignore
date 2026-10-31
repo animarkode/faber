@@ -12,14 +12,9 @@
 .env.*
 
 certs/
-vault/agent/output/
 
-infra/vault/file
-infra/vault/.vault-unseal-keys
-infra/vault/agent/role-id
-infra/vault/agent/secret-id
-infra/vault/agent/token
-infra/vault/certs/
+# Vault data left by clones from before #83; safe to delete, kept ignored because it holds unseal keys.
+infra/vault/
 
 *.key
 *.pem
@@ -424,7 +419,6 @@ FodyWeavers.xsd
 ## Visual studio for Mac
 ##
 
-
 # globs
 Makefile.in
 *.usertasks
@@ -449,7 +443,6 @@ test-results/
 
 # Icon must end with two \r
 Icon
-
 
 # Thumbnails
 ._*

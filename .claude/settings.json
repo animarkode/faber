@@ -15,7 +15,6 @@
     "fastendpoints": "on",
     "keycloak-aspnet-integration": "on",
     "tdd": "on",
-    "vault-secrets-aspnet": "on",
     "simplify": "on",
 
     "angular-tooling": "name-only",

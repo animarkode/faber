@@ -2,7 +2,7 @@
 
 Mock at **system boundaries** only:
 
-- External APIs (Keycloak admin API, Resend email, Vault)
+- External APIs (Keycloak admin API, Resend email)
 - Third-party services that are slow/unreliable in tests
 - Time/randomness (when determinism is needed)
 
@@ -20,7 +20,7 @@ Don't mock:
 public class WebApp : AppFixture<Program>
 {
     // PostgreSQL, Redis, Keycloak — all real containers
-    // Only external services (email, Vault) are substituted
+    // Only external services (email) are substituted
 }
 ```
 

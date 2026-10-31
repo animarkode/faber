@@ -58,7 +58,7 @@ Features/{Feature}/
 
 **Guidelines:**
 - Testcontainers for all infrastructure — no shared or persistent test databases
-- Mock only external services (Vault, email), not internal abstractions
+- Mock only external services (email), not internal abstractions
 - `ClassData` > `InlineData` — use Bogus for generated data; `InlineData` only for literals
 - Data classes implement `IEnumerable<TheoryDataRow<T>>` with seeded fakers for deterministic data
 - Register record types used in `TheoryDataRow` via `RecordSerializer` (`[assembly: RegisterXunitSerializer]`)

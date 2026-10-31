@@ -13,7 +13,7 @@ Keycloak owns every credential and every sign-in page. The API is a backend-for-
 |---|---|
 | Realm configuration (the whole realm, as code) | `infra/keycloak/config/faber.json` |
 | AppHost wiring (stock Keycloak, `keycloak-config`, providers from user-secrets) | `src/api/Aspire/Faber.AppHost/Program.cs`, `SocialProviderExtensions.cs` |
-| Passkeys toggle + client secret → Vault | `src/api/Jobs/Faber.Bootstrap` |
+| Passkeys toggle (`keycloak-passkeys` step) | `infra/keycloak/passkeys.sh` |
 | Schemes, cookie, OIDC and JWT bearer options | `src/api/Modules/Auth/Faber.Modules.Auth.Application/Authentication/` |
 | Session store, refresh, Keycloak back-channel calls | `.../Auth.Application/Sessions/` |
 | Endpoints (`login`, `register`, `user`, `logout`, `backchannel-logout`) | `.../Auth.Application/Features/` |
@@ -26,7 +26,7 @@ Keycloak owns every credential and every sign-in page. The API is a backend-for-
 1. **Never handle a credential in the API or the web app.** No password grant, no sign-in form, no password-reset endpoint. Anything a person types to prove who they are goes on a Keycloak page.
 2. **Never send a token to the browser.** The browser holds only `__Host-faber`; tokens stay in the session ticket. `auth/user` returns claims, never tokens.
 3. **Change the realm only in `faber.json`.** keycloak-config-cli applies it on every start; console edits are overwritten. Do not add built-in objects (`realm-management`, `broker`, their roles) — the CLI cannot update them.
-4. **keycloak-config-cli 6.5.1 (Keycloak 26.1 model) does not know realm fields added after 26.1** (e.g. `webAuthnPolicyPasswordless*Passkeys*`, `...Mediation`) and resets them on every import. Set such fields from `Faber.Bootstrap` after the import, as `KeycloakAdminClient.EnablePasskeysAsync` does, and say why in a comment.
+4. **keycloak-config-cli 6.5.1 (Keycloak 26.1 model) does not know realm fields added after 26.1** (e.g. `webAuthnPolicyPasswordless*Passkeys*`, `...Mediation`) and resets them on every import. Set such fields from `infra/keycloak/passkeys.sh` (the `keycloak-passkeys` one-shot, run after every keycloak-config run, in the stack and in `FaberKeycloak`), and say why in a comment.
 5. **Linking stays inside Keycloak.** The `faber first broker login` flow creates a user for a new e-mail and otherwise runs `idp-confirm-link` + re-authentication. Never add `idp-auto-link` or `idp-email-verification`. Google keeps its `email_verified` essential-claim filter.
 6. **One bearer predicate.** `AuthSchemes.IsBearerRequest` decides both the scheme and whether the CSRF header is required. Never test the `Authorization` header another way.
 7. **Bearer means access token.** JwtBearer rejects any token whose `typ` claim is not `Bearer` (ID tokens share `aud=faber-api`).
@@ -42,7 +42,7 @@ Keycloak owns every credential and every sign-in page. The API is a backend-for-
 
 ## Options
 
-`KeycloakOptions` binds the `Keycloak` section (`Issuer`, `Audience`, `RequireHttpsMetadata`, `DefaultSessionIdleSeconds`); `ClientId` and `ClientSecret` come from Vault (`secrets/keycloak`) unless configured. Token and logout endpoints derive from `Issuer`.
+`KeycloakOptions` binds the `Keycloak` section (`Issuer`, `Audience`, `RequireHttpsMetadata`, `DefaultSessionIdleSeconds`); `ClientId` (`faber-api`) and `ClientSecret` are configuration only, and the API fails on start if either is empty. In Development the AppHost passes the secret from its `faber-api-client-secret` parameter as `Keycloak__ClientSecret`, and to `keycloak-config` as `FABER_API_CLIENT_SECRET`, which the realm uses as the client's secret. In production both come from environment variables. Test fixtures pass them with `UseSetting`, and `FaberKeycloak` passes `FABER_API_CLIENT_SECRET` to its config-cli container. Token and logout endpoints derive from `Issuer`.
 
 ## Testing
 

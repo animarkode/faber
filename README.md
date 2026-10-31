@@ -6,9 +6,9 @@
 
 **Prerequisites:** .NET 8 SDK or newer, Node.js 24, Docker Desktop or another OCI-compatible container runtime, and the Aspire CLI — at least the `Aspire.AppHost.Sdk` version pinned in `src/api/Aspire/Faber.AppHost/Faber.AppHost.csproj` (an older CLI fails at startup).
 
-A first run takes four .NET user-secrets on the AppHost, one Vault initialization from a terminal, and one restart; migrations, the Keycloak realm and Vault's secrets are then provisioned automatically. The **Aspire Dashboard** opens at `https://localhost:15xxx` as soon as the AppHost starts.
+A first run takes four .NET user-secrets on the AppHost; migrations, the Keycloak realm and the API's client secret are then provisioned automatically. The **Aspire Dashboard** opens at `https://localhost:15xxx` as soon as the AppHost starts.
 
-The full step-by-step walkthrough lives in [CONTRIBUTING.md → Getting set up](CONTRIBUTING.md#getting-set-up); recovering from changed credentials or a lost Vault key is covered in [Resetting local state](CONTRIBUTING.md#resetting-local-state).
+The full step-by-step walkthrough lives in [CONTRIBUTING.md → Getting set up](CONTRIBUTING.md#getting-set-up); recovering from changed credentials is covered in [Resetting local state](CONTRIBUTING.md#resetting-local-state).
 
 ## Tech Stack
 
@@ -16,7 +16,6 @@ The full step-by-step walkthrough lives in [CONTRIBUTING.md → Getting set up](
 - ASP.NET Core 8.0 + FastEndpoints
 - PostgreSQL (EF Core) + Redis (caching)
 - Keycloak (OAuth2/OIDC auth)
-- HashiCorp Vault (secrets)
 - OpenTelemetry (observability)
 
 **Frontend:**
@@ -112,7 +111,6 @@ The Aspire AppHost is the canonical way to run the complete development stack:
 |-----------|-----------|----------------------------------|
 | postgres  | 5432      | Database                         |
 | redis     | 6379      | Caching (resumes, rendered PDFs) |
-| vault     | 8200      | Secrets management               |
 | keycloak  | 8080      | Identity provider                |
 | mailpit   | 8025/1025 | Email testing                    |
 | faberhost | 7106      | API                              |
@@ -125,7 +123,7 @@ The Aspire AppHost is the only local orchestration definition tracked in this re
 
 **Guidelines:**
 - Testcontainers for PostgreSQL, Redis, Keycloak — no mocked infrastructure
-- Mock only external services (Vault, email)
+- Mock only external services (email)
 - Bogus for test data generation
 - Shouldly for assertions
 
@@ -134,7 +132,7 @@ The Aspire AppHost is the only local orchestration definition tracked in this re
 **Backend:** `appsettings.json` + Options Pattern  
 **Frontend:** `src/environments/environment.ts` (dev) / `environment.prod.ts` (prod)
 
-Secrets managed by HashiCorp Vault — never commit credentials.
+Secrets are AppHost parameters in user-secrets in development and environment variables in production — never commit credentials.
 
 ## Contributing
 

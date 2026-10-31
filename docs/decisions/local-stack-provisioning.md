@@ -7,17 +7,18 @@ in `CONTRIBUTING.md`, written in #556.
 
 ## What stays manual
 
-Vault's `operator init` and unseal. The root token and unseal keys are printed once and cannot be
-regenerated, so no part of the stack creates or stores them. A first run therefore goes: start the
-AppHost, initialize Vault, write `infra/vault/.vault-unseal-keys` and set `Parameters:vault-token`,
-restart once.
-Everything else below happens as the stack comes up.
+The four Postgres and Keycloak admin parameters, and the Google and GitHub credentials if those
+providers are used. Everything else below happens as the stack comes up.
+
+Update (#83): this section first listed Vault's `operator init` and unseal as the manual step.
+Vault is gone, so a clean clone now needs no initialization and no restart. The `faber-api` client
+secret is an AppHost parameter that Aspire generates on the first run.
 
 ## Automatic migrations
 
 Local development runs `Faber.Migrations` automatically once the `faberdb` database exists.
 Keycloak waits for migration completion before it starts, and the API waits for both
-migrations and bootstrap to complete. This keeps schema creation in the same migration path
+migrations and the realm steps to complete. This keeps schema creation in the same migration path
 used by deployed environments instead of maintaining a second local bootstrap mechanism, and removes
 the manual `dotnet ef database update` step together with its ephemeral-port and quoting pitfalls.
 
@@ -29,7 +30,7 @@ before issuing `CREATE SCHEMA`; a plain `CREATE SCHEMA IF NOT EXISTS` checks the
 first and fails for a role without it even when the schema already exists. Deployed environments
 declare no external schemas unless they configure the section, so their behavior is unchanged.
 
-## Keycloak realm and Vault secrets
+## Keycloak realm and client secret
 
 Keycloak runs the stock image and imports nothing. The `keycloak-config` resource (keycloak-config-cli)
 applies `infra/keycloak/config/faber.json` once Keycloak is healthy, on every start: it creates the
@@ -39,23 +40,23 @@ variables the AppHost passes in; the file itself holds no secret. Configuring th
 than importing an export once, keeps a long-lived realm (a developer's or a deployment's) from drifting
 away from the repository.
 
-`Faber.Bootstrap` runs once `keycloak-config` has completed and Vault is unsealed. It first turns
-passkeys on, because keycloak-config-cli's realm model predates that setting and drops it on every
-import. It then unconditionally
-regenerates the `faber-api` client secret through Keycloak's admin API — no detection or conditional
-logic, every run gets a fresh secret — then creates the `secrets` KV v2 mount if it is absent and
-writes the regenerated secret to `secrets/keycloak`. Re-running it is safe: an existing KV v2 mount is
-reused, and each write simply reflects the most recently regenerated secret, so `secrets/keycloak` and
-the Keycloak client's actual secret always stay in sync — the secret rotates on every AppHost start,
-which is harmless locally since the API and `bootstrap` restart together and nothing else caches
-the old value.
+`keycloak-passkeys` runs once `keycloak-config` has completed: a one-shot container of the Keycloak image
+that runs `infra/keycloak/passkeys.sh` (kcadm.sh). It only turns passkeys on, because keycloak-config-cli's
+realm model predates that setting and drops it on every import. It replaced the `Faber.Bootstrap` worker
+once that was all the worker did (#83).
+
+Update (#83): bootstrap used to regenerate the `faber-api` client secret on every start and write it
+to Vault at `secrets/keycloak`. The secret is now the AppHost parameter `faber-api-client-secret`,
+generated once and kept in user-secrets. The AppHost passes it to keycloak-config as
+`FABER_API_CLIENT_SECRET`, which the realm file uses as the client's `secret`, and to the API as
+`Keycloak__ClientSecret`. Both sides always read the same value, so nothing has to be kept in sync
+by a job.
 
 It is a separate one-shot service rather than part of the migration step because the two sit on
-opposite sides of Keycloak: the schema must exist *before* Keycloak starts, and the client secret can
-only be set *after* the realm exists.
+opposite sides of Keycloak: the schema must exist *before* Keycloak starts, and the passkey setting
+can only be set *after* the realm exists.
 
-`secrets/database` is not provisioned: Aspire injects `ConnectionStrings__faberdb`, which both modules
-read before falling back to Vault.
+The API reads `ConnectionStrings__faberdb`, which Aspire injects, and has no fallback.
 
 ## Local mail secret
 
@@ -75,17 +76,26 @@ run against that container, so requiring it would keep Vault from starting on a 
 resources that read or write secrets — the bootstrap job and the API — take the `vault-token`
 parameter. Until it is set they wait, and the dashboard names the missing parameter.
 
+Update (#83): Vault and its token parameter are removed, so this no longer applies.
+
+Update (#83): the mail secret was a Vault path, `secrets/mail/resend-api-key`. Vault is gone, so the
+rejected-placeholder reasoning now applies to the configuration value that replaces it: it stays unset
+locally, and a missing one fails on the first email with an error that names it.
+
 ## Required parameters
 
-All five parameters fail closed: a missing value stops the resources that need it and the dashboard
+Update (#83): this section first described five parameters, including `vault-token`, which was
+removed with Vault. The `faber-api-client-secret` parameter was added; it is generated, not entered.
+
+All parameters fail closed: a missing value stops the resources that need it and the dashboard
 names it, rather than passing an empty string to a container.
 
 They share one convention, Aspire's default: each is read from `Parameters:<name>` —
 `Parameters:postgres-username`, `Parameters:postgres-password`, `Parameters:keycloak-admin`,
-`Parameters:keycloak-password` and `Parameters:vault-token`, set with `dotnet user-secrets` on the
-AppHost project. One scheme is easier to learn than the mix of `Postgres:*`, `Vault:Token` and
+`Parameters:keycloak-password`, set with `dotnet user-secrets` on the
+AppHost project. One scheme is easier to learn than the mix of `Postgres:*`, the old Vault token key and
 `Parameters:*` that existed before, and it is the key the dashboard writes to when a missing value is
-entered there and saved to user secrets, so even the Vault token can be supplied from the dashboard.
+entered there and saved to user secrets,.
 A checkout set up before this change has to enter its values once under the new keys; it starts on a
 new database volume anyway (below). The contributor steps are in
 [CONTRIBUTING.md](../../CONTRIBUTING.md#3-parameters).
@@ -107,8 +117,7 @@ docker volume ls --filter name=faber-postgres-data-
 
 Consequences for a checkout that existed before this change:
 
-- It starts on a new, empty volume. Migrations recreate the schema, `keycloak-config` recreates the realm, and
-  bootstrap writes the newly generated client secret, so the stack comes up without manual steps.
+- It starts on a new, empty volume. Migrations recreate the schema, `keycloak-config` recreates the realm, so the stack comes up without manual steps.
   Local data in the old database, such as registered users, is not carried over.
 - The old fixed-name `faber-postgres-data` volume is no longer used by anything and can be removed once
   its data is not needed. Stopped Aspire containers can still hold it; the removal steps are in
@@ -117,4 +126,4 @@ Consequences for a checkout that existed before this change:
   whatever `Parameters:postgres-username` and `Parameters:postgres-password` are set to at that point.
 
 Automated AppHost tests validate the dependency graph and configuration model without creating or
-persisting a Vault root token; the end-to-end clean-clone run is verified by hand.
+persisting a secret; the end-to-end clean-clone run is verified by hand.

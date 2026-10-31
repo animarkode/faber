@@ -1,22 +1,10 @@
 using Faber.AppHost;
-using Faber.AppHost.Vault;
 using Projects;
 
 var builder = DistributedApplication.CreateBuilder(args);
 
 var solutionRoot = Path.GetFullPath(Path.Combine(builder.AppHostDirectory, "..", "..", "..", ".."));
-var vaultDir = Path.Combine(solutionRoot, "infra/vault");
 var keycloakDir = Path.Combine(solutionRoot, "infra/keycloak");
-var vaultToken = builder.AddParameter("vault-token", secret: true)
-    .WithDescription(
-        "Root token printed once by `vault operator init`. Vault itself starts without it; secret " +
-        "bootstrap and the API wait until it is set.",
-        enableMarkdown: true);
-
-builder.AddVaultIntegration(options =>
-{
-    options.UnsealKeysFile = Path.Combine(vaultDir, ".vault-unseal-keys");
-});
 
 // RedisInsight gets a random host port: it's reached through the dashboard link, not a fixed
 // address, so it doesn't need a slot in this file's hard-pinned port list.
@@ -39,24 +27,27 @@ var faberDb = postgres.AddDatabase("faberdb");
 // Keycloak keeps its tables in its own schema, which its Liquibase migrations expect to exist.
 // The migration service creates it before Keycloak starts, and only because it is declared here.
 const string keycloakSchema = "keycloak";
+const string keycloakRegistry = "quay.io";
+const string keycloakImage = "keycloak/keycloak";
+const string keycloakTag = "26.8.1";
 
 var migrations = builder.AddProject<Faber_Migrations>("migrations")
     .WithReference(faberDb)
     .WithEnvironment("Migrations__ExternalSchemas__0", keycloakSchema)
     .WaitFor(faberDb);
 
-var vault = builder.AddContainer("vault", "hashicorp/vault", "1.19.4")
-    .WithHttpEndpoint(port: 8200, targetPort: 8200, name: "vault-http")
-    .WithHttpHealthCheck(path: "/v1/sys/health", endpointName: "vault-http")
-    .WithBindMount(Path.Combine(vaultDir, "file"), "/vault/file")
-    .WithBindMount(Path.Combine(vaultDir, "config"), "/vault/config")
-    .WithArgs("vault", "server", "-config=/vault/config/config.hcl")
-    // No VAULT_TOKEN here: the token only exists after `vault operator init` has run against this
-    // container, so requiring it would keep Vault from starting on a clean clone. Only the
-    // resources that read or write secrets (bootstrap, faberapi) take the vault-token parameter.
-    .WithEnvironment("VAULT_ADDR", "http://127.0.0.1:8200")
-    .WithEnvironment("VAULT_API_ADDR", "http://127.0.0.1:8200")
-    .WithUnsealHook();
+// Generated on first run and kept in user-secrets: keycloak-config sets it on the faber-api client and
+// the API presents it back, so both read the same value and nothing has to read it out of Keycloak.
+var faberApiClientSecret = builder.AddParameter(
+        "faber-api-client-secret",
+        new GenerateParameterDefault
+        {
+            MinLength = 48,
+            Special = false
+        },
+        secret: true,
+        persist: true)
+    .WithDescription("Client secret of the faber-api Keycloak client. Generated once and kept in user-secrets.");
 
 var keycloakUser = builder.AddParameter("keycloak-admin")
     .WithDescription("Username of Keycloak's bootstrap admin in the master realm.");
@@ -65,8 +56,8 @@ var keycloakPass = builder.AddParameter("keycloak-password", secret: true)
 
 // The stock image: sign-in pages, account console and flows are all Keycloak's own. The realm is
 // not imported here; keycloak-config applies infra/keycloak/config on every start instead.
-var keycloak = builder.AddContainer("keycloak", "keycloak/keycloak", "26.8.1")
-    .WithImageRegistry("quay.io")
+var keycloak = builder.AddContainer("keycloak", keycloakImage, keycloakTag)
+    .WithImageRegistry(keycloakRegistry)
     .WithHttpEndpoint(port: 8080, targetPort: 8080, name: "keycloak-http")
     .WithHttpEndpoint(port: 9000, targetPort: 9000, name: "keycloak-management")
     .WithHttpHealthCheck(path: "/health/ready", endpointName: "keycloak-management")
@@ -95,6 +86,9 @@ var keycloakConfig = builder.AddContainer("keycloak-config", "adorsys/keycloak-c
     .WithEnvironment("KEYCLOAK_AVAILABILITYCHECK_ENABLED", "true")
     .WithEnvironment("IMPORT_FILES_LOCATIONS", "/config/*")
     .WithEnvironment("IMPORT_VARSUBSTITUTION_ENABLED", "true")
+    // Off: the import cache can skip a run whose only change is a variable, such as a rotated secret.
+    .WithEnvironment("IMPORT_CACHE_ENABLED", "false")
+    .WithEnvironment("FABER_API_CLIENT_SECRET", faberApiClientSecret)
     .WithEnvironment("FABER_APP_URL", "http://localhost:4200")
     .WithEnvironment("FABER_BACKCHANNEL_LOGOUT_URL", "http://host.docker.internal:5020/api/v1/auth/backchannel-logout")
     .WithEnvironment("KC_SMTP_HOST", "mailpit")
@@ -105,28 +99,28 @@ var keycloakConfig = builder.AddContainer("keycloak-config", "adorsys/keycloak-c
     .WaitFor(keycloak)
     .WaitFor(mailpit);
 
-var bootstrap = builder.AddProject<Faber_Bootstrap>("bootstrap")
-    .WithEnvironment("Bootstrap__KeycloakAddress", keycloak.GetEndpoint("keycloak-http"))
-    .WithEnvironment("Bootstrap__KeycloakAdminUsername", keycloakUser)
-    .WithEnvironment("Bootstrap__KeycloakAdminPassword", keycloakPass)
-    .WithEnvironment("Bootstrap__KeycloakRealm", "faber")
-    .WithEnvironment("Bootstrap__KeycloakClientId", "faber-api")
-    .WithEnvironment("Bootstrap__VaultAddress", vault.GetEndpoint("vault-http"))
-    .WithEnvironment("Bootstrap__VaultToken", vaultToken)
-    .WithEnvironment("Bootstrap__VaultMountPoint", "secrets")
-    .WaitForCompletion(keycloakConfig)
-    .WaitFor(vault);
+// Turns passkeys on after every keycloak-config run: config-cli's realm model predates those fields and
+// drops them on each import. kcadm.sh ships in the Keycloak image; credentials go in the environment,
+// not the args, because the dashboard shows args.
+var keycloakPasskeys = builder.AddContainer("keycloak-passkeys", keycloakImage, keycloakTag)
+    .WithImageRegistry(keycloakRegistry)
+    .WithBindMount(Path.Combine(keycloakDir, "passkeys.sh"), "/scripts/passkeys.sh", isReadOnly: true)
+    .WithEntrypoint("/bin/bash")
+    .WithArgs("/scripts/passkeys.sh")
+    .WithEnvironment("KEYCLOAK_URL", "http://keycloak:8080")
+    .WithEnvironment("KEYCLOAK_USER", keycloakUser)
+    .WithEnvironment("KEYCLOAK_PASSWORD", keycloakPass)
+    .WithEnvironment("KEYCLOAK_REALM", "faber")
+    .WaitForCompletion(keycloakConfig);
 
 var faberApi = builder.AddProject<Faber_Api>("faberapi")
     .WaitFor(redis)
     .WaitFor(faberDb)
     .WaitForCompletion(migrations)
-    .WaitForCompletion(bootstrap)
-    .WaitFor(vault)
+    .WaitForCompletion(keycloakPasskeys)
     .WaitFor(keycloak)
     .WaitFor(mailpit)
-    .WithEnvironment("VAULT_ADDR", "http://localhost:8200")
-    .WithEnvironment("VAULT_TOKEN", vaultToken)
+    .WithEnvironment("Keycloak__ClientSecret", faberApiClientSecret)
     .WithReference(redis)
     .WithReference(faberDb);
 

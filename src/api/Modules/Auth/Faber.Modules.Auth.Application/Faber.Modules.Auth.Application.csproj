@@ -20,7 +20,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\Common\Faber.Modules.Common.PublicApi\Faber.Modules.Common.PublicApi.csproj"/>
-        <ProjectReference Include="..\..\Vault\Faber.Modules.Vault.PublicApi\Faber.Modules.Vault.PublicApi.csproj"/>
         <ProjectReference Include="..\Faber.Modules.Auth.Infrastructure\Faber.Modules.Auth.Infrastructure.csproj"/>
         <ProjectReference Include="..\Faber.Modules.Auth.PublicApi\Faber.Modules.Auth.PublicApi.csproj"/>
     </ItemGroup>

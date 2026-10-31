@@ -15,13 +15,10 @@
         <PackageReference Include="Aspire.Hosting.PostgreSQL" Version="13.5.3" />
         <PackageReference Include="Aspire.Hosting.Redis" Version="13.5.3" />
         <PackageReference Include="CommunityToolkit.Aspire.Hosting.MailPit" Version="13.5.0" />
-        <PackageReference Include="Microsoft.Extensions.Http.Polly" Version="10.0.12" />
-        <PackageReference Include="Refit.HttpClientFactory" Version="15.2.0" />
     </ItemGroup>
 
     <ItemGroup>
         <ProjectReference Include="..\..\Faber.Api\Faber.Api.csproj" />
-        <ProjectReference Include="..\..\Jobs\Faber.Bootstrap\Faber.Bootstrap.csproj" />
         <ProjectReference Include="..\..\Jobs\Faber.Migrations\Faber.Migrations.csproj" />
     </ItemGroup>
 

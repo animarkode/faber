@@ -1,10 +1,10 @@
+using Faber.Modules.Common.PublicApi;
 using Faber.Modules.Resumes.Application.Authorization;
 using Faber.Modules.Resumes.Application.Caching;
 using Faber.Modules.Resumes.Application.Features.Documents.Shared;
 using Faber.Modules.Resumes.Application.Options;
 using Faber.Modules.Resumes.Infrastructure.Database;
 using Faber.Modules.Resumes.PublicApi;
-using Faber.Modules.Vault.PublicApi;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -14,7 +14,7 @@ namespace Faber.Modules.Resumes.Application;
 
 public static class DependencyInjection
 {
-    public static async Task AddResumesModuleAsync(
+    public static IServiceCollection AddResumesModule(
         this IServiceCollection services,
         IConfiguration configuration)
     {
@@ -38,13 +38,7 @@ public static class DependencyInjection
                 p =>
                     p.Requirements.Add(new ResumeOwnershipRequirement()));
 
-        var connectionString = configuration.GetConnectionString("faberdb");
-
-        if (string.IsNullOrEmpty(connectionString))
-        {
-            var vaultModuleApi = services.BuildServiceProvider().GetRequiredService<IVaultModuleApi>();
-            connectionString = await vaultModuleApi.GetDatabaseConnectionStringAsync();
-        }
+        var connectionString = configuration.GetRequiredConnectionString("faberdb");
 
         services.AddDbContext<ResumesDbContext>((sp, o) => o
             .UseNpgsql(
@@ -56,5 +50,7 @@ public static class DependencyInjection
             .UseSnakeCaseNamingConvention()
             .AddInterceptors(sp.GetRequiredService<ResumesCacheInvalidationInterceptor>())
         );
+
+        return services;
     }
 }

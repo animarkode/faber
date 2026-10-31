@@ -26,7 +26,7 @@ One e-mail is one account, and e-mail is the login.
 
 **Never change the realm in the admin console.** The next deployment overwrites the change. Edit `faber.json`, test it, and deploy.
 
-Run the image `adorsys/keycloak-config-cli:6.5.1-26.1.0` as a one-shot job after Keycloak is healthy and before `Faber.Bootstrap` and the API. Mount `infra/keycloak/config` read-only at `/config`, and set:
+Run the image `adorsys/keycloak-config-cli:6.5.1-26.1.0` as a one-shot job after Keycloak is healthy and before the passkeys step and the API. Mount `infra/keycloak/config` read-only at `/config`, and set:
 
 | Variable | Value |
 |---|---|
@@ -35,8 +35,10 @@ Run the image `adorsys/keycloak-config-cli:6.5.1-26.1.0` as a one-shot job after
 | `KEYCLOAK_AVAILABILITYCHECK_ENABLED` | `true` |
 | `IMPORT_FILES_LOCATIONS` | `/config/*` |
 | `IMPORT_VARSUBSTITUTION_ENABLED` | `true` |
+| `IMPORT_CACHE_ENABLED` | `false`, so a run whose only change is a variable (a rotated secret, a provider switched on) is still applied |
 | `FABER_APP_URL` | the web app's public origin, `https://<APP-HOST>`; the API callback is `https://<APP-HOST>/api/v1/auth/callback` |
 | `FABER_BACKCHANNEL_LOGOUT_URL` | the API's back-channel logout endpoint as Keycloak reaches it, e.g. `http://<API-INTERNAL-HOST>/api/v1/auth/backchannel-logout` |
+| `FABER_API_CLIENT_SECRET` | the `faber-api` client secret, from the platform's secret store; the realm sets the client's `secret` to it, and the job fails if it is missing |
 | `KC_SMTP_HOST`, `KC_SMTP_PORT`, `KC_SMTP_FROM` | the mail server Keycloak sends verification and reset mail through |
 | `KC_SMTP_AUTH`, `KC_SMTP_USER`, `KC_SMTP_PASSWORD`, `KC_SMTP_SSL`, `KC_SMTP_STARTTLS` | optional, default off |
 | `GOOGLE_ENABLED`, `GOOGLE_CLIENT_ID`, `GOOGLE_CLIENT_SECRET` | `true` and the Google OAuth credentials, or `false` |
@@ -44,7 +46,7 @@ Run the image `adorsys/keycloak-config-cli:6.5.1-26.1.0` as a one-shot job after
 
 The job exits with code 0 on success. A non-zero exit must stop the deployment.
 
-`Faber.Bootstrap` then runs, as in Development. It turns passkeys on (the config tool's realm model cannot express that setting yet and drops it on every import), regenerates the `faber-api` client secret and writes it to Vault at `secrets/keycloak`.
+The passkeys step then runs, as `keycloak-passkeys` in Development. Run the Keycloak image (the same tag as the server) as a one-shot job after keycloak-config, with `infra/keycloak/passkeys.sh` mounted read-only, the entrypoint `/bin/bash`, the script's path as the only argument, and the environment variables `KEYCLOAK_URL`, `KEYCLOAK_USER` and `KEYCLOAK_PASSWORD` (the same values as for keycloak-config; keep the credentials out of the arguments). It only turns passkeys on with `kcadm.sh`, because the config tool's realm model cannot express that setting yet and drops it on every import. A non-zero exit must stop the deployment. It does not touch the client secret. In Development the secret is the AppHost parameter `faber-api-client-secret`, generated on the first run and kept in the AppHost user-secrets. In production it is an environment variable from the platform's secret store.
 
 ## 3. Keycloak itself
 
@@ -96,6 +98,18 @@ Keycloak__BaseUrl=https://<KEYCLOAK-HOST>
 Keycloak__Realm=faber
 ```
 
+Also set these, injected from the platform's secret store:
+
+```text
+ConnectionStrings__faberdb=<CONNECTION-STRING>
+```
+
+```text
+Keycloak__ClientSecret=<FABER-API-CLIENT-SECRET>
+```
+
+`Keycloak__ClientSecret` must equal `FABER_API_CLIENT_SECRET` given to `keycloak-config`. `Keycloak__ClientId` defaults to `faber-api`. The API refuses to start without the connection string or the client secret.
+
 `Keycloak__RequireHttpsMetadata` defaults to `true`; leave it.
 
 Serve the web app and the API on **one origin**, `https://<APP-HOST>`, with `/api` routed to the API. The session cookie is `SameSite=Strict` and the API grants no CORS, so a split origin does not work.
@@ -104,7 +118,18 @@ Sessions and Data Protection keys live in the `auth` schema of `faberdb`, create
 
 - Session rows are keyed by the SHA-256 of the cookie's key, so a copy of the table does not yield working cookies. The Data Protection key ring that encrypts the tickets is in the same database and is not yet encrypted with a key held elsewhere; treat database backups as secrets.
 - An hourly job deletes expired session rows.
-- A refresh that Keycloak refuses with `invalid_grant` ends the session. A Keycloak that is down, slow, or refuses the client (`invalid_client`, for example right after `Faber.Bootstrap` rotated the secret while an API instance still holds the old one) does not: the session is kept and the error is logged. Restart API instances after rotating the client secret.
+- A refresh that Keycloak refuses with `invalid_grant` ends the session. A Keycloak that is down, slow, or refuses the client (`invalid_client`, for example right after the client secret changed while an API instance still holds the old one) does not: the session is kept and the error is logged. Restart API instances after rotating the client secret.
+
+### Rotating the client secret
+
+Rotation is manual. Nothing regenerates the secret on its own.
+
+1. Generate a new value, for example 48 random alphanumeric characters.
+2. Replace it in the secret store (production) or in the AppHost user-secrets as `Parameters:faber-api-client-secret` (development).
+3. Redeploy `keycloak-config` so Keycloak takes the new secret.
+4. Redeploy the API with the same value as `Keycloak__ClientSecret`. Do this together with step 3.
+
+Between steps 3 and 4 the API holds the old secret, so Keycloak refuses it with `invalid_client`: new sign-ins fail at the callback, and token refreshes fail while sessions are kept. Keep the gap short.
 
 ## 5. Provider OAuth apps
 

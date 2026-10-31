@@ -25,14 +25,10 @@
 LICENSE
 README.md
 
-# Local Vault state, credentials, and certificates (keep aligned with .gitignore).
+# Local certificates (keep aligned with .gitignore).
 **/certs
-**/vault/agent/output
-infra/vault/file
-infra/vault/.vault-unseal-keys
-infra/vault/agent/role-id
-infra/vault/agent/secret-id
-infra/vault/agent/token
+# Vault data left by clones from before #83; safe to delete, kept ignored because it holds unseal keys.
+infra/vault/
 **/*.key
 **/*.pem
 **/*.crt

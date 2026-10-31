@@ -8,7 +8,6 @@ public static class HealthCheckRegistration
 {
     public static IServiceCollection AddApiReadinessChecks(this IServiceCollection services)
     {
-        services.AddHttpClient("health-vault", client => client.Timeout = TimeSpan.FromSeconds(4));
         services.AddHttpClient("health-keycloak", client => client.Timeout = TimeSpan.FromSeconds(4));
 
         services.AddHealthChecks()
@@ -17,9 +16,6 @@ public static class HealthCheckRegistration
                 timeout: TimeSpan.FromSeconds(5))
             .AddCheck<DatabaseHealthCheck<ResumesDbContext>>(
                 "resumes-db", failureStatus: HealthStatus.Unhealthy, tags: ["ready"],
-                timeout: TimeSpan.FromSeconds(5))
-            .AddCheck<VaultHealthCheck>(
-                "vault", failureStatus: HealthStatus.Unhealthy, tags: ["ready"],
                 timeout: TimeSpan.FromSeconds(5))
             .AddCheck<KeycloakHealthCheck>(
                 "keycloak", failureStatus: HealthStatus.Unhealthy, tags: ["ready"],

@@ -32,11 +32,10 @@ As of 2026-09-07, these root skills are intentionally outside `skills-lock.json`
 - `github-workflow`
 - `impl-gh-issue`
 - `keycloak-aspnet-integration`
-- `vault-secrets-aspnet`
 
 `mailpit-integration` was previously (incorrectly) listed here; it is externally sourced and tracked in `skills-lock.json` under `aaronontheweb/dotnet-skills` (sourceType `github`), so it has been removed from this list. `impl-gh-issue` was added after this doc's original 2026-05-03 date (PRs #441/#442). `impl-gh-issue` and `github-workflow` originally lived under `.claude/skills/` as real directories (not symlinks) — as of 2026-09-07 both were moved to `.agents/skills/` as backing storage with `.claude/skills/` symlinked back, so every Faber-authored skill now follows rule 1's symlink pattern uniformly; neither is tracked in `skills-lock.json`, so both belong here.
 
-Note: GitHub issue #436 predicted the corrected count would be "6" — that prediction predates `impl-gh-issue` landing. The verified count is 8, with `impl-gh-issue` replacing `mailpit-integration` in the list and `github-workflow` added on 2026-09-07.
+Note: GitHub issue #436 predicted the corrected count would be "6" — that prediction predates `impl-gh-issue` landing. The verified count was 8, with `impl-gh-issue` replacing `mailpit-integration` in the list and `github-workflow` added on 2026-09-07. `vault-secrets-aspnet` was removed with the Vault module (#83), leaving 7.
 
 These skills are versioned directly through Git as normal repository content.
 
