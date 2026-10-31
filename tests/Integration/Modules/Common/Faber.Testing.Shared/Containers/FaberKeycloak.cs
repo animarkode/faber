@@ -70,6 +70,7 @@ public sealed class FaberKeycloak : IAsyncDisposable
         await container.StartAsync(ct);
 
         await ApplyRealmConfigurationAsync(network, appUrl, backchannelLogoutUrl, ct);
+        await EnablePasskeysAsync(network, ct);
 
         var keycloak = new FaberKeycloak(container);
         await container.DisableSslRequirementAsync(AdminUsername, AdminPassword, ["master", Realm], ct);
@@ -140,6 +141,32 @@ public sealed class FaberKeycloak : IAsyncDisposable
         }
     }
 
+    // The same script the stack runs after keycloak-config, in the same image.
+    private static async Task EnablePasskeysAsync(INetwork network, CancellationToken ct)
+    {
+        await using var passkeys = new ContainerBuilder(Image)
+            .WithName($"keycloak-passkeys-tests-{Guid.NewGuid()}")
+            .WithNetwork(network)
+            .WithBindMount(RepositoryFile("infra", "keycloak", "passkeys.sh"), "/scripts/passkeys.sh", AccessMode.ReadOnly)
+            .WithEntrypoint("/bin/bash")
+            .WithCommand("/scripts/passkeys.sh")
+            .WithEnvironment("KEYCLOAK_URL", $"http://{NetworkAlias}:8080")
+            .WithEnvironment("KEYCLOAK_USER", AdminUsername)
+            .WithEnvironment("KEYCLOAK_PASSWORD", AdminPassword)
+            .WithEnvironment("KEYCLOAK_REALM", Realm)
+            .WithWaitStrategy(Wait.ForUnixContainer())
+            .Build();
+
+        await passkeys.StartAsync(ct);
+        var exitCode = await passkeys.GetExitCodeAsync(ct);
+
+        if (exitCode != 0)
+        {
+            var (stdout, stderr) = await passkeys.GetLogsAsync(ct: ct);
+            throw new InvalidOperationException($"passkeys.sh failed with exit code {exitCode}.\n{stdout}\n{stderr}");
+        }
+    }
+
     private async Task CreateTestClientAsync(CancellationToken ct)
     {
         object AudienceMapper(string name, bool idToken) => new
@@ -166,7 +193,9 @@ public sealed class FaberKeycloak : IAsyncDisposable
         }, ct);
     }
 
-    private static string RealmConfigDirectory()
+    private static string RealmConfigDirectory() => RepositoryFile("infra", "keycloak", "config");
+
+    private static string RepositoryFile(params string[] segments)
     {
         var directory = new DirectoryInfo(AppContext.BaseDirectory);
         while (directory is not null && !File.Exists(Path.Combine(directory.FullName, "Faber.sln")))
@@ -176,6 +205,6 @@ public sealed class FaberKeycloak : IAsyncDisposable
 
         return directory is null
             ? throw new InvalidOperationException("Could not find the repository root (Faber.sln).")
-            : Path.Combine(directory.FullName, "infra", "keycloak", "config");
+            : Path.Combine([directory.FullName, .. segments]);
     }
 }

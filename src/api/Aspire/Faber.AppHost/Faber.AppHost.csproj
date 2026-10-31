@@ -19,7 +19,6 @@
 
     <ItemGroup>
         <ProjectReference Include="..\..\Faber.Api\Faber.Api.csproj" />
-        <ProjectReference Include="..\..\Jobs\Faber.Bootstrap\Faber.Bootstrap.csproj" />
         <ProjectReference Include="..\..\Jobs\Faber.Migrations\Faber.Migrations.csproj" />
     </ItemGroup>
 

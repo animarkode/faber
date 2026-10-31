@@ -30,15 +30,15 @@ public class AppHostModelTests
         var migrations = builder.Resources.Single(resource => resource.Name == "migrations");
         var keycloak = builder.Resources.Single(resource => resource.Name == "keycloak");
         var keycloakConfig = builder.Resources.Single(resource => resource.Name == "keycloak-config");
-        var bootstrap = builder.Resources.Single(resource => resource.Name == "bootstrap");
+        var keycloakPasskeys = builder.Resources.Single(resource => resource.Name == "keycloak-passkeys");
         var api = builder.Resources.Single(resource => resource.Name == "faberapi");
 
         migrations.ShouldWaitFor(faberDb, WaitType.WaitUntilHealthy);
         keycloak.ShouldWaitFor(migrations, WaitType.WaitForCompletion);
         keycloakConfig.ShouldWaitFor(keycloak, WaitType.WaitUntilHealthy);
-        bootstrap.ShouldWaitFor(keycloakConfig, WaitType.WaitForCompletion);
+        keycloakPasskeys.ShouldWaitFor(keycloakConfig, WaitType.WaitForCompletion);
         api.ShouldWaitFor(migrations, WaitType.WaitForCompletion);
-        api.ShouldWaitFor(bootstrap, WaitType.WaitForCompletion);
+        api.ShouldWaitFor(keycloakPasskeys, WaitType.WaitForCompletion);
     }
 
     [Fact]
@@ -100,6 +100,43 @@ public class AppHostModelTests
         environment["FABER_BACKCHANNEL_LOGOUT_URL"]
             .ShouldBe("http://host.docker.internal:5020/api/v1/auth/backchannel-logout");
         environment["KC_SMTP_HOST"].ShouldBe("mailpit");
+    }
+
+    [Fact]
+    public async Task KeycloakPasskeys_ShouldRunTheScriptWithCredentialsInTheEnvironmentOnly()
+    {
+        var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.Faber_AppHost>(
+            TestConfiguration,
+            TestContext.Current.CancellationToken);
+        var keycloak = builder.Resources.Single(resource => resource.Name == "keycloak");
+        var passkeys = builder.Resources.Single(resource => resource.Name == "keycloak-passkeys");
+
+        var keycloakImage = keycloak.Annotations.OfType<ContainerImageAnnotation>().Single();
+        var image = passkeys.Annotations.OfType<ContainerImageAnnotation>().Single();
+        (image.Registry, image.Image, image.Tag).ShouldBe((keycloakImage.Registry, keycloakImage.Image, keycloakImage.Tag));
+        ((ContainerResource)passkeys).Entrypoint.ShouldBe("/bin/bash");
+
+        var mount = passkeys.Annotations.OfType<ContainerMountAnnotation>().Single();
+        mount.Type.ShouldBe(ContainerMountType.BindMount);
+        mount.IsReadOnly.ShouldBeTrue();
+        var expectedSource = Path.GetFullPath(Path.Combine(
+            builder.AppHostDirectory, "..", "..", "..", "..", "infra", "keycloak", "passkeys.sh"));
+        Path.GetFullPath(mount.Source!).ShouldBe(expectedSource);
+
+        var configuration = await ExecutionConfigurationBuilder
+            .Create(passkeys)
+            .WithArgumentsConfig()
+            .WithEnvironmentVariablesConfig()
+            .BuildAsync(
+                new DistributedApplicationExecutionContext(DistributedApplicationOperation.Run),
+                NullLogger.Instance,
+                TestContext.Current.CancellationToken);
+
+        configuration.Exception.ShouldBeNull();
+        configuration.Arguments.Select(argument => argument.Value).ShouldBe([mount.Target]);
+        var environment = configuration.EnvironmentVariables.ToDictionary(variable => variable.Key, variable => variable.Value);
+        environment["KEYCLOAK_USER"].ShouldBe("test-keycloak-admin");
+        environment["KEYCLOAK_PASSWORD"].ShouldBe("test-keycloak-password");
     }
 
     [Fact]

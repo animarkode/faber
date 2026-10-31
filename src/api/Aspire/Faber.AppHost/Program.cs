@@ -27,6 +27,9 @@ var faberDb = postgres.AddDatabase("faberdb");
 // Keycloak keeps its tables in its own schema, which its Liquibase migrations expect to exist.
 // The migration service creates it before Keycloak starts, and only because it is declared here.
 const string keycloakSchema = "keycloak";
+const string KeycloakRegistry = "quay.io";
+const string KeycloakImage = "keycloak/keycloak";
+const string KeycloakTag = "26.8.1";
 
 var migrations = builder.AddProject<Faber_Migrations>("migrations")
     .WithReference(faberDb)
@@ -53,8 +56,8 @@ var keycloakPass = builder.AddParameter("keycloak-password", secret: true)
 
 // The stock image: sign-in pages, account console and flows are all Keycloak's own. The realm is
 // not imported here; keycloak-config applies infra/keycloak/config on every start instead.
-var keycloak = builder.AddContainer("keycloak", "keycloak/keycloak", "26.8.1")
-    .WithImageRegistry("quay.io")
+var keycloak = builder.AddContainer("keycloak", KeycloakImage, KeycloakTag)
+    .WithImageRegistry(KeycloakRegistry)
     .WithHttpEndpoint(port: 8080, targetPort: 8080, name: "keycloak-http")
     .WithHttpEndpoint(port: 9000, targetPort: 9000, name: "keycloak-management")
     .WithHttpHealthCheck(path: "/health/ready", endpointName: "keycloak-management")
@@ -96,18 +99,25 @@ var keycloakConfig = builder.AddContainer("keycloak-config", "adorsys/keycloak-c
     .WaitFor(keycloak)
     .WaitFor(mailpit);
 
-var bootstrap = builder.AddProject<Faber_Bootstrap>("bootstrap")
-    .WithEnvironment("Bootstrap__KeycloakAddress", keycloak.GetEndpoint("keycloak-http"))
-    .WithEnvironment("Bootstrap__KeycloakAdminUsername", keycloakUser)
-    .WithEnvironment("Bootstrap__KeycloakAdminPassword", keycloakPass)
-    .WithEnvironment("Bootstrap__KeycloakRealm", "faber")
+// Turns passkeys on after every keycloak-config run: config-cli's realm model predates those fields and
+// drops them on each import. kcadm.sh ships in the Keycloak image; credentials go in the environment,
+// not the args, because the dashboard shows args.
+var keycloakPasskeys = builder.AddContainer("keycloak-passkeys", KeycloakImage, KeycloakTag)
+    .WithImageRegistry(KeycloakRegistry)
+    .WithBindMount(Path.Combine(keycloakDir, "passkeys.sh"), "/scripts/passkeys.sh", isReadOnly: true)
+    .WithEntrypoint("/bin/bash")
+    .WithArgs("/scripts/passkeys.sh")
+    .WithEnvironment("KEYCLOAK_URL", "http://keycloak:8080")
+    .WithEnvironment("KEYCLOAK_USER", keycloakUser)
+    .WithEnvironment("KEYCLOAK_PASSWORD", keycloakPass)
+    .WithEnvironment("KEYCLOAK_REALM", "faber")
     .WaitForCompletion(keycloakConfig);
 
 var faberApi = builder.AddProject<Faber_Api>("faberapi")
     .WaitFor(redis)
     .WaitFor(faberDb)
     .WaitForCompletion(migrations)
-    .WaitForCompletion(bootstrap)
+    .WaitForCompletion(keycloakPasskeys)
     .WaitFor(keycloak)
     .WaitFor(mailpit)
     .WithEnvironment("Keycloak__ClientSecret", faberApiClientSecret)
