@@ -1,17 +1,17 @@
 import { DOCUMENT } from '@angular/common';
-import { effect, inject, Injectable, InjectionToken, signal } from '@angular/core';
-import { environment } from '../../../environments/environment';
+import { effect, inject, Injectable, signal } from '@angular/core';
 
-/** Parent domain for the shared theme cookie; null/empty means a host-only cookie (dev). */
-export const THEME_COOKIE_DOMAIN = new InjectionToken<string | null>('THEME_COOKIE_DOMAIN', {
-  factory: () => environment.cookieDomain || null,
-});
+type Theme = 'dark' | 'light';
 
+/**
+ * Light or dark theme, kept in the `faber-theme` cookie so the Keycloak login pages, served on the
+ * same host, read the same choice. The cookie is host-only: cookies are not port-scoped, so in dev
+ * localhost:4200 and Keycloak on localhost:8080 share it too.
+ */
 @Injectable({ providedIn: 'root' })
 export class ThemeService {
   private readonly document = inject(DOCUMENT);
-  private readonly cookieDomain = inject(THEME_COOKIE_DOMAIN);
-  private readonly storageKey = 'faber-theme';
+  private readonly key = 'faber-theme';
   private readonly oneYearInSeconds = 31536000;
   private readonly _isDark = signal(this.getInitial());
   readonly isDark = this._isDark.asReadonly();
@@ -25,17 +25,11 @@ export class ThemeService {
   toggle(): void {
     const next = !this._isDark();
     this._isDark.set(next);
-    const value = next ? 'dark' : 'light';
-    try {
-      localStorage.setItem(this.storageKey, value);
-    } catch {
-      // storage unavailable; the cookie still carries the choice
-    }
-    this.writeCookie(value);
+    this.writeCookie(next ? 'dark' : 'light');
   }
 
   private getInitial(): boolean {
-    const stored = this.readCookie() ?? this.readStorage();
+    const stored = this.readCookie() ?? this.migrateFromStorage();
     if (stored) return stored === 'dark';
     try {
       return this.document.defaultView?.matchMedia('(prefers-color-scheme: dark)').matches ?? false;
@@ -44,36 +38,44 @@ export class ThemeService {
     }
   }
 
-  private readCookie(): 'dark' | 'light' | null {
+  private readCookie(): Theme | null {
     try {
       const match = this.document.cookie
         .split(';')
         .map((part) => part.trim())
-        .find((part) => part.startsWith(`${this.storageKey}=`));
-      const value = match?.slice(this.storageKey.length + 1);
-      return value === 'dark' || value === 'light' ? value : null;
+        .find((part) => part.startsWith(`${this.key}=`));
+      return this.asTheme(match?.slice(this.key.length + 1));
     } catch {
       return null;
     }
   }
 
-  private readStorage(): 'dark' | 'light' | null {
+  // Before the cookie, the choice lived in localStorage, which the login pages cannot read.
+  // Move it over once so those users see their theme there too.
+  private migrateFromStorage(): Theme | null {
     try {
-      const value = localStorage.getItem(this.storageKey);
-      return value === 'dark' || value === 'light' ? value : null;
+      const stored = this.asTheme(localStorage.getItem(this.key));
+      if (stored) {
+        this.writeCookie(stored);
+        localStorage.removeItem(this.key);
+      }
+      return stored;
     } catch {
       return null;
     }
   }
 
-  private writeCookie(value: 'dark' | 'light'): void {
+  private writeCookie(value: Theme): void {
     try {
-      let cookie = `${this.storageKey}=${value}; Path=/; SameSite=Lax; Max-Age=${this.oneYearInSeconds}`;
+      let cookie = `${this.key}=${value}; Path=/; SameSite=Lax; Max-Age=${this.oneYearInSeconds}`;
       if (this.document.location.protocol === 'https:') cookie += '; Secure';
-      if (this.cookieDomain) cookie += `; Domain=${this.cookieDomain}`;
       this.document.cookie = cookie;
     } catch {
       // cookies unavailable
     }
+  }
+
+  private asTheme(value: string | null | undefined): Theme | null {
+    return value === 'dark' || value === 'light' ? value : null;
   }
 }

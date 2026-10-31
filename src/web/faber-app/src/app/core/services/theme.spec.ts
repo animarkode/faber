@@ -1,5 +1,5 @@
 import { TestBed } from '@angular/core/testing';
-import { THEME_COOKIE_DOMAIN, ThemeService } from './theme';
+import { ThemeService } from './theme';
 
 function mockMatchMedia(prefersDark: boolean): void {
   Object.defineProperty(window, 'matchMedia', {
@@ -64,16 +64,28 @@ describe('ThemeService', () => {
   });
 
   describe('initial state — stored preference', () => {
-    it('reads dark from localStorage regardless of system preference', () => {
+    it('reads dark from the old localStorage key regardless of system preference', () => {
       localStorage.setItem('faber-theme', 'dark');
       mockMatchMedia(false);
       expect(TestBed.inject(ThemeService).isDark()).toBe(true);
     });
 
-    it('reads light from localStorage regardless of system preference', () => {
+    it('reads light from the old localStorage key regardless of system preference', () => {
       localStorage.setItem('faber-theme', 'light');
       mockMatchMedia(true);
       expect(TestBed.inject(ThemeService).isDark()).toBe(false);
+    });
+
+    it('moves a localStorage-only choice into the cookie and clears the old key', () => {
+      localStorage.setItem('faber-theme', 'dark');
+      TestBed.inject(ThemeService);
+      expect(document.cookie).toContain('faber-theme=dark');
+      expect(localStorage.getItem('faber-theme')).toBeNull();
+    });
+
+    it('leaves the cookie unwritten when nothing was stored', () => {
+      TestBed.inject(ThemeService);
+      expect(document.cookie).not.toContain('faber-theme=');
     });
 
     it('reads dark from the cookie regardless of system preference', () => {
@@ -104,7 +116,7 @@ describe('ThemeService', () => {
       return writes;
     }
 
-    it('writes the cookie on toggle without a domain', () => {
+    it('writes a host-only cookie on toggle', () => {
       const writes = spyOnCookieWrites();
       TestBed.inject(ThemeService).toggle();
       expect(writes).toEqual(['faber-theme=dark; Path=/; SameSite=Lax; Max-Age=31536000']);
@@ -115,12 +127,6 @@ describe('ThemeService', () => {
       expect(document.cookie).toContain('faber-theme=dark');
     });
 
-    it('adds Domain when a cookie domain is configured', () => {
-      TestBed.overrideProvider(THEME_COOKIE_DOMAIN, { useValue: 'example.com' });
-      const writes = spyOnCookieWrites();
-      TestBed.inject(ThemeService).toggle();
-      expect(writes).toEqual(['faber-theme=dark; Path=/; SameSite=Lax; Max-Age=31536000; Domain=example.com']);
-    });
   });
 
   describe('toggle()', () => {
@@ -154,15 +160,20 @@ describe('ThemeService', () => {
       expect(document.documentElement.classList.contains('dark')).toBe(false);
     });
 
-    it('persists "dark" to localStorage', () => {
+    it('persists "dark" to the cookie', () => {
       service.toggle();
-      expect(localStorage.getItem('faber-theme')).toBe('dark');
+      expect(document.cookie).toContain('faber-theme=dark');
     });
 
-    it('persists "light" to localStorage on second toggle', () => {
+    it('persists "light" to the cookie on second toggle', () => {
       service.toggle();
       service.toggle();
-      expect(localStorage.getItem('faber-theme')).toBe('light');
+      expect(document.cookie).toContain('faber-theme=light');
+    });
+
+    it('no longer writes localStorage', () => {
+      service.toggle();
+      expect(localStorage.getItem('faber-theme')).toBeNull();
     });
   });
 
