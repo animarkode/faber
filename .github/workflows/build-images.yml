@@ -89,3 +89,18 @@ jobs:
           labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
           cache-from: type=gha,scope=faber-web
           cache-to: type=gha,mode=max,scope=faber-web
+
+      # Built from infra/keycloak, where the Dockerfile's COPY of the theme is
+      # rooted. Its own gha cache scope keeps it from clobbering the others.
+      - name: Build and push faber-keycloak
+        uses: docker/build-push-action@c3c9e263c25d99ce0380d002d59b67737d91b0dc # v7.4.0
+        with:
+          context: infra/keycloak
+          file: infra/keycloak/Dockerfile
+          push: true
+          tags: |
+            ${{ env.IMAGE_NAMESPACE }}/faber-keycloak:${{ env.RELEASE_TAG }}
+            ${{ env.IMAGE_NAMESPACE }}/faber-keycloak:latest
+          labels: org.opencontainers.image.source=${{ github.server_url }}/${{ github.repository }}
+          cache-from: type=gha,scope=faber-keycloak
+          cache-to: type=gha,mode=max,scope=faber-keycloak
