@@ -56,7 +56,8 @@ public static class Extensions
             {
                 tracing.AddAspNetCoreInstrumentation()
                     .AddHttpClientInstrumentation()
-                    .AddEntityFrameworkCoreInstrumentation();
+                    .AddEntityFrameworkCoreInstrumentation()
+                    .AddRedisInstrumentation();
             });
 
         AddOpenTelemetryExporters(builder);

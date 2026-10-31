@@ -20,6 +20,7 @@
     <PackageVersion Include="OpenTelemetry.Instrumentation.EntityFrameworkCore" Version="1.15.1-beta.1" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Http" Version="1.18.0" />
     <PackageVersion Include="OpenTelemetry.Instrumentation.Runtime" Version="1.18.0" />
+    <PackageVersion Include="OpenTelemetry.Instrumentation.StackExchangeRedis" Version="1.18.0-beta.3" />
   </ItemGroup>
 
   <!-- EF Core, Npgsql and naming conventions: move together -->
