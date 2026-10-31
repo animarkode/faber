@@ -94,3 +94,7 @@ updates:
         versions: ["[10.0.0,)"]
       - dependency-name: "Microsoft.VisualStudio.Web.CodeGeneration.Design"
         versions: ["[10.0.0,)"]
+      # AnalysisLevel in Directory.Build.props is pinned to this package's major, and
+      # CI's SDK 8 compiler must be able to load it. Bump both together, by hand.
+      - dependency-name: "Microsoft.CodeAnalysis.NetAnalyzers"
+        update-types: ["version-update:semver-major"]
