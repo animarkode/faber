@@ -3,6 +3,19 @@
     <ManagePackageVersionsCentrally>true</ManagePackageVersionsCentrally>
   </PropertyGroup>
 
+  <!--
+    Analyzers: GlobalPackageReference applies to every project and is private by design.
+    NetAnalyzers is pinned so the local SDK and CI (SDK 8.0.x) run the same CA rules.
+    All four load under the Roslyn 4.11 compiler of SDK 8.0.4xx (Meziantou and Roslynator
+    ship one analyzer build per Roslyn version and the compiler picks the matching one).
+  -->
+  <ItemGroup>
+    <GlobalPackageReference Include="Meziantou.Analyzer" Version="3.0.318" />
+    <GlobalPackageReference Include="Microsoft.CodeAnalysis.NetAnalyzers" Version="10.0.403" />
+    <GlobalPackageReference Include="Roslynator.Analyzers" Version="5.0.1" />
+    <GlobalPackageReference Include="SonarAnalyzer.CSharp" Version="10.35.0.4138" />
+  </ItemGroup>
+
   <!-- Aspire: moves together with the Aspire.AppHost.Sdk attribute in Faber.AppHost.csproj -->
   <ItemGroup>
     <PackageVersion Include="Aspire.Hosting" Version="13.5.3" />
@@ -61,6 +74,7 @@
     <PackageVersion Include="Testcontainers.Keycloak" Version="4.15.0" />
     <PackageVersion Include="Testcontainers.PostgreSql" Version="4.15.0" />
     <PackageVersion Include="Testcontainers.Redis" Version="4.15.0" />
+    <PackageVersion Include="xunit.analyzers" Version="2.2.0" />
     <PackageVersion Include="xunit.v3" Version="4.0.0" />
     <PackageVersion Include="xunit.v3.extensibility.core" Version="4.0.0" />
   </ItemGroup>
