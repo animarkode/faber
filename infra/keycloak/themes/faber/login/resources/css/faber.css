@@ -477,11 +477,171 @@ html .pf-v5-c-login__main-footer-band:first-child, html .pf-v5-c-login__main-foo
 html .pf-v5-c-login__main-footer-band-item { padding: 0; }
 html #kc-info { gap: 10px; }
 
+/* Lead under the title (template.ftl) */
+html .pf-v5-c-login__main-header { gap: 8px; }
+.fb-lead { margin: 0; max-width: 360px; font-size: 16px; color: var(--color-muted-foreground); text-wrap: pretty; }
+
+/* Illustrations above the title (fb-illustrations.ftl). All animations are one-shot. */
+.fb-envelope { width: 120px; height: 100px; margin-bottom: 8px; }
+.fb-envelope svg, .fb-linkart svg { display: block; overflow: visible; }
+.fb-envelope__letter { animation: fb-letter 1.6s var(--ease-pop) 0.2s both; }
+@keyframes fb-letter { from { transform: translateY(26px); } to { transform: translateY(0); } }
+
+.fb-linkart { width: 160px; height: 100px; margin-bottom: 8px; }
+.fb-linkart__bridge { transform-box: fill-box; transform-origin: center; animation: fb-bridge 0.9s var(--ease-pop) 0.35s both; }
+.fb-linkart__left { animation: fb-from-left 0.9s var(--ease-pop) both; }
+.fb-linkart__right { animation: fb-from-right 0.9s var(--ease-pop) both; }
+.fb-linkart__cross { transform-box: fill-box; transform-origin: center; animation: fb-pop 0.6s var(--ease-pop) 0.6s both; }
+@keyframes fb-pop { from { transform: scale(0); } to { transform: scale(1); } }
+@keyframes fb-bridge { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes fb-from-left { from { transform: translateX(-14px); } to { transform: translateX(0); } }
+@keyframes fb-from-right { from { transform: translateX(14px); } to { transform: translateX(0); } }
+@media (prefers-reduced-motion: reduce) {
+  .fb-envelope__letter, .fb-linkart__bridge, .fb-linkart__left, .fb-linkart__right, .fb-linkart__cross { animation: none; }
+}
+
+/* Page-level text: v2 renders instructions as plain paragraphs */
+html .pf-v5-c-login__main-body p { margin: 0; }
+html .pf-v5-c-login__main-body .instruction { font-size: 16px; color: var(--color-muted-foreground); text-wrap: pretty; text-align: center; }
+html #kc-info-message, html #kc-error-message, html #kc-logout-confirm { display: flex; flex-direction: column; gap: 16px; text-align: center; }
+html #kc-logout-confirm form, html #kc-logout-confirm .pf-v5-c-form__group { margin: 0; }
+
+/* Primary submit buttons: <input type=submit> and <button> alike */
+html input.pf-v5-c-button { appearance: none; -webkit-appearance: none; font-family: inherit; }
+html .pf-v5-c-form__actions, html .pf-v5-c-form__group.pf-m-action { display: flex; flex-direction: column; gap: 12px; }
+
+/* "Back to login" and other link-buttons render as the full-width secondary (provider look) */
+html a.pf-v5-c-button.pf-m-secondary, html a.pf-v5-c-button.pf-m-tertiary { text-decoration: none; }
+body[data-page-id='login-register'] #kc-form-options { width: 100%; }
+body[data-page-id='login-register'] #kc-form-options a {
+  display: flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 24px;
+  border-radius: 9999px; border: 1px solid var(--color-provider-border);
+  background: var(--color-provider-bg); color: var(--color-provider-text);
+  font-size: 14px; font-weight: 600; text-decoration: none;
+}
+body[data-page-id='login-register'] #kc-form-options a:hover {
+  background: color-mix(in oklch, var(--color-provider-bg) 92%, var(--color-provider-text));
+}
+body[data-page-id='login-register'] .pf-v5-c-login__main-footer-band { margin-top: 0; }
+body[data-page-id='login-register'] .pf-v5-c-login__main-footer-band-item { width: 100%; }
+
+/* "New to microcivi? Create account" stays on one line */
+html #kc-registration-container, html #kc-registration { width: 100%; }
+html #kc-registration span { display: inline; white-space: nowrap; }
+html #kc-registration a { margin-left: 4px; }
+
+/* Forgot password: the instruction moved under the title */
+body[data-page-id='login-login-reset-password'] #kc-info { display: none; }
+body[data-page-id='login-login-reset-password'] .pf-v5-c-login__main-footer-band { display: none; }
+
+/* Attempted username (re-auth, update password) reads as a pill, like .fb-identity */
+html .pf-v5-c-form__group:has(#kc-attempted-username) > .pf-v5-c-form__group-label {
+  position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
+html .pf-v5-c-form__group:has(#kc-attempted-username) .pf-v5-c-form-control {
+  border-radius: 9999px; background: var(--color-card); border: 0.5px solid var(--color-line);
+}
+html .pf-v5-c-form__group:has(#kc-attempted-username) input { font-size: 15px; font-weight: 600; padding-left: 20px; }
+html .pf-v5-c-form__group:has(#kc-attempted-username) .pf-v5-c-form-control:focus-within { box-shadow: none; border-color: var(--color-line); }
+html #reset-login { border-radius: 9999px; }
+html .kc-login-tooltip { position: relative; }
+html .kc-tooltip-text {
+  position: absolute; right: 0; top: calc(100% + 6px); z-index: 3; white-space: nowrap;
+  padding: 4px 10px; border-radius: 8px; font-size: 13px; font-weight: 600;
+  background: var(--color-foreground); color: var(--color-bg); opacity: 0; pointer-events: none; transition: opacity 150ms ease;
+}
+html .kc-login-tooltip:hover .kc-tooltip-text, html .kc-login-tooltip:focus-visible .kc-tooltip-text { opacity: 1; }
+
+/* Remember me / forgot password row and the "sign out of other devices" checkbox */
+html .pf-v5-c-form__group .pf-v5-c-check { margin: 0; }
+html .pf-v5-c-form__group-label-help, html .pf-v5-c-form__label-help { font-size: 14px; }
+
+/* Credential and authenticator lists: passkeys (webauthn-authenticate), select-authenticator */
+html .select-auth-container, html .pf-v5-c-data-list {
+  display: flex; flex-direction: column; gap: 12px;
+  margin: 0; padding: 0; list-style: none; border: 0; background: none;
+}
+html .pf-v5-c-data-list__item {
+  position: relative; list-style: none; border-radius: 12px;
+  background: var(--color-card); border: 0.5px solid var(--color-line); box-shadow: none;
+}
+html .pf-v5-c-data-list__item.pf-m-clickable:hover { border-color: var(--color-field-border); }
+html .pf-v5-c-data-list__item-row, html .select-auth-box-parent {
+  display: flex; align-items: center; gap: 14px; padding: 14px 16px; text-align: left;
+}
+html .pf-v5-c-data-list__cell { padding: 0; margin: 0; }
+html .pf-v5-c-data-list__cell.pf-m-icon, html .pf-v5-c-icon.pf-m-xl {
+  width: 40px; height: 40px; flex: none; border-radius: 10px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--color-muted); color: var(--color-foreground);
+}
+html .pf-v5-c-icon.pf-m-xl { background: none; }
+html .pf-v5-c-icon.pf-m-xl svg, html .pf-v5-c-icon.pf-m-xl img { width: 24px; height: 24px; }
+html .select-auth-box-headline, html .pf-v5-u-font-family-heading.select-auth-box-headline {
+  font-family: var(--font-sans); font-weight: 700; font-size: 15px; color: var(--color-foreground);
+}
+html .select-auth-box-desc, html .pf-v5-u-color-200 { font-size: 14px; color: var(--color-muted-foreground); }
+html .pf-v5-c-data-list__item-action { margin-left: auto; color: var(--color-muted-foreground); }
+
+/* OTP app picker (login-config-totp) and tiles (login-otp credential choice) */
+html .pf-v5-c-tile {
+  display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 16px;
+  border-radius: 12px; background: var(--color-card); border: 0.5px solid var(--color-line);
+  color: var(--color-foreground); cursor: pointer;
+}
+html .pf-v5-c-tile.pf-m-selected, html .pf-v5-c-tile:has(input:checked) {
+  border-color: var(--color-ring); box-shadow: 0 0 0 1px var(--color-ring);
+}
+html .pf-v5-c-tile__title { font-weight: 700; font-size: 15px; }
+html #kc-totp-supported-apps { margin: 0; padding-left: 20px; text-align: left; font-size: 14px; color: var(--color-muted-foreground); }
+html .kc-qr-code, html .pf-v5-u-display-flex.kc-qr-code { gap: 8px; }
+html #kc-totp-secret-qr-code { padding: 12px; border-radius: 12px; background: #ffffff; }
+html .kc-qr-code img, html #kc-totp-secret-qr-code { max-width: 100%; }
+
+/* Inline alerts rendered by individual pages (recovery codes warning, update profile) */
+html .pf-v5-c-alert {
+  display: grid; grid-template-columns: auto 1fr; align-items: start; gap: 4px 12px;
+  margin: 0; padding: 14px 16px; border-radius: 12px; border: 0;
+  background: var(--color-card); color: var(--color-foreground);
+  box-shadow: inset 0 0 0 1px var(--color-line); font-size: 14px; text-align: left;
+}
+html .pf-v5-c-alert.pf-m-warning { color: var(--color-foreground); }
+html .pf-v5-c-alert__icon { color: var(--color-warning-text); margin-top: 1px; }
+html .pf-v5-c-alert__title { font-weight: 700; font-size: 15px; margin: 0; }
+html .pf-v5-c-alert__description { grid-column: 2; }
+
+/* Recovery codes and one-time code page */
+html .kc-recovery-codes-list, html #kc-recovery-codes-list {
+  margin: 0; padding: 14px 16px; list-style: none; columns: 2; column-gap: 24px;
+  border-radius: 12px; background: var(--color-card); border: 0.5px solid var(--color-line);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px;
+}
+html .pf-v5-c-clipboard-copy__group { display: flex; gap: 8px; }
+html .pf-v5-c-clipboard-copy__expandable-content, html #kc-code pre, body[data-page-id='login-code'] pre {
+  margin: 0; padding: 14px 16px; border-radius: 12px; overflow: auto;
+  background: var(--color-card); border: 0.5px solid var(--color-line);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; text-align: left;
+}
+html #kc-code textarea, html #kc-code input, body[data-page-id='login-code'] textarea { max-width: 100%; }
+
+/* Terms and conditions */
+body[data-page-id='login-terms'] #kc-terms-text {
+  max-height: 320px; overflow: auto; padding: 14px 16px; border-radius: 12px; text-align: left;
+  background: var(--color-card); border: 0.5px solid var(--color-line); font-size: 14px;
+}
+
+/* Text areas and selects in profile forms (idp-review-user-profile, login-update-profile, register) */
+html .pf-v5-c-form-control > textarea { min-height: 96px; padding: 12px 16px; border: 0; background: transparent; color: inherit; font: inherit; outline: none; resize: vertical; }
+html .pf-v5-c-form-control > select { appearance: none; -webkit-appearance: none; padding-right: 40px; }
+html .pf-v5-c-form-control > select option { background: var(--color-card); color: var(--color-foreground); }
+html .pf-v5-c-form__group-control .pf-v5-c-check, html .pf-v5-c-form__group-control .pf-v5-c-radio { margin: 0; }
+
 /* Phone */
 @media (max-width: 480px) {
   .fb-header { padding: 12px 16px; }
   .fb-brand { font-size: 20px; }
   html .pf-v5-c-login { align-items: flex-start; padding: 80px 16px 32px; }
+  html #kc-registration span { white-space: normal; }
   html .pf-v5-c-title, html #kc-page-title { font-size: 32px; }
   html #kc-social-providers ul.pf-v5-l-grid { grid-template-columns: minmax(0, 1fr); }
 }

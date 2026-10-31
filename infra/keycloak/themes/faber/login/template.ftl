@@ -1,6 +1,7 @@
 <#import "field.ftl" as field>
 <#import "footer.ftl" as loginFooter>
 <#import "theme-resources.ftl" as themeResourceTags>
+<#import "fb-illustrations.ftl" as fbArt>
 <#macro username>
   <#assign label>
     <#if !realm.loginWithEmailAllowed>${msg("username")}<#elseif !realm.registrationEmailAsUsername>${msg("usernameOrEmail")}<#else>${msg("email")}</#if>
@@ -164,7 +165,7 @@
       <span class="fb-brand">microcivi.com</span>
       <button type="button" id="fb-theme-toggle" class="fb-icon-btn"
               aria-label="${msg("fbSwitchToDark")}"
-              data-label-to-dark="${msg("fbSwitchToDark")}" data-label-to-light="${msg("fbSwitchToLight")}">
+              data-label-to-dark="${msg("fbSwitchToDark")}" data-label-to-light="${msg("fbSwitchToLight")}"<#if properties.faberCookieDomain?has_content> data-cookie-domain="${properties.faberCookieDomain}"</#if>>
         <svg class="fb-icon-moon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>
         <svg class="fb-icon-sun" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
       </button>
@@ -173,7 +174,54 @@
   <div class="${properties.kcLoginContainer!}">
     <main class="${properties.kcLoginMain!}">
       <div class="${properties.kcLoginMainHeader!}">
+        <#-- Illustration above the title, picked from the page. Pages not listed have none. -->
+        <#switch pageId!"">
+          <#case "login-verify-email">
+            <@fbArt.envelope />
+            <#break>
+          <#case "webauthn-authenticate">
+            <@fbArt.linkart left="laptop" right="key" />
+            <#break>
+          <#case "webauthn-register">
+            <@fbArt.linkart left="person" right="key" />
+            <#break>
+          <#case "webauthn-error">
+            <@fbArt.linkart left="laptop" right="key" bridge="cross" />
+            <#break>
+          <#case "login-idp-link-confirm">
+            <@fbArt.linkart left="person-solid" right=((idpAlias!"") = "github")?then("github", "link") />
+            <#break>
+          <#case "info">
+            <#if (message.type)! = "success">
+              <@fbArt.linkart left="mail" right="person" bridge="check" />
+            </#if>
+            <#break>
+          <#case "error">
+            <@fbArt.linkart left="mail" right="key" bridge="cross" />
+            <#break>
+          <#case "login-page-expired">
+            <@fbArt.linkart left="person" right="clock" bridge="dashed" />
+            <#break>
+          <#case "logout-confirm">
+            <@fbArt.linkart left="person" right="laptop" />
+            <#break>
+        </#switch>
         <h1 class="${properties.kcLoginMainTitle!}" id="kc-page-title"><#nested "header"></h1>
+        <#assign fbSubtitleKeys = {
+          "login": "fbSubtitleLogin",
+          "register": "fbSubtitleRegister",
+          "login-update-password": "fbSubtitleUpdatePassword",
+          "webauthn-authenticate": "fbSubtitlePasskeyAuthenticate",
+          "webauthn-register": "fbSubtitlePasskeyRegister",
+          "webauthn-error": "fbSubtitlePasskeyError",
+          "login-idp-link-confirm": "fbSubtitleLinkAccount"
+        }>
+        <#if fbSubtitleKeys[pageId!""]??>
+          <p class="fb-lead">${msg(fbSubtitleKeys[pageId])}</p>
+        <#elseif (pageId!"") = "login-reset-password">
+          <#-- v2 prints this in the footer; here it moves under the title and faber.css hides the footer copy -->
+          <p class="fb-lead">${realm.duplicateEmailsAllowed?then(msg("emailInstructionUsername"), msg("emailInstruction"))}</p>
+        </#if>
       </div>
       <div class="${properties.kcLoginMainBody!}">
         <#if !(auth?has_content && auth.showUsername() && !auth.showResetCredentials())>
