@@ -109,7 +109,7 @@ Sign-in, registration, password reset and e-mail verification all happen on Keyc
 
 #### Optional: Google and GitHub sign-in
 
-This step is optional. Without it the providers stay disabled and e-mail and password sign-in works on its own.
+This step is optional. Without it the providers stay disabled and e-mail and password sign-in works on its own. On every start the AppHost then logs `google sign-in is disabled` (and the same for `github`) to its console and to the `keycloak-config` log in the dashboard. The dashboard does not list these parameters as missing, because they are declared only once the client ID is set.
 
 1. In Google Cloud Console, open **APIs & Services → Credentials → Create credentials → OAuth client ID** and choose **Web application**. Under **Authorized redirect URIs** add exactly:
 
