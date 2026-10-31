@@ -31,14 +31,13 @@ Canonical sources to mirror before changing backend code:
 src/api/
 ├── Faber.Api/                    # API host: FastEndpoints, JWT, middleware
 ├── Aspire/
-│   ├── Faber.AppHost/            # Orchestrator: Vault, Keycloak, Postgres, Redis, Mailpit
+│   ├── Faber.AppHost/            # Orchestrator: Keycloak, Postgres, Redis, Mailpit
 │   └── Faber.ServiceDefaults/    # Shared telemetry / resilience
 └── Modules/
     ├── Auth/
     ├── Users/
     ├── Identity/
     ├── Notifications/
-    ├── Vault/
     ├── Resumes/
     ├── Documents/
     └── Common/
@@ -60,7 +59,6 @@ Current modules do **not** all follow a fixed 4-layer template.
 | `Identity` | `Application` + `Domain` + `Infrastructure` + `PublicApi` |
 | `Resumes` | `Application` + `Domain` + `Infrastructure` + `PublicApi` |
 | `Users` | `Application` + `Domain` + `PublicApi` |
-| `Vault` | `Application` + `PublicApi` |
 | `Notifications` | `Application` + `PublicApi` |
 
 Rule:
@@ -181,16 +179,15 @@ Used by lighter modules.
 builder.Services
     .AddAuthModule()
     .AddUsersModule()
-    .AddVaultModule(builder.Environment)
     .AddNotificationsModule(builder.Environment);
 ```
 
-### Async registration
-Used when startup may need secrets or other awaited work.
+### Configuration-backed registration
+Modules that need configuration at startup read `IConfiguration` directly. Registration is synchronous.
 
 ```csharp
-await builder.Services.AddIdentityModuleAsync(builder.Environment, builder.Configuration);
-await builder.Services.AddResumesModuleAsync(builder.Configuration);
+builder.Services.AddAuthModule(builder.Configuration);
+builder.Services.AddResumesModule(builder.Configuration);
 ```
 
 Module DI commonly contains:
@@ -200,8 +197,8 @@ Module DI commonly contains:
 - DbContext registration when the module owns persistence
 
 Current repo caveat:
-- some modules use `services.BuildServiceProvider()` during registration to fetch Vault-backed values
-- treat that as **current-state repo behavior**, not a best-practice pattern to spread casually
+- required values such as `ConnectionStrings:faberdb` have no fallback; a missing value fails on start
+- never call `services.BuildServiceProvider()` during registration
 
 ---
 
@@ -221,7 +218,7 @@ public class ResumeLimitsOptionsSetup(IConfiguration configuration) : IConfigure
 
 Patterns in repo:
 - plain config binding for normal options
-- sync `.GetAwaiter().GetResult()` inside options setup when Vault secrets are needed
+- secrets arrive through `IConfiguration` (user-secrets or environment variables); code does not know which
 - `KeycloakOptionsSetup` and `ResendClientOptionsSetup` are good examples of current behavior
 
 ---
@@ -302,7 +299,7 @@ Core pieces:
 - `FastEndpoints.Testing`
 - `AppFixture<Program>`
 - `TestCollection<WebApp>` (`CollectionAuth`, `CollectionResumes`)
-- Testcontainers for Keycloak/Postgres/Vault as needed
+- Testcontainers for Keycloak/Postgres as needed
 - `EnableAdvancedTesting` in test `AssemblyInfo.cs`
 
 Examples:

@@ -13,7 +13,6 @@ A new Faber module follows **modular monolith boundaries**, but the project coun
 Canonical modules to inspect before bootstrapping a new one:
 - `src/api/Modules/Auth/` → `Application` + `Infrastructure` + `PublicApi`
 - `src/api/Modules/Resumes/` → `Application` + `Domain` + `Infrastructure` + `PublicApi`
-- `src/api/Modules/Vault/` → `Application` + `PublicApi`
 - `src/api/Modules/Documents/` → `Application` + `PublicApi`
 
 ---
@@ -170,10 +169,10 @@ public class ResumesModuleApi(ResumesDbContext dbContext) : IResumesModuleApi
 
 ## 6. DependencyInjection.cs
 
-Module registration is **module-specific** and may be sync or async.
+Module registration is **module-specific**. Secrets and connection strings arrive through `IConfiguration`; the code does not know where a value comes from.
 
 ### Sync example
-Used by lighter modules like `Vault` and `Documents`.
+Used by lighter modules like `Documents`.
 
 ```csharp
 public static IServiceCollection AddDocumentsModule(this IServiceCollection services)
@@ -183,11 +182,11 @@ public static IServiceCollection AddDocumentsModule(this IServiceCollection serv
 }
 ```
 
-### Async example
-Used by modules that may need Vault-backed startup configuration, such as `Auth` and `Resumes`.
+### Example with configuration
+Used by modules that read configuration at startup, such as `Auth` and `Resumes`. Registration is still synchronous.
 
 ```csharp
-public static async Task AddResumesModuleAsync(
+public static IServiceCollection AddResumesModule(
     this IServiceCollection services,
     IConfiguration configuration)
 {
@@ -205,29 +204,24 @@ public static async Task AddResumesModuleAsync(
 
     if (string.IsNullOrEmpty(connectionString))
     {
-        var vaultApi = services.BuildServiceProvider().GetRequiredService<IVaultModuleApi>();
-        var host = await vaultApi.GetSecretValueAsync(
-            VaultConstants.Paths.Database,
-            VaultConstants.DefaultMountPoint,
-            VaultConstants.Keys.Database.Host);
-        // fetch remaining secret parts and compose connection string
+        throw new InvalidOperationException("Connection string 'ConnectionStrings:faberdb' is not configured.");
     }
 
     services.AddDbContext<ResumesDbContext>(o => o
         .UseNpgsql(connectionString, pg =>
             pg.MigrationsHistoryTable(DbConstants.MigrationsHistoryTableName, DbConstants.SchemaName))
         .UseSnakeCaseNamingConvention());
+
+    return services;
 }
 ```
 
 Rules:
-- use **sync** registration when no awaited startup work is needed
-- use **async** registration when startup needs secrets or other async bootstrapping
+- registration is synchronous; read required values from `IConfiguration` and throw when one is missing
 - register module-owned authorization handlers/policies inside the module
 - if the module owns endpoints, add `Group`/`SubGroup` classes in the Application project
 
-Current repo caveat:
-- some existing modules use `services.BuildServiceProvider()` inside DI registration; mirror carefully when extending existing patterns, but avoid spreading that pattern without need
+Do not call `services.BuildServiceProvider()` inside DI registration.
 
 ---
 
@@ -255,11 +249,10 @@ Add the module registration in `src/api/Faber.Api/Program.cs` using the existing
 
 ```csharp
 builder.Services
-    .AddVaultModule(builder.Environment)
     .AddDocumentsModule();
 
-await builder.Services.AddAuthModuleAsync(builder.Configuration);
-await builder.Services.AddResumesModuleAsync(builder.Configuration);
+builder.Services.AddAuthModule(builder.Configuration);
+builder.Services.AddResumesModule(builder.Configuration);
 ```
 
 Also add the Application project reference to `src/api/Faber.Api/Faber.Api.csproj`.
@@ -279,7 +272,6 @@ Only update `src/api/Aspire/Faber.AppHost/Program.cs` when the module introduces
 Most modules reuse existing resources like:
 - `postgres`
 - `redis`
-- `vault`
 - `keycloak`
 - `mailpit`
 
@@ -387,7 +379,7 @@ Mirror the nearest existing module test project instead of inventing a brand-new
 - [ ] `DbContext` uses `HasDefaultSchema` and module-specific migrations history table when EF is present
 - [ ] `UseSnakeCaseNamingConvention()` applied when EF is present
 - [ ] `IDesignTimeDbContextFactory` implemented when the module owns migrations
-- [ ] DI registration follows the module's real sync/async needs
+- [ ] DI registration reads its configuration from `IConfiguration`
 - [ ] Registration added to `Program.cs`
 - [ ] `Faber.Api.csproj` references the module Application project
 - [ ] AppHost updated only if the module introduces a new resource/container
@@ -397,8 +389,8 @@ Mirror the nearest existing module test project instead of inventing a brand-new
 ## Current Repository Nuances
 
 - Not every module fits a strict 4-project template
-- `Vault` and `Documents` are integration-style modules with smaller footprints
+- `Documents` is an integration-style module with a smaller footprint
 - `Auth` has no Domain project: its persisted types are infrastructure (sessions, keys)
-- `Resumes` and `Auth` use async registration because startup may require Vault-backed configuration
+- `Resumes` and `Auth` read required configuration at registration and fail on start when it is missing
 - Existing project references are not perfectly pure; prefer `PublicApi` boundaries, but verify neighboring precedent before making assumptions
 - New modules should follow current Faber conventions while moving toward cleaner boundaries, not generic Clean Architecture templates

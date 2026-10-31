@@ -1,5 +1,9 @@
 # Vault API Token Renewal
 
+Status: superseded by #83. Vault was removed from Faber, so the API no longer has a Vault token to
+renew. Secrets are AppHost parameters in user-secrets in development and environment variables in
+production. The text below is kept as history.
+
 The API authenticates using `VAULT_TOKEN` and `VAULT_ADDR`. A hosted
 `VaultTokenRenewalService` renews the token used by the shared singleton `IVaultClient`;
 `IVaultModuleApi` remains a singleton. Renewal extends that token's lease without replacing

@@ -22,10 +22,9 @@ Use the `Skill` tool to invoke these when relevant:
 | `faber-feature-template` | When adding a new feature to an existing module |
 | `faber-module-bootstrapping` | When creating a new module from scratch |
 | `keycloak-aspnet-integration` | When working with sign-in, sessions or the Keycloak realm config |
-| `vault-secrets-aspnet` | When working with Vault secrets or the Vault module |
 | `impl-gh-issue` | `/impl-gh-issue <number>` — implement a GitHub issue end-to-end, sized to the issue (user-invoked only) |
 
-The rest of the skill catalog is auto-tiered via `.claude/settings.json`; scope policy is documented in `docs/ai/skills-inventory-scope.md`. `AGENTS.md` lists the same 7 skills as plain file-path pointers for tools without a `Skill` mechanism (Codex, Junie).
+The rest of the skill catalog is auto-tiered via `.claude/settings.json`; scope policy is documented in `docs/ai/skills-inventory-scope.md`. `AGENTS.md` lists the same 6 skills as plain file-path pointers for tools without a `Skill` mechanism (Codex, Junie).
 
 ## Git
 

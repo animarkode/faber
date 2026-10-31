@@ -9,7 +9,6 @@ Read when composing a task brief. Pick from the rows the task actually touches, 
 | `area:users` | `faber-feature-template`, `dotnet-backend-patterns`, `fastendpoints`, `errorOr-patterns` | |
 | `area:resumes` | `faber-feature-template`, `dotnet-backend-patterns`, `fastendpoints`, `errorOr-patterns`, `efcore-patterns` | Add `angular-*` rows below when the slice is full-stack |
 | `area:notifications` | `mailpit-integration`, `dotnet-backend-patterns` | |
-| `area:vault` | `vault-secrets-aspnet` | |
 | `area:infra` | `aspire`, `aspire-configuration`, `aspire-service-defaults` | Ports are hard-pinned in `AppHost/Program.cs` |
 | `area:tests-infra` | `tdd`, `testcontainers-integration-tests`, `dotnet-testing-*`, `aspire-integration-testing` | Pick the specific `dotnet-testing-*` file, not the whole family |
 

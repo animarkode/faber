@@ -13,7 +13,7 @@ Keycloak owns every credential and every sign-in page. The API is a backend-for-
 |---|---|
 | Realm configuration (the whole realm, as code) | `infra/keycloak/config/faber.json` |
 | AppHost wiring (stock Keycloak, `keycloak-config`, providers from user-secrets) | `src/api/Aspire/Faber.AppHost/Program.cs`, `SocialProviderExtensions.cs` |
-| Passkeys toggle + client secret → Vault | `src/api/Jobs/Faber.Bootstrap` |
+| Passkeys toggle | `src/api/Jobs/Faber.Bootstrap` |
 | Schemes, cookie, OIDC and JWT bearer options | `src/api/Modules/Auth/Faber.Modules.Auth.Application/Authentication/` |
 | Session store, refresh, Keycloak back-channel calls | `.../Auth.Application/Sessions/` |
 | Endpoints (`login`, `register`, `user`, `logout`, `backchannel-logout`) | `.../Auth.Application/Features/` |
@@ -42,7 +42,7 @@ Keycloak owns every credential and every sign-in page. The API is a backend-for-
 
 ## Options
 
-`KeycloakOptions` binds the `Keycloak` section (`Issuer`, `Audience`, `RequireHttpsMetadata`, `DefaultSessionIdleSeconds`); `ClientId` and `ClientSecret` come from Vault (`secrets/keycloak`) unless configured. Token and logout endpoints derive from `Issuer`.
+`KeycloakOptions` binds the `Keycloak` section (`Issuer`, `Audience`, `RequireHttpsMetadata`, `DefaultSessionIdleSeconds`); `ClientId` (`faber-api`) and `ClientSecret` are configuration only, and the API fails on start if either is empty. In Development the AppHost passes the secret from its `faber-api-client-secret` parameter as `Keycloak__ClientSecret`, and to `keycloak-config` as `FABER_API_CLIENT_SECRET`, which the realm uses as the client's secret. In production both come from environment variables. Test fixtures pass them with `UseSetting`, and `FaberKeycloak` passes `FABER_API_CLIENT_SECRET` to its config-cli container. Token and logout endpoints derive from `Issuer`.
 
 ## Testing
 
