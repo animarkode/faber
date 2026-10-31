@@ -1,1 +1,493 @@
-/* Faber brand styling for the Keycloak login pages, loaded after keycloak.v2's own css/styles.css. */
+/* Faber login theme. Ported from the design prototype (faber-login.css); tokens are 1:1 with
+   src/web/faber-app/src/styles.css. The prototype's .fb is html here and .fb.dark is html.dark.
+   Dark mode is driven only by faber-theme.js / the pre-paint script in template.ftl. */
+
+/* Self-hosted fonts (SIL OFL, see ../fonts/OFL.txt). No request leaves the realm. */
+@font-face {
+  font-family: 'Nunito Sans';
+  font-style: normal;
+  font-weight: 200 1000;
+  font-display: swap;
+  src: url('../fonts/nunito-sans-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Nunito Sans';
+  font-style: normal;
+  font-weight: 200 1000;
+  font-display: swap;
+  src: url('../fonts/nunito-sans-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Nunito Sans';
+  font-style: normal;
+  font-weight: 200 1000;
+  font-display: swap;
+  src: url('../fonts/nunito-sans-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Playfair Display';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../fonts/playfair-display-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Playfair Display';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../fonts/playfair-display-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Playfair Display';
+  font-style: normal;
+  font-weight: 700;
+  font-display: swap;
+  src: url('../fonts/playfair-display-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../fonts/space-grotesk-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 600;
+  font-display: swap;
+  src: url('../fonts/space-grotesk-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Google Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../fonts/google-sans-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Google Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../fonts/google-sans-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Google Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: swap;
+  src: url('../fonts/google-sans-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* Tokens */
+html {
+  --color-primary: oklch(78.4% 0.16 80);
+  --color-primary-foreground: oklch(14.5% 0.02 264);
+  --color-bg: oklch(93% 0 0);
+  --color-foreground: oklch(14.5% 0.025 264);
+  --color-card: oklch(98.5% 0 0);
+  --color-muted: oklch(93% 0.01 264);
+  --color-muted-foreground: oklch(46% 0.02 264);
+  --color-surface: oklch(90% 0.01 264);
+  --color-line: oklch(90% 0.01 264);
+  --color-input: oklch(93% 0.01 264);
+  --color-ring: oklch(60% 0.18 250);
+  --color-destructive: oklch(58% 0.22 27);
+  --color-destructive-foreground: oklch(98% 0.01 264);
+  --color-destructive-soft: oklch(94.5% 0.03 25);
+  --color-destructive-text: oklch(47% 0.20 27);
+  --color-success-solid: oklch(50% 0.13 160);
+  --color-success-foreground: oklch(98% 0.01 264);
+  --color-success-text: oklch(45% 0.13 160);
+  --color-info-text: oklch(45% 0.15 230);
+  --color-warning-text: oklch(48% 0.14 75);
+  --color-dot: oklch(80% 0 0);
+
+  /* Opaque status tints for messages */
+  --color-success-soft: oklch(96% 0.03 150);
+  --color-success-ink: oklch(40% 0.07 150);
+  --color-info-soft: oklch(96% 0.02 240);
+  --color-info-ink: oklch(40% 0.07 240);
+  --color-danger-soft: oklch(96% 0.03 25);
+  --color-danger-ink: oklch(42% 0.12 25);
+
+  /* A field sits straight on the page, not on a card, so its border needs 3:1 against the page (WCAG 1.4.11). */
+  --color-field: var(--color-card);
+  --color-field-border: oklch(58% 0.01 264);
+
+  /* Google sign-in branding, light */
+  --color-provider-bg: #ffffff;
+  --color-provider-border: #747775;
+  --color-provider-text: #1f1f1f;
+
+  --font-sans: 'Nunito Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: 'Playfair Display', ui-serif, Georgia, serif;
+  --font-provider: 'Google Sans', ui-sans-serif, system-ui, sans-serif;
+
+  --ease-press: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* PatternFly 5 (keycloak.v2) variables, so components this theme does not restyle still follow the tokens */
+  --pf-v5-global--Color--100: var(--color-foreground);
+  --pf-v5-global--Color--200: var(--color-muted-foreground);
+  --pf-v5-global--Color--300: var(--color-foreground);
+  --pf-v5-global--Color--400: var(--color-muted-foreground);
+  --pf-v5-global--BackgroundColor--100: var(--color-card);
+  --pf-v5-global--BackgroundColor--200: var(--color-bg);
+  --pf-v5-global--BackgroundColor--300: var(--color-card);
+  --pf-v5-global--BackgroundColor--400: var(--color-field);
+  --pf-v5-global--BorderColor--100: var(--color-line);
+  --pf-v5-global--BorderColor--200: var(--color-field-border);
+  --pf-v5-global--BorderColor--300: var(--color-field-border);
+  --pf-v5-global--BorderColor--400: var(--color-field-border);
+  --pf-v5-global--link--Color: var(--color-foreground);
+  --pf-v5-global--link--Color--hover: var(--color-foreground);
+  --pf-v5-global--primary-color--100: var(--color-primary);
+  --pf-v5-global--danger-color--100: var(--color-destructive-text);
+  --pf-v5-global--success-color--100: var(--color-success-text);
+  --pf-v5-global--info-color--100: var(--color-info-text);
+  --pf-v5-global--warning-color--100: var(--color-warning-text);
+  --pf-v5-global--active-color--100: var(--color-ring);
+  --pf-v5-global--FontFamily--sans-serif: var(--font-sans);
+  --pf-v5-global--FontFamily--text: var(--font-sans);
+  --pf-v5-global--FontFamily--heading: var(--font-serif);
+  --pf-v5-c-form--GridGap: 16px;
+
+  color-scheme: light;
+  min-height: 100%;
+  background-color: var(--color-bg);
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--color-dot) 40%, transparent) 0.9px, transparent 0.9px);
+  background-size: 0.9rem 0.9rem;
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+html.dark {
+  --color-bg: oklch(22% 0 0);
+  --color-foreground: oklch(98% 0.01 264);
+  --color-card: oklch(31% 0 0);
+  --color-muted: oklch(35.5% 0 0);
+  --color-muted-foreground: oklch(70% 0 0);
+  --color-surface: oklch(38% 0 0);
+  --color-line: oklch(38% 0 0);
+  --color-input: oklch(24.5% 0 0);
+  --color-destructive: oklch(50% 0.18 27);
+  --color-destructive-soft: oklch(37% 0.11 27);
+  --color-destructive-text: oklch(77% 0.16 27);
+  --color-success-text: oklch(68% 0.13 160);
+  --color-info-text: oklch(68% 0.15 230);
+  --color-warning-text: oklch(70% 0.14 75);
+  --color-dot: oklch(38% 0 0);
+  --color-success-soft: oklch(30% 0.035 150);
+  --color-success-ink: oklch(82% 0.08 150);
+  --color-info-soft: oklch(30% 0.03 240);
+  --color-info-ink: oklch(82% 0.06 240);
+  --color-danger-soft: oklch(30% 0.05 25);
+  --color-danger-ink: oklch(82% 0.1 25);
+
+  /* Achromatic like the rest of the dark ramp */
+  --color-field: var(--color-input);
+  --color-field-border: oklch(56% 0 0);
+
+  /* Google sign-in branding, dark */
+  --color-provider-bg: #131314;
+  --color-provider-border: #8e918f;
+  --color-provider-text: #e3e3e3;
+
+  color-scheme: dark;
+}
+
+html *, html *::before, html *::after { box-sizing: border-box; }
+
+/* Shell */
+html.login-pf body {
+  min-height: 100vh;
+  margin: 0;
+  background: none;
+  color: inherit;
+  font-family: var(--font-sans);
+}
+
+.fb-header {
+  position: absolute; inset: 0 0 auto 0; z-index: 2;
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  padding: 16px 24px;
+}
+.fb-brand {
+  font-family: var(--font-display); font-weight: 600; font-size: 24px; line-height: 1;
+  color: var(--color-foreground); white-space: nowrap;
+}
+
+/* Theme toggle: moon in light, sun in dark */
+.fb-icon-btn {
+  width: 40px; height: 40px; flex: none; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 1.25rem; border: 0.5px solid var(--color-line);
+  background: var(--color-card); color: var(--color-foreground);
+  cursor: pointer; transition: border-radius 320ms var(--ease-pop), background-color 150ms ease;
+}
+.fb-icon-btn:hover { border-radius: 0.75rem; }
+html.dark .fb-icon-moon, html:not(.dark) .fb-icon-sun { display: none; }
+
+html .pf-v5-c-login {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; padding: 88px 24px 40px;
+  background: none;
+}
+html .pf-v5-c-login__container {
+  display: block; width: 100%; max-width: 400px; padding: 0; margin: 0;
+}
+html .pf-v5-c-login__main {
+  display: flex; flex-direction: column; gap: 24px;
+  width: 100%; max-width: none; margin: 0;
+  background: transparent; box-shadow: none; border: 0; border-radius: 0;
+}
+html .pf-v5-c-login__main-header {
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  padding: 0; border: 0;
+}
+html .pf-v5-c-login__main-body {
+  display: flex; flex-direction: column; gap: 24px; padding: 0;
+}
+html .pf-v5-c-login__main-footer {
+  padding: 0; border: 0; background: none;
+}
+
+html .pf-v5-c-title, html #kc-page-title {
+  margin: 0; font-family: var(--font-serif); font-weight: 700; color: var(--color-foreground);
+  font-size: 40px; line-height: 1.1; letter-spacing: -0.01em; text-wrap: balance;
+}
+
+/* Links */
+html .pf-v5-c-login__main a:not(.pf-v5-c-button) {
+  color: var(--color-foreground); font-weight: 600;
+  text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px;
+  border-radius: 4px;
+}
+html .pf-v5-c-login__main a:not(.pf-v5-c-button):hover { text-decoration-thickness: 2px; }
+
+html a:focus-visible, html button:focus-visible, html .pf-v5-c-button:focus-visible,
+html .pf-v5-c-check__input:focus-visible, .fb-icon-btn:focus-visible {
+  outline: 2px solid var(--color-ring); outline-offset: 2px;
+}
+
+/* Form layout */
+html .pf-v5-c-form { display: flex; flex-direction: column; gap: 16px; margin: 0; }
+html .pf-v5-c-form__group { margin: 0; }
+html .pf-v5-c-form__group-label { padding: 0 0 6px; }
+html .pf-v5-c-form__label {
+  font-size: 14px; font-weight: 600; color: var(--color-foreground);
+}
+html .pf-v5-c-form__label-text { font-size: 14px; font-weight: 600; }
+html .pf-v5-c-form__label-required { color: var(--color-destructive-text); }
+html .pf-v5-c-form__helper-text { margin: 6px 0 0; padding: 0; font-size: 14px; }
+html .pf-v5-c-helper-text { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+html .pf-v5-c-helper-text__item-text { font-size: 14px; color: var(--color-muted-foreground); }
+html .pf-v5-c-form__actions { margin: 0; padding: 0; gap: 12px; }
+
+/* Text fields: v2 draws PatternFly's underline with pseudo-elements; replace it with a full border */
+html .pf-v5-c-form-control {
+  position: relative; display: grid; min-height: 48px; width: 100%;
+  border-radius: 12px; border: 1px solid var(--color-field-border);
+  background: var(--color-field); color: var(--color-foreground);
+  font-size: 16px; line-height: 1.5;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+html .pf-v5-c-form-control::before, html .pf-v5-c-form-control::after { display: none; }
+html .pf-v5-c-form-control > input, html .pf-v5-c-form-control > select {
+  min-width: 0; height: 46px; padding: 0 16px; margin: 0;
+  border: 0; background: transparent; color: inherit;
+  font: inherit; outline: none;
+}
+html .pf-v5-c-form-control > input::placeholder { color: var(--color-muted-foreground); opacity: 1; }
+html .pf-v5-c-form-control:focus-within {
+  border-color: var(--color-ring); box-shadow: 0 0 0 1px var(--color-ring);
+}
+html .pf-v5-c-form-control:has(> input[aria-invalid='true']),
+html .pf-v5-c-form-control.pf-m-error {
+  border-color: var(--color-destructive-text); box-shadow: 0 0 0 1px var(--color-destructive-text);
+}
+html .pf-v5-c-form-control.pf-m-readonly { color: var(--color-muted-foreground); }
+/* The error is spelled out below the field; v2's inline status icon is redundant */
+html .pf-v5-c-form-control__utilities { display: none; }
+
+html .pf-v5-c-input-group { position: relative; display: flex; align-items: stretch; }
+html .pf-v5-c-input-group__item { margin: 0; padding: 0; border: 0; background: none; }
+html .pf-v5-c-input-group__item.pf-m-fill { flex: 1 1 auto; min-width: 0; }
+html .pf-v5-c-input-group__item:not(.pf-m-fill) { position: absolute; top: 4px; right: 4px; z-index: 1; }
+html .pf-v5-c-input-group .pf-v5-c-form-control > input { padding-right: 52px; }
+
+/* Password reveal and the "restart login" button: a quiet icon button inside the field */
+html .pf-v5-c-button.pf-m-control {
+  width: 40px; height: 40px; min-width: 0; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 0; border-radius: 10px; background: transparent;
+  color: var(--color-muted-foreground); cursor: pointer;
+}
+html .pf-v5-c-button.pf-m-control::after { display: none; }
+html .pf-v5-c-button.pf-m-control:hover, html .pf-v5-c-button.pf-m-control:focus {
+  background: var(--color-muted); color: var(--color-foreground);
+}
+html .pf-v5-c-button.pf-m-control:focus-visible { outline-offset: 0; }
+
+/* Field errors: Lucide triangle-alert as a mask so the colour stays a token */
+html .pf-v5-c-helper-text__item.pf-m-error .pf-v5-c-helper-text__item-text,
+html .pf-v5-c-helper-text__item-text.pf-m-error {
+  display: flex; align-items: flex-start; gap: 6px;
+  font-size: 14px; font-weight: 600; color: var(--color-destructive-text);
+}
+html .pf-v5-c-helper-text__item.pf-m-error .pf-v5-c-helper-text__item-text::before,
+html .pf-v5-c-helper-text__item-text.pf-m-error::before {
+  content: ''; flex: none; width: 16px; height: 16px; margin-top: 2px;
+  background: currentColor;
+  -webkit-mask: var(--fb-icon-alert) center / contain no-repeat;
+  mask: var(--fb-icon-alert) center / contain no-repeat;
+}
+html {
+  --fb-icon-alert: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3'/%3E%3Cpath d='M12 9v4'/%3E%3Cpath d='M12 17h.01'/%3E%3C/svg%3E");
+  --fb-icon-check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+}
+
+/* Checkbox: 20px rounded square; checked = brand yellow with a dark Lucide check */
+html .pf-v5-c-check { display: inline-flex; align-items: center; gap: 10px; min-height: 24px; cursor: pointer; }
+html label.pf-v5-c-check { font-size: 14px; }
+html .pf-v5-c-check__input {
+  appearance: none; -webkit-appearance: none; margin: 0; flex: none;
+  width: 20px; height: 20px; border-radius: 6px;
+  border: 1px solid var(--color-field-border); background: var(--color-field);
+  display: grid; place-content: center; cursor: pointer;
+}
+html .pf-v5-c-check__input::before {
+  content: ''; width: 14px; height: 14px; transform: scale(0);
+  -webkit-mask: var(--fb-icon-check) center / contain no-repeat;
+  mask: var(--fb-icon-check) center / contain no-repeat;
+  background: var(--color-primary-foreground);
+  transition: transform 200ms var(--ease-pop);
+}
+html .pf-v5-c-check__input:hover { border-color: var(--color-foreground); }
+html .pf-v5-c-check__input:checked { background: var(--color-primary); border-color: var(--color-primary); }
+html .pf-v5-c-check__input:checked::before { transform: scale(1); }
+html .pf-v5-c-check__input:disabled { cursor: not-allowed; opacity: 0.5; }
+html .pf-v5-c-check__label { font-size: 14px; font-weight: 400; color: var(--color-foreground); cursor: pointer; }
+
+/* Buttons. Primary = brand yellow; every secondary action (also social providers) uses the provider look */
+html .pf-v5-c-button.pf-m-primary,
+html .pf-v5-c-button.pf-m-secondary,
+html .pf-v5-c-button.pf-m-tertiary {
+  position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  min-height: 48px; padding: 0 24px; margin: 0;
+  border-radius: 9999px; border: 1px solid transparent;
+  font: inherit; font-size: 16px; font-weight: 600; line-height: 1.5;
+  text-decoration: none; cursor: pointer; box-shadow: none;
+  transition: transform 280ms var(--ease-press), background-color 280ms var(--ease-press);
+}
+html .pf-v5-c-button.pf-m-block { width: 100%; }
+html .pf-v5-c-button::after { display: none; }
+html .pf-v5-c-button.pf-m-primary:hover, html .pf-v5-c-button.pf-m-secondary:hover, html .pf-v5-c-button.pf-m-tertiary:hover { transform: scale(0.975); }
+
+html .pf-v5-c-button.pf-m-primary,
+html .pf-v5-c-button.pf-m-primary:hover, html .pf-v5-c-button.pf-m-primary:focus, html .pf-v5-c-button.pf-m-primary:active {
+  background-color: var(--color-primary); color: var(--color-primary-foreground); font-weight: 700;
+}
+html .pf-v5-c-button.pf-m-secondary, html .pf-v5-c-button.pf-m-tertiary {
+  background-color: var(--color-provider-bg); border-color: var(--color-provider-border);
+  color: var(--color-provider-text); font-size: 14px;
+}
+html .pf-v5-c-button.pf-m-secondary:hover, html .pf-v5-c-button.pf-m-secondary:focus, html .pf-v5-c-button.pf-m-secondary:active,
+html .pf-v5-c-button.pf-m-tertiary:hover, html .pf-v5-c-button.pf-m-tertiary:focus, html .pf-v5-c-button.pf-m-tertiary:active {
+  background-color: color-mix(in oklch, var(--color-provider-bg) 92%, var(--color-provider-text));
+  border-color: var(--color-provider-border); color: var(--color-provider-text);
+}
+html .pf-v5-c-button.pf-m-link {
+  padding: 0; min-height: 0; color: var(--color-foreground); font-weight: 600;
+  text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px;
+}
+html .pf-v5-c-button:disabled, html .pf-v5-c-button.pf-m-aria-disabled { opacity: 0.6; pointer-events: none; }
+
+/* Social providers (social-providers.ftl) */
+html .fb-social { display: flex; flex-direction: column; gap: 24px; }
+html .fb-social .kc-login-divider { display: none; }
+html #kc-social-providers ul {
+  display: flex; flex-direction: column; gap: 12px;
+  margin: 0; padding: 0 !important; list-style: none;
+}
+html #kc-social-providers ul.pf-v5-l-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+html #kc-social-providers li { margin: 0; padding: 0 !important; }
+html #kc-social-providers .pf-v5-c-button {
+  justify-content: center !important; font-family: var(--font-provider); font-weight: 500; font-size: 14px;
+}
+html #kc-social-providers .pf-v5-c-button .pf-v5-u-m-auto { margin: 0 !important; }
+html #kc-social-providers img { width: 20px; height: 20px; flex: none; }
+/* The dark-glyph logos (GitHub and friends) vanish on the dark provider fill */
+html.dark #kc-social-providers img[src$='/github.svg'],
+html.dark #kc-social-providers img[src$='/twitter.svg'],
+html.dark #kc-social-providers img[src$='/instagram.svg'],
+html.dark #kc-social-providers img[src$='/default.svg'] { filter: invert(1); }
+
+.fb-divider {
+  display: flex; align-items: center; gap: 12px;
+  font-size: 14px; color: var(--color-muted-foreground);
+}
+.fb-divider::before, .fb-divider::after {
+  content: ''; flex: 1; height: 1px;
+  background: color-mix(in oklch, var(--color-field-border) 45%, transparent);
+}
+
+/* Messages (template.ftl) */
+.fb-alert {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 14px 16px; border-radius: 12px;
+  background: var(--color-card); color: var(--color-foreground);
+  font-size: 14px; line-height: 1.45; text-align: left;
+}
+.fb-alert > svg { flex: none; width: 20px; height: 20px; margin-top: 1px; }
+.fb-alert--success, .fb-alert--info, .fb-alert--error {
+  background: var(--alert-fill); color: var(--alert-ink);
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--alert-ink) 18%, transparent);
+}
+.fb-alert--success { --alert-fill: var(--color-success-soft); --alert-ink: var(--color-success-ink); }
+.fb-alert--info { --alert-fill: var(--color-info-soft); --alert-ink: var(--color-info-ink); }
+.fb-alert--error { --alert-fill: var(--color-danger-soft); --alert-ink: var(--color-danger-ink); }
+.fb-alert--warning > svg { color: var(--color-warning-text); }
+
+/* Footer ("info" section) */
+html .pf-v5-c-login__main-footer-band {
+  margin: 0; padding: 0; border: 0; background: none;
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  font-size: 14px; color: var(--color-muted-foreground);
+}
+html .pf-v5-c-login__main-footer-band:first-child, html .pf-v5-c-login__main-footer-band:last-child { margin: 0; padding: 0; }
+html .pf-v5-c-login__main-footer-band-item { padding: 0; }
+html #kc-info { gap: 10px; }
+
+/* Phone */
+@media (max-width: 480px) {
+  .fb-header { padding: 12px 16px; }
+  .fb-brand { font-size: 20px; }
+  html .pf-v5-c-login { align-items: flex-start; padding: 80px 16px 32px; }
+  html .pf-v5-c-title, html #kc-page-title { font-size: 32px; }
+  html #kc-social-providers ul.pf-v5-l-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html, .fb-icon-btn, html .pf-v5-c-form-control, html .pf-v5-c-button,
+  html .pf-v5-c-check__input::before { transition: none; }
+  html .pf-v5-c-button:hover { transform: none !important; }
+}
