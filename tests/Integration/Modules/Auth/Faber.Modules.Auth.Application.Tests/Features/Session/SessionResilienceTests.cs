@@ -77,7 +77,7 @@ public class SessionResilienceTests(WebApp app)
         var client = await SignInFreshUserAsync(503);
         app.Clock.Advance(TimeSpan.FromMinutes(6));
 
-        // What Keycloak answers while the API still holds an old client secret (e.g. Bootstrap re-ran).
+        // What Keycloak answers while the API still holds an old client secret (e.g. right after the client secret was rotated).
         app.KeycloakBackChannel.Replace = _ => new HttpResponseMessage(HttpStatusCode.Unauthorized)
         {
             Content = new StringContent("{\"error\":\"invalid_client\"}", Encoding.UTF8, "application/json")
