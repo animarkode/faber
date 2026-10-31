@@ -35,6 +35,7 @@ Run the image `adorsys/keycloak-config-cli:6.5.1-26.1.0` as a one-shot job after
 | `KEYCLOAK_AVAILABILITYCHECK_ENABLED` | `true` |
 | `IMPORT_FILES_LOCATIONS` | `/config/*` |
 | `IMPORT_VARSUBSTITUTION_ENABLED` | `true` |
+| `IMPORT_CACHE_ENABLED` | `false`, so a run whose only change is a variable (a rotated secret, a provider switched on) is still applied |
 | `FABER_APP_URL` | the web app's public origin, `https://<APP-HOST>`; the API callback is `https://<APP-HOST>/api/v1/auth/callback` |
 | `FABER_BACKCHANNEL_LOGOUT_URL` | the API's back-channel logout endpoint as Keycloak reaches it, e.g. `http://<API-INTERNAL-HOST>/api/v1/auth/backchannel-logout` |
 | `FABER_API_CLIENT_SECRET` | the `faber-api` client secret, from the platform's secret store; the realm sets the client's `secret` to it, and the job fails if it is missing |
@@ -128,7 +129,7 @@ Rotation is manual. Nothing regenerates the secret on its own.
 3. Redeploy `keycloak-config` so Keycloak takes the new secret.
 4. Redeploy the API with the same value as `Keycloak__ClientSecret`. Do this together with step 3.
 
-Between steps 3 and 4 token refreshes fail with `invalid_client` and sessions are kept, so keep the gap short.
+Between steps 3 and 4 the API holds the old secret, so Keycloak refuses it with `invalid_client`: new sign-ins fail at the callback, and token refreshes fail while sessions are kept. Keep the gap short.
 
 ## 5. Provider OAuth apps
 

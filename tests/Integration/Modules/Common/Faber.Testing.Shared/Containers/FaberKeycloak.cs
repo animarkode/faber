@@ -119,6 +119,7 @@ public sealed class FaberKeycloak : IAsyncDisposable
             .WithEnvironment("KEYCLOAK_AVAILABILITYCHECK_ENABLED", "true")
             .WithEnvironment("IMPORT_FILES_LOCATIONS", "/config/*")
             .WithEnvironment("IMPORT_VARSUBSTITUTION_ENABLED", "true")
+            .WithEnvironment("IMPORT_CACHE_ENABLED", "false")
             .WithEnvironment("FABER_API_CLIENT_SECRET", ClientSecret)
             .WithEnvironment("FABER_APP_URL", appUrl)
             .WithEnvironment("FABER_BACKCHANNEL_LOGOUT_URL", backchannelLogoutUrl)

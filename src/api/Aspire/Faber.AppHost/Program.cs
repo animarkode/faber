@@ -83,6 +83,8 @@ var keycloakConfig = builder.AddContainer("keycloak-config", "adorsys/keycloak-c
     .WithEnvironment("KEYCLOAK_AVAILABILITYCHECK_ENABLED", "true")
     .WithEnvironment("IMPORT_FILES_LOCATIONS", "/config/*")
     .WithEnvironment("IMPORT_VARSUBSTITUTION_ENABLED", "true")
+    // Off: the import cache can skip a run whose only change is a variable, such as a rotated secret.
+    .WithEnvironment("IMPORT_CACHE_ENABLED", "false")
     .WithEnvironment("FABER_API_CLIENT_SECRET", faberApiClientSecret)
     .WithEnvironment("FABER_APP_URL", "http://localhost:4200")
     .WithEnvironment("FABER_BACKCHANNEL_LOGOUT_URL", "http://host.docker.internal:5020/api/v1/auth/backchannel-logout")
@@ -108,7 +110,6 @@ var faberApi = builder.AddProject<Faber_Api>("faberapi")
     .WaitForCompletion(bootstrap)
     .WaitFor(keycloak)
     .WaitFor(mailpit)
-    .WithEnvironment("Keycloak__ClientId", "faber-api")
     .WithEnvironment("Keycloak__ClientSecret", faberApiClientSecret)
     .WithReference(redis)
     .WithReference(faberDb);

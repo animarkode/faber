@@ -120,7 +120,7 @@ public class AppHostModelTests
         secret.Secret.ShouldBeTrue();
         configEnvironment["FABER_API_CLIENT_SECRET"].ShouldBeSameAs(secret);
         apiEnvironment["Keycloak__ClientSecret"].ShouldBeSameAs(secret);
-        apiEnvironment["Keycloak__ClientId"].ShouldBe("faber-api");
+        apiEnvironment.Keys.ShouldNotContain("Keycloak__ClientId", "the client ID comes from the API's appsettings.json");
     }
 
     [Fact]
