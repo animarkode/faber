@@ -21,6 +21,14 @@ jobs:
         uses: actions/setup-dotnet@a98b56852c35b8e3190ac28c8c2271da59106c68 # v6.0.0
         with:
           dotnet-version: 8.0.x
+          cache: true
+          # No packages.lock.json here: any file set is hashed into the key.
+          # Versions live in Directory.Packages.props, and which packages each
+          # project uses lives in the .csproj files and Directory.Build.props.
+          cache-dependency-path: |
+            Directory.Packages.props
+            **/Directory.Build.props
+            **/*.csproj
 
       - name: Restore .NET tools
         run: dotnet tool restore
