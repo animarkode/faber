@@ -149,6 +149,7 @@
         "filteredByClaim": "true",
         "claimFilterName": "email_verified",
         "claimFilterValue": "true",
+        "prompt": "select_account",
         "guiOrder": "1"
       }
     },
@@ -168,6 +169,7 @@
         "clientSecret": "$(env:GITHUB_CLIENT_SECRET:-unset)",
         "defaultScope": "user:email",
         "syncMode": "IMPORT",
+        "prompt": "select_account",
         "guiOrder": "2"
       }
     }

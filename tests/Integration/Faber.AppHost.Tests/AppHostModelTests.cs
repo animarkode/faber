@@ -1,6 +1,8 @@
 using Aspire.Hosting;
 using Aspire.Hosting.ApplicationModel;
 using Aspire.Hosting.Testing;
+using Microsoft.Extensions.DependencyInjection;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Shouldly;
 
@@ -145,6 +147,36 @@ public class AppHostModelTests
     }
 
     [Fact]
+    public async Task SocialProviders_WithoutCredentials_ShouldWarnOnStart()
+    {
+        var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.Faber_AppHost>(
+            TestConfiguration,
+            TestContext.Current.CancellationToken);
+
+        var warnings = await CollectKeycloakConfigStartWarningsAsync(builder);
+
+        warnings.ShouldContain(warning => warning.StartsWith("google sign-in is disabled"));
+        warnings.ShouldContain(warning => warning.StartsWith("github sign-in is disabled"));
+    }
+
+    [Fact]
+    public async Task SocialProvider_WithCredentials_ShouldNotWarnOnStart()
+    {
+        var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.Faber_AppHost>(
+            [
+                .. TestConfiguration,
+                "--Parameters:google-client-id=test-google-id",
+                "--Parameters:google-client-secret=test-google-secret"
+            ],
+            TestContext.Current.CancellationToken);
+
+        var warnings = await CollectKeycloakConfigStartWarningsAsync(builder);
+
+        warnings.ShouldNotContain(warning => warning.StartsWith("google sign-in is disabled"));
+        warnings.ShouldContain(warning => warning.StartsWith("github sign-in is disabled"));
+    }
+
+    [Fact]
     public async Task Vault_WithoutVaultToken_ShouldResolveItsConfiguration()
     {
         var builder = await DistributedApplicationTestingBuilder.CreateAsync<Projects.Faber_AppHost>(
@@ -171,6 +203,25 @@ public class AppHostModelTests
         var keycloakEnvironment = await GetDeclaredEnvironmentAsync(keycloak);
 
         migrationsEnvironment["Migrations__ExternalSchemas__0"].ShouldBe(keycloakEnvironment["KC_DB_SCHEMA"]);
+    }
+
+    // Raises keycloak-config's start event without starting anything, and returns what the
+    // AppHost logged at warning level.
+    private static async Task<IReadOnlyCollection<string>> CollectKeycloakConfigStartWarningsAsync(
+        IDistributedApplicationTestingBuilder builder)
+    {
+        var keycloakConfig = builder.Resources.Single(resource => resource.Name == "keycloak-config");
+        var logs = new CollectingLoggerProvider();
+        await using var services = new ServiceCollection()
+            .AddLogging(logging => logging.AddProvider(logs))
+            .AddSingleton<ResourceLoggerService>()
+            .BuildServiceProvider();
+
+        await builder.Eventing.PublishAsync(
+            new BeforeResourceStartedEvent(keycloakConfig, services),
+            TestContext.Current.CancellationToken);
+
+        return logs.Warnings;
     }
 
     // The declared values, before Aspire resolves them. Resolving the migration service's

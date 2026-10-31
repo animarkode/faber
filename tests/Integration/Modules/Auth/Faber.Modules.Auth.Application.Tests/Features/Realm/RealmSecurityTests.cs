@@ -107,6 +107,18 @@ public class RealmSecurityTests(WebApp app)
         google["firstBrokerLoginFlowAlias"]!.GetValue<string>().ShouldBe("faber first broker login");
     }
 
+    // Without its own prompt, Keycloak forwards the client's prompt to the provider. The register
+    // endpoint sends prompt=create, which Google refuses with invalid_request.
+    [Theory]
+    [InlineData("google")]
+    [InlineData("github")]
+    public async Task SocialProvider_ShouldSendItsOwnPromptInsteadOfTheClients(string alias)
+    {
+        var provider = await app.Keycloak.Admin.GetIdentityProviderAsync(alias, Ct);
+
+        ((string?)provider["config"]!["prompt"]).ShouldBe("select_account");
+    }
+
     [Fact]
     public async Task FirstBrokerLogin_ShouldLinkOnlyAfterReauthentication()
     {
