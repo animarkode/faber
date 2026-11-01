@@ -56,7 +56,7 @@ export class Account {
     this.confirmation
       .ask({
         title: 'Delete account',
-        message: 'This permanently deletes your account and all your resumes. This cannot be undone.',
+        message: 'This permanently deletes your account and your ability to sign in. This cannot be undone.',
         confirmLabel: 'Delete account',
       })
       .pipe(takeUntilDestroyed(this.destroyRef))

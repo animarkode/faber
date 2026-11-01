@@ -40,6 +40,14 @@ export class SigningIn {
     return item.userLabel || this.typeName(group);
   }
 
+  protected createVerb(group: CredentialGroup): string {
+    return group.credentials.length ? 'Add' : 'Set up';
+  }
+
+  protected createLabel(group: CredentialGroup): string {
+    return `${this.createVerb(group)} ${this.typeName(group).toLowerCase()}`;
+  }
+
   protected removeLabel(group: CredentialGroup, item: StoredCredential): string {
     return `Remove ${this.typeName(group).toLowerCase()} '${this.itemName(group, item)}'`;
   }

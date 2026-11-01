@@ -30,6 +30,11 @@ export class LinkedAccounts {
   protected readonly accounts = this.client.linkedAccountsResource();
   protected readonly error = signal<string | null>(null);
 
+  protected linkedStatus(account: LinkedAccount): string {
+    if (!account.connected) return 'Not linked';
+    return account.linkedUsername ? `Linked as ${account.linkedUsername}` : 'Linked';
+  }
+
   protected link(account: LinkedAccount): void {
     if (account.linkAction) this.client.startAction(account.linkAction);
   }

@@ -24,9 +24,9 @@
           }
           @if (group.createAction; as create) {
             <button type="button" fb-button variant="outline" size="sm" data-test="create"
-                    [attr.aria-label]="(group.credentials.length ? 'Add ' : 'Set up ') + typeName(group).toLowerCase()"
+                    [attr.aria-label]="createLabel(group)"
                     (click)="start(create)">
-              {{ group.credentials.length ? 'Add' : 'Set up' }}
+              {{ createVerb(group) }}
             </button>
           }
         </div>
