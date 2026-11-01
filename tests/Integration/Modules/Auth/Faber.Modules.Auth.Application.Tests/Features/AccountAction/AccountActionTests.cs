@@ -59,6 +59,19 @@ public class AccountActionTests(WebApp app)
     }
 
     [Fact]
+    public async Task AccountAction_ShouldSendTheStoredIdTokenAsHint()
+    {
+        var (client, _) = await app.SignInAsync(app.Users[0], ct: Ct);
+        using var _client = client;
+
+        using var response = await client.GetAsync("api/v1/auth/account-action/password", Ct);
+
+        var hint = HttpUtility.ParseQueryString(response.Headers.Location!.Query)["id_token_hint"];
+        hint.ShouldNotBeNullOrWhiteSpace();
+        hint.Split('.').Length.ShouldBe(3, "the hint is the user's ID token (a JWT)");
+    }
+
+    [Fact]
     public async Task AccountAction_WithAnExtraKcActionInTheQuery_ShouldNotForwardIt()
     {
         var (client, _) = await app.SignInAsync(app.Users[0], ct: Ct);

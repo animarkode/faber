@@ -1,6 +1,7 @@
 using Faber.Modules.Auth.Application.Authentication;
 using Faber.Modules.Auth.Application.Groups;
 using Faber.Modules.Auth.Application.Sessions;
+using Faber.Modules.Auth.PublicApi;
 using Faber.Modules.Common.PublicApi.RateLimiting;
 using FastEndpoints;
 using Microsoft.AspNetCore.Authentication;
@@ -46,6 +47,19 @@ public class AccountActionEndpoint : EndpointWithoutRequest<Results<ChallengeHtt
             && key is not null)
         {
             properties.Items[OidcParameters.ReplacesSession] = PostgresTicketStore.HashKey(key);
+        }
+
+        // The callback may only complete for the user who started the action.
+        var subject = session.Principal?.FindFirst(JwtClaimTypes.Registered.Sub)?.Value;
+        if (!string.IsNullOrEmpty(subject))
+        {
+            properties.Items[OidcParameters.AccountSubject] = subject;
+        }
+
+        var idToken = await HttpContext.GetTokenAsync(Authentication.AuthSchemes.Session, "id_token");
+        if (!string.IsNullOrEmpty(idToken))
+        {
+            properties.Items[OidcParameters.IdTokenHint] = idToken;
         }
 
         return TypedResults.Challenge(properties, [Authentication.AuthSchemes.Keycloak]);

@@ -96,6 +96,14 @@ public sealed class PostgresTicketStore(
             .ExecuteDeleteAsync();
     }
 
+    /// <summary>Deletes every session row of a user, as when the account itself is gone.</summary>
+    public async Task RemoveBySubjectAsync(string subject)
+    {
+        await using var scope = scopes.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
+        await db.Sessions.Where(session => session.Subject == subject).ExecuteDeleteAsync();
+    }
+
     /// <summary>The row id of the session the cookie key names.</summary>
     public static string HashKey(string key)
     {

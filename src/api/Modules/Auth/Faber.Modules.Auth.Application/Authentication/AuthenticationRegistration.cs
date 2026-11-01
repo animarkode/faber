@@ -94,20 +94,7 @@ internal static class AuthenticationRegistration
         o.TokenValidationParameters.NameClaimType = JwtClaimTypes.OidcStandard.Name;
         o.TokenValidationParameters.ValidAlgorithms = [SecurityAlgorithms.RsaSha256];
 
-        o.Events.OnRedirectToIdentityProvider = context =>
-        {
-            if (context.Properties.Items.TryGetValue(OidcParameters.Prompt, out var prompt))
-            {
-                context.ProtocolMessage.Prompt = prompt;
-            }
-
-            if (context.Properties.Items.TryGetValue(OidcParameters.KcAction, out var kcAction))
-            {
-                context.ProtocolMessage.SetParameter(OidcParameters.KcAction, kcAction);
-            }
-
-            return Task.CompletedTask;
-        };
+        o.Events.OnRedirectToIdentityProvider = OnRedirectToIdentityProvider;
 
         o.Events.OnTokenValidated = context =>
         {
@@ -129,6 +116,27 @@ internal static class AuthenticationRegistration
         o.Events.OnRemoteFailure = OnRemoteFailureAsync;
     }
 
+    private static Task OnRedirectToIdentityProvider(RedirectContext context)
+    {
+        if (context.Properties.Items.TryGetValue(OidcParameters.Prompt, out var prompt))
+        {
+            context.ProtocolMessage.Prompt = prompt;
+        }
+
+        if (context.Properties.Items.TryGetValue(OidcParameters.KcAction, out var kcAction))
+        {
+            context.ProtocolMessage.SetParameter(OidcParameters.KcAction, kcAction);
+        }
+
+        if (context.Properties.Items.ContainsKey(OidcParameters.AccountAction)
+            && context.Properties.Items.TryGetValue(OidcParameters.IdTokenHint, out var idTokenHint))
+        {
+            context.ProtocolMessage.IdTokenHint = idTokenHint;
+        }
+
+        return Task.CompletedTask;
+    }
+
     /// <summary>
     /// After an account action the callback signs the user in again. The session it replaces is removed
     /// (not the Keycloak session, which the new tokens share), so one browser keeps exactly one app session.
@@ -144,25 +152,36 @@ internal static class AuthenticationRegistration
 
         var status = AccountActions.NormalizeStatus(context.Request.Query[OidcParameters.KcActionStatus]);
         properties.Items.TryGetValue(OidcParameters.ReplacesSession, out var replaces);
+        properties.Items.TryGetValue(OidcParameters.AccountSubject, out var expectedSubject);
         var store = context.HttpContext.RequestServices.GetRequiredService<PostgresTicketStore>();
 
         if (string.Equals(action, AccountActions.Delete, StringComparison.Ordinal)
             && string.Equals(status, AccountActions.StatusSuccess, StringComparison.Ordinal))
         {
-            await EndAfterDeletionAsync(context.HttpContext, store, replaces);
+            await EndAfterDeletionAsync(context.HttpContext, store, expectedSubject, replaces);
             context.Response.Redirect(AccountDeletedUri);
+            context.HandleResponse();
+            return;
+        }
+
+        var subject = context.Principal?.FindFirst(JwtClaimTypes.Registered.Sub)?.Value;
+        if (expectedSubject is not null && !string.Equals(subject, expectedSubject, StringComparison.Ordinal))
+        {
+            // Another user signed in on this browser's Keycloak session: sign nobody in, keep the old session.
+            context.Response.Redirect(AccountActions.ReturnPath(action, AccountActions.StatusError));
             context.HandleResponse();
             return;
         }
 
         if (replaces is not null)
         {
-            var subject = context.Principal?.FindFirst(JwtClaimTypes.Registered.Sub)?.Value;
             await store.RemoveByIdAsync(replaces, subject);
         }
 
-        // Neither marker belongs in the stored ticket.
+        // None of these markers belongs in the stored ticket.
         properties.Items.Remove(OidcParameters.AccountAction);
+        properties.Items.Remove(OidcParameters.AccountSubject);
+        properties.Items.Remove(OidcParameters.IdTokenHint);
         properties.Items.Remove(OidcParameters.ReplacesSession);
         properties.Items.Remove(OidcParameters.KcAction);
         context.ReturnUri = AccountActions.ReturnPath(action, status);
@@ -187,8 +206,12 @@ internal static class AuthenticationRegistration
             && string.Equals(status, AccountActions.StatusSuccess, StringComparison.Ordinal))
         {
             context.Properties.Items.TryGetValue(OidcParameters.ReplacesSession, out var replaces);
+            context.Properties.Items.TryGetValue(OidcParameters.AccountSubject, out var expectedSubject);
             await EndAfterDeletionAsync(
-                context.HttpContext, context.HttpContext.RequestServices.GetRequiredService<PostgresTicketStore>(), replaces);
+                context.HttpContext,
+                context.HttpContext.RequestServices.GetRequiredService<PostgresTicketStore>(),
+                expectedSubject,
+                replaces);
             context.Response.Redirect(AccountDeletedUri);
             return;
         }
@@ -196,9 +219,14 @@ internal static class AuthenticationRegistration
         context.Response.Redirect(AccountActions.ReturnPath(action, AccountActions.StatusError));
     }
 
-    private static async Task EndAfterDeletionAsync(HttpContext http, PostgresTicketStore store, string? replaces)
+    private static async Task EndAfterDeletionAsync(HttpContext http, PostgresTicketStore store, string? subject, string? replaces)
     {
-        if (replaces is not null)
+        // The account is gone, so every app session of that user goes with it.
+        if (subject is not null)
+        {
+            await store.RemoveBySubjectAsync(subject);
+        }
+        else if (replaces is not null)
         {
             await store.RemoveByIdAsync(replaces);
         }
