@@ -1,25 +1,67 @@
-import { ChangeDetectionStrategy, Component, computed, inject } from '@angular/core';
-import { AuthStore } from '../../../core/auth/auth-store';
+import { ChangeDetectionStrategy, Component, computed, DestroyRef, inject } from '@angular/core';
+import { takeUntilDestroyed, toSignal } from '@angular/core/rxjs-interop';
+import { ActivatedRoute } from '@angular/router';
+import { map } from 'rxjs';
+import { AccountClient } from './account-client';
+import { AccountConfirm } from './account-confirm';
+import { DeviceActivity } from './device-activity/device-activity';
+import { LinkedAccounts } from './linked-accounts/linked-accounts';
+import { PersonalInfo } from './personal-info/personal-info';
+import { SigningIn } from './signing-in/signing-in';
 import { FbButton } from '../../../shared/components/fb-button/fb-button';
 
+const SUCCESS_MESSAGES: Record<string, string> = {
+  password: 'Password updated',
+  passkey: 'Passkey added',
+  totp: 'Authenticator app set up',
+  email: 'E-mail updated',
+  'link-google': 'Google account linked',
+  'link-github': 'GitHub account linked',
+};
+
 /**
- * Shows who is signed in. Everything about the account itself — name, e-mail, password, passkeys, 2FA,
- * linked Google/GitHub sign-ins, open sessions — is managed in Keycloak's account console, so the API never
- * needs the right to change users.
+ * The person's account settings. Everything is edited here; Keycloak is only visited for the steps that
+ * need its own pages (password, passkeys, 2FA, e-mail, linking), and returns with `?action=…&status=…`.
  */
 @Component({
   selector: 'app-account',
-  imports: [FbButton],
+  imports: [FbButton, PersonalInfo, SigningIn, DeviceActivity, LinkedAccounts],
   templateUrl: './account.html',
   styleUrl: './account.css',
   changeDetection: ChangeDetectionStrategy.OnPush,
 })
 export class Account {
-  private readonly authStore = inject(AuthStore);
+  private readonly client = inject(AccountClient);
+  private readonly confirmation = inject(AccountConfirm);
+  private readonly destroyRef = inject(DestroyRef);
 
-  readonly user = this.authStore.user;
-  readonly displayName = computed(() => {
-    const user = this.user();
-    return user?.name ?? [user?.firstName, user?.lastName].filter(Boolean).join(' ');
+  private readonly query = toSignal(inject(ActivatedRoute).queryParamMap.pipe(map(p => ({ action: p.get('action'), status: p.get('status') }))), {
+    initialValue: { action: null, status: null },
   });
+
+  protected readonly statusMessage = computed(() => {
+    const { action, status } = this.query();
+    if (!action || !status) return '';
+    if (status === 'success') return SUCCESS_MESSAGES[action] ?? 'Done';
+    if (status === 'cancelled') return 'Cancelled';
+    return 'Something went wrong';
+  });
+
+  protected readonly failed = computed(() => {
+    const { action, status } = this.query();
+    return !!action && !!status && status !== 'success' && status !== 'cancelled';
+  });
+
+  protected deleteAccount(): void {
+    this.confirmation
+      .ask({
+        title: 'Delete account',
+        message: 'This permanently deletes your account and all your resumes. This cannot be undone.',
+        confirmLabel: 'Delete account',
+      })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(confirmed => {
+        if (confirmed) this.client.startAction('delete');
+      });
+  }
 }

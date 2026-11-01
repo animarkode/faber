@@ -1,0 +1,51 @@
+<section class="bg-card border-[0.5px] border-line rounded-xl p-6 flex flex-col gap-4" aria-labelledby="device-activity-heading">
+  <div class="flex flex-wrap items-center justify-between gap-2">
+    <h2 #heading id="device-activity-heading" tabindex="-1" class="font-serif text-lg font-bold text-foreground">Device activity</h2>
+    @if (hasOthers()) {
+      <button type="button" fb-button variant="outline" size="sm" data-test="sign-out-others" (click)="signOutOthers()">
+        Sign out all other devices
+      </button>
+    }
+  </div>
+
+  @if (error(); as message) {
+    <p role="alert" class="text-sm text-destructive-text" data-test="error">{{ message }}</p>
+  }
+
+  @if (devices.error() && !devices.hasValue()) {
+    <p role="alert" class="text-sm text-destructive-text" data-test="load-error">Your devices could not be loaded.</p>
+  } @else if (devices.isLoading() && !devices.hasValue()) {
+    <p class="text-sm text-muted-foreground">Loading your devices…</p>
+  }
+
+  @if (devices.hasValue()) {
+    <ul class="flex flex-col divide-y divide-line">
+      @for (device of devices.value(); track device.id) {
+        <li class="flex flex-wrap items-center justify-between gap-2 py-2" data-test="device">
+          <div class="flex flex-col">
+            <span class="flex items-center gap-2 text-foreground">
+              {{ title(device) }}
+              @if (device.current) {
+                <span class="rounded-full bg-muted px-2 py-0.5 text-xs text-foreground" data-test="current">This device</span>
+              }
+            </span>
+            <span class="text-xs text-muted-foreground">
+              @if (device.ipAddress) { IP {{ device.ipAddress }} · }
+              @if (device.started) { Started {{ device.started | date: 'medium' }} · }
+              @if (device.lastAccess) { Last active {{ device.lastAccess | date: 'medium' }} }
+            </span>
+          </div>
+          @if (!device.current) {
+            <button type="button" fb-button variant="soft-destructive" size="sm" data-test="sign-out"
+                    [attr.aria-label]="'Sign out ' + title(device)" (click)="signOut(device)">
+              Sign out
+            </button>
+          }
+        </li>
+      }
+    </ul>
+    @if (!hasOthers()) {
+      <p class="text-sm text-muted-foreground" data-test="empty">No other devices</p>
+    }
+  }
+</section>
