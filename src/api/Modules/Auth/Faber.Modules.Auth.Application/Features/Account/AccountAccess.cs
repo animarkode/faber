@@ -33,6 +33,7 @@ public static class AccountAccess
             ErrorType.Validation => ToValidationProblem(error),
             ErrorType.Unauthorized => TypedResults.Problem(error.Description, statusCode: StatusCodes.Status401Unauthorized),
             ErrorType.Forbidden => TypedResults.Problem(error.Description, statusCode: StatusCodes.Status403Forbidden),
+            ErrorType.Conflict => TypedResults.Problem(error.Description, statusCode: StatusCodes.Status409Conflict),
             ErrorType.NotFound => TypedResults.Problem(error.Description, statusCode: StatusCodes.Status404NotFound),
             _ => TypedResults.Problem(error.Description, statusCode: StatusCodes.Status502BadGateway)
         };
