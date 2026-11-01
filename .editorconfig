@@ -111,6 +111,7 @@ dotnet_diagnostic.IDE0058.severity = none
 dotnet_diagnostic.IDE0060.severity = none
 dotnet_diagnostic.IDE0061.severity = none
 dotnet_diagnostic.IDE0062.severity = none
+dotnet_diagnostic.IDE0072.severity = none
 dotnet_diagnostic.IDE0230.severity = none
 dotnet_diagnostic.IDE0300.severity = none
 # Unused usings: enforcing it in the build needs GenerateDocumentationFile (roslyn#41640), and
