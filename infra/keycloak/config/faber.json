@@ -3,8 +3,8 @@
   "displayName": "Faber",
   "enabled": true,
   "loginTheme": "faber",
-  "internationalizationEnabled": true,
-  "supportedLocales": ["en", "uk"],
+  "internationalizationEnabled": false,
+  "supportedLocales": ["en"],
   "defaultLocale": "en",
   "sslRequired": "external",
 
