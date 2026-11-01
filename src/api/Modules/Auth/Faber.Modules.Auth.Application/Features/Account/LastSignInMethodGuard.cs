@@ -13,6 +13,7 @@ public static class LastSignInMethodGuard
     public const string LastSignInMethodCode = "Account.LastSignInMethod";
     public const string CredentialNotFoundCode = "Account.CredentialNotFound";
     public const string LinkedAccountNotFoundCode = "Account.LinkedAccountNotFound";
+    public const string NotRemovableCode = "Account.CredentialNotRemovable";
 
     private static readonly HashSet<string> SignInCredentialTypes = new(StringComparer.Ordinal)
     {
@@ -32,7 +33,10 @@ public static class LastSignInMethodGuard
         return stored + linkedAccounts.Count(account => account.Connected);
     }
 
-    /// <summary>Whether the credential may go: it must exist, and must not be the last way to sign in.</summary>
+    /// <summary>
+    /// Whether the credential may go: it must exist, be of a kind Keycloak lets the user remove, and must not be
+    /// the last way to sign in.
+    /// </summary>
     public static ErrorOr<Success> CheckCredentialRemoval(
         IReadOnlyList<KeycloakCredentialType> credentials,
         IReadOnlyList<KeycloakLinkedAccount> linkedAccounts,
@@ -44,6 +48,12 @@ public static class LastSignInMethodGuard
         if (owner is null)
         {
             return Error.NotFound(CredentialNotFoundCode, "The credential was not found.");
+        }
+
+        // Keycloak itself refuses these (a password, for one) with a bare 400; say why instead.
+        if (!owner.Removeable)
+        {
+            return Error.Conflict(NotRemovableCode, "This kind of credential cannot be removed, only changed.");
         }
 
         return SignInCredentialTypes.Contains(owner.Type) && CountSignInMethods(credentials, linkedAccounts) <= 1
