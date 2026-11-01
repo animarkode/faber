@@ -72,7 +72,7 @@
         "composite": true,
         "composites": {
           "realm": ["offline_access", "uma_authorization", "regular"],
-          "client": { "account": ["view-profile", "manage-account"] }
+          "client": { "account": ["view-profile", "manage-account", "delete-account"] }
         }
       }
     ]
@@ -128,8 +128,14 @@
         }
       ]
     },
-    { "clientId": "account", "enabled": true },
-    { "clientId": "account-console", "enabled": true },
+    {
+      "clientId": "account",
+      "enabled": true,
+      "standardFlowEnabled": false,
+      "implicitFlowEnabled": false,
+      "directAccessGrantsEnabled": false
+    },
+    { "clientId": "account-console", "enabled": false },
     { "clientId": "security-admin-console", "enabled": false },
     { "clientId": "admin-cli", "directAccessGrantsEnabled": false }
   ],
@@ -191,13 +197,49 @@
       "config": {}
     },
     {
+      "alias": "UPDATE_PASSWORD",
+      "name": "Update Password",
+      "providerId": "UPDATE_PASSWORD",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 30,
+      "config": { "max_auth_age": "300" }
+    },
+    {
+      "alias": "CONFIGURE_TOTP",
+      "name": "Configure OTP",
+      "providerId": "CONFIGURE_TOTP",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 20,
+      "config": { "max_auth_age": "300" }
+    },
+    {
+      "alias": "webauthn-register-passwordless",
+      "name": "Webauthn Register Passwordless",
+      "providerId": "webauthn-register-passwordless",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 50,
+      "config": { "max_auth_age": "300" }
+    },
+    {
+      "alias": "idp_link",
+      "name": "Linking Identity Provider",
+      "providerId": "idp_link",
+      "enabled": true,
+      "defaultAction": false,
+      "priority": 55,
+      "config": { "max_auth_age": "300" }
+    },
+    {
       "alias": "delete_account",
       "name": "Delete Account",
       "providerId": "delete_account",
-      "enabled": false,
+      "enabled": true,
       "defaultAction": false,
       "priority": 60,
-      "config": {}
+      "config": { "max_auth_age": "300" }
     }
   ],
 

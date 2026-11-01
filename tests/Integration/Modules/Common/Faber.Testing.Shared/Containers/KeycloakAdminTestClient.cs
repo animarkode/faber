@@ -113,6 +113,21 @@ public sealed class KeycloakAdminTestClient(string baseAddress, string adminUser
             $"admin/realms/{Realm}/authentication/flows/{Uri.EscapeDataString(flowAlias)}/executions", ct))!;
     }
 
+    public async Task<JsonObject> GetRequiredActionAsync(string alias, CancellationToken ct = default)
+    {
+        await AuthorizeAsync(ct);
+        return (await _http.GetFromJsonAsync<JsonObject>(
+            $"admin/realms/{Realm}/authentication/required-actions/{Uri.EscapeDataString(alias)}", ct))!;
+    }
+
+    /// <summary>Gets the roles a composite realm role includes, realm and client roles alike.</summary>
+    public async Task<JsonArray> GetRealmRoleCompositesAsync(string roleName, CancellationToken ct = default)
+    {
+        await AuthorizeAsync(ct);
+        return (await _http.GetFromJsonAsync<JsonArray>(
+            $"admin/realms/{Realm}/roles/{Uri.EscapeDataString(roleName)}/composites", ct))!;
+    }
+
     /// <summary>Reads a client, lets <paramref name="change"/> modify it and writes it back.</summary>
     public async Task UpdateClientAsync(string clientId, Action<JsonObject> change, CancellationToken ct = default)
     {
