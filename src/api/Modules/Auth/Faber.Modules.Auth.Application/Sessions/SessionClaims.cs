@@ -38,6 +38,41 @@ public static class SessionClaims
         }
     }
 
+    /// <summary>
+    /// Copies the profile claims the SPA shows from a fresh ID token, so a change made in Keycloak (a new name)
+    /// reaches the session. A claim the token no longer carries is dropped from the session too.
+    /// </summary>
+    public static void ApplyIdToken(ClaimsIdentity identity, string? idToken)
+    {
+        if (string.IsNullOrEmpty(idToken))
+        {
+            return;
+        }
+
+        var token = new JsonWebToken(idToken);
+        foreach (var type in ProfileClaims)
+        {
+            foreach (var stale in identity.FindAll(type).ToList())
+            {
+                identity.RemoveClaim(stale);
+            }
+
+            if (token.TryGetPayloadValue<string>(type, out var value) && !string.IsNullOrEmpty(value))
+            {
+                identity.AddClaim(new Claim(type, value));
+            }
+        }
+    }
+
+    private static readonly string[] ProfileClaims =
+    [
+        JwtClaimTypes.OidcStandard.Name,
+        JwtClaimTypes.OidcStandard.GivenName,
+        JwtClaimTypes.OidcStandard.FamilyName,
+        JwtClaimTypes.OidcStandard.PreferredUsername,
+        JwtClaimTypes.OidcStandard.Email
+    ];
+
     public static string[] Roles(ClaimsPrincipal principal)
     {
         var realmAccess = principal.FindFirst(JwtClaimTypes.Keycloak.RealmAccess)?.Value;

@@ -10,7 +10,7 @@ import { API_ROUTES } from '../routes/api-routes';
 function userPayload(): object {
   return JSON.parse(
     '{"id":"user-1","email":"john@example.com","firstName":"John","lastName":"Doe","name":"John Doe",' +
-      '"roles":["regular"],"accountUrl":"https://keycloak.example/realms/faber/account?referrer=faber-api"}',
+      '"roles":["regular"]}',
   );
 }
 
@@ -46,7 +46,6 @@ describe('AuthStore', () => {
 
     expect(service.authenticated()).toBe(true);
     expect(service.user()?.email).toBe('john@example.com');
-    expect(service.user()?.accountUrl).toContain('/account');
   });
 
   it('should treat a 401 as signed out', async () => {

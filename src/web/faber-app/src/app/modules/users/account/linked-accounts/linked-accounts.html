@@ -1,0 +1,39 @@
+<section class="bg-card border-[0.5px] border-line rounded-xl p-6 flex flex-col gap-4" aria-labelledby="linked-accounts-heading">
+  <h2 #heading id="linked-accounts-heading" tabindex="-1" class="font-serif text-lg font-bold text-foreground">Linked accounts</h2>
+
+  @if (error(); as message) {
+    <p role="alert" class="text-sm text-destructive-text" data-test="error">{{ message }}</p>
+  }
+
+  @if (accounts.error() && !accounts.hasValue()) {
+    <p role="alert" class="text-sm text-destructive-text" data-test="load-error">Your linked accounts could not be loaded.</p>
+  } @else if (accounts.isLoading() && !accounts.hasValue()) {
+    <p class="text-sm text-muted-foreground">Loading your linked accounts…</p>
+  }
+
+  @if (accounts.hasValue()) {
+    <ul class="flex flex-col divide-y divide-line">
+      @for (account of accounts.value(); track account.providerAlias) {
+        <li class="flex flex-wrap items-center justify-between gap-2 py-2" data-test="account">
+          <div class="flex flex-col">
+            <span class="text-foreground">{{ account.displayName }}</span>
+            <span class="text-xs text-muted-foreground">
+              {{ linkedStatus(account) }}
+            </span>
+          </div>
+          @if (account.connected) {
+            <button type="button" fb-button variant="soft-destructive" size="sm" data-test="unlink"
+                    [attr.aria-label]="'Unlink ' + account.displayName" (click)="unlink(account)">
+              Unlink
+            </button>
+          } @else if (account.linkAction) {
+            <button type="button" fb-button variant="outline" size="sm" data-test="link"
+                    [attr.aria-label]="'Link ' + account.displayName" (click)="link(account)">
+              Link
+            </button>
+          }
+        </li>
+      }
+    </ul>
+  }
+</section>

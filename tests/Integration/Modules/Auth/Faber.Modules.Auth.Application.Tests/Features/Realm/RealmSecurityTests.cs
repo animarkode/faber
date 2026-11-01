@@ -75,7 +75,78 @@ public class RealmSecurityTests(WebApp app)
 
         adminCli["directAccessGrantsEnabled"]!.GetValue<bool>().ShouldBeFalse();
         adminConsole["enabled"]!.GetValue<bool>().ShouldBeFalse();
-        accountConsole["enabled"]!.GetValue<bool>().ShouldBeTrue("people manage their account there");
+        accountConsole["enabled"]!.GetValue<bool>().ShouldBeFalse("the account is managed in the app, and the console bypasses its checks");
+    }
+
+    [Theory]
+    [InlineData("account-console")]
+    [InlineData("account")]
+    public async Task BrowserSignIn_ThroughKeycloakAccountClients_ShouldBeRefused(string clientId)
+    {
+        // Keycloak refuses either with an error page or by redirecting back with `error=`; following that redirect
+        // would land on an unrelated page, so it is read as is.
+        using var handler = new HttpClientHandler { AllowAutoRedirect = false, CheckCertificateRevocationList = true };
+        using var http = new HttpClient(handler) { BaseAddress = new Uri(app.Keycloak.BaseAddress) };
+        var redirectUri = Uri.EscapeDataString($"{app.Keycloak.BaseAddress.TrimEnd('/')}/realms/{FaberKeycloak.Realm}/account/");
+
+        using var response = await http.GetAsync(
+            $"realms/{FaberKeycloak.Realm}/protocol/openid-connect/auth?client_id={clientId}&response_type=code&scope=openid&redirect_uri={redirectUri}", Ct);
+        var body = await response.Content.ReadAsStringAsync(Ct);
+        var refusedByRedirect = (int)response.StatusCode is >= 300 and < 400
+                                && response.Headers.Location?.ToString().Contains("error=", StringComparison.Ordinal) == true;
+
+        (refusedByRedirect || (int)response.StatusCode >= 400).ShouldBeTrue($"Keycloak answered {(int)response.StatusCode} {response.Headers.Location}");
+        body.ShouldNotContain("kc-form-login");
+    }
+
+    [Fact]
+    public async Task AccountClient_ShouldKeepOnlyTheRolesForTheAccountRestApi()
+    {
+        var account = await app.Keycloak.Admin.GetClientAsync("account", Ct);
+
+        account["enabled"]!.GetValue<bool>().ShouldBeTrue("its roles back the Account REST API");
+        account["standardFlowEnabled"]!.GetValue<bool>().ShouldBeFalse();
+        account["implicitFlowEnabled"]!.GetValue<bool>().ShouldBeFalse();
+        account["directAccessGrantsEnabled"]!.GetValue<bool>().ShouldBeFalse();
+    }
+
+    [Theory]
+    [InlineData("UPDATE_PASSWORD")]
+    [InlineData("CONFIGURE_TOTP")]
+    [InlineData("webauthn-register-passwordless")]
+    [InlineData("idp_link")]
+    [InlineData("delete_account")]
+    [InlineData("UPDATE_EMAIL")]
+    public async Task SensitiveRequiredAction_ShouldBeEnabledAndRequireARecentSignIn(string alias)
+    {
+        var action = await app.Keycloak.Admin.GetRequiredActionAsync(alias, Ct);
+
+        action["enabled"]!.GetValue<bool>().ShouldBeTrue();
+        action["config"]!["max_auth_age"]!.GetValue<string>().ShouldBe("300");
+    }
+
+    [Fact]
+    public async Task DefaultRoles_ShouldLetUsersDeleteTheirOwnAccount()
+    {
+        var composites = await app.Keycloak.Admin.GetRealmRoleCompositesAsync("default-roles-faber", Ct);
+
+        composites.Any(r => string.Equals(r!["name"]!.GetValue<string>(), "delete-account", StringComparison.Ordinal) && r["clientRole"]!.GetValue<bool>())
+            .ShouldBeTrue();
+    }
+
+    [Fact]
+    public async Task AccountRestApi_WithTheUsersAccessToken_ShouldAnswer()
+    {
+        var user = app.Users[0];
+        var tokens = await app.Keycloak.GetTokensAsync(user.Email, user.Password, Ct);
+        using var http = new HttpClient { BaseAddress = new Uri(app.Keycloak.BaseAddress) };
+        using var request = new HttpRequestMessage(HttpMethod.Get, $"realms/{FaberKeycloak.Realm}/account");
+        request.Headers.Authorization = new("Bearer", tokens["access_token"]!.GetValue<string>());
+        request.Headers.Accept.Add(new("application/json"));
+
+        using var response = await http.SendAsync(request, Ct);
+
+        response.StatusCode.ShouldBe(HttpStatusCode.OK);
     }
 
     [Fact]

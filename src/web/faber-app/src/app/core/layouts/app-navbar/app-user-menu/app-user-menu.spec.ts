@@ -19,7 +19,6 @@ describe('AppUserMenu', () => {
     lastName: 'Doe',
     name: 'John Doe',
     roles: ['regular'],
-    accountUrl: 'https://keycloak.example/realms/faber/account',
   };
 
   const mockAuthClient = {

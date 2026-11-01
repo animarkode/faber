@@ -7,5 +7,4 @@ public record UserResponse(
     string? FirstName,
     string? LastName,
     string? Name,
-    IReadOnlyList<string> Roles,
-    string AccountUrl);
+    IReadOnlyList<string> Roles);

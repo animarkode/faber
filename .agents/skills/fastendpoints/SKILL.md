@@ -252,7 +252,7 @@ Important distinction:
 ### No Request Body
 
 ```csharp
-public class UserEndpoint(IOptions<KeycloakOptions> keycloak) : EndpointWithoutRequest<Ok<UserResponse>>
+public class UserEndpoint : EndpointWithoutRequest<Ok<UserResponse>>
 {
     public override void Configure()
     {
@@ -263,7 +263,7 @@ public class UserEndpoint(IOptions<KeycloakOptions> keycloak) : EndpointWithoutR
 
     public override Task<Ok<UserResponse>> ExecuteAsync(CancellationToken ct)
     {
-        return Task.FromResult(TypedResults.Ok(User.MapToResponse(keycloak.Value.AccountUrl)));
+        return Task.FromResult(TypedResults.Ok(User.MapToResponse()));
     }
 }
 ```

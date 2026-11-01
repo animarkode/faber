@@ -29,6 +29,6 @@ public class KeycloakOptions
 
     public string LogoutEndpoint => $"{Issuer}/protocol/openid-connect/logout";
 
-    /// <summary>Keycloak's account console, where people manage password, 2FA, passkeys and linked providers.</summary>
-    public string AccountUrl => $"{Issuer}/account?referrer={Uri.EscapeDataString(ClientId)}";
+    /// <summary>Keycloak's Account REST API, called with the signed-in user's own access token.</summary>
+    public string AccountApiUrl => $"{Issuer}/account";
 }

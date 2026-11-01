@@ -1,0 +1,61 @@
+<section class="bg-card border-[0.5px] border-line rounded-xl p-6 flex flex-col gap-4" aria-labelledby="signing-in-heading">
+  <h2 #heading id="signing-in-heading" tabindex="-1" class="font-serif text-lg font-bold text-foreground">Signing in</h2>
+
+  @if (error(); as message) {
+    <p role="alert" class="text-sm text-destructive-text" data-test="error">{{ message }}</p>
+  }
+
+  @if (credentials.error() && !credentials.hasValue()) {
+    <p role="alert" class="text-sm text-destructive-text" data-test="load-error">Your sign-in methods could not be loaded.</p>
+  } @else if (credentials.isLoading() && !credentials.hasValue()) {
+    <p class="text-sm text-muted-foreground">Loading your sign-in methods…</p>
+  }
+
+  @for (group of credentials.value() ?? []; track group.type) {
+    <div class="flex flex-col gap-2" data-test="group">
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <h3 class="font-medium text-foreground">{{ typeName(group) }}</h3>
+        <div class="flex gap-2">
+          @if (group.updateAction; as update) {
+            <button type="button" fb-button variant="outline" size="sm" data-test="update"
+                    [attr.aria-label]="'Update ' + typeName(group).toLowerCase()" (click)="start(update)">
+              Update
+            </button>
+          }
+          @if (group.createAction; as create) {
+            <button type="button" fb-button variant="outline" size="sm" data-test="create"
+                    [attr.aria-label]="createLabel(group)"
+                    (click)="start(create)">
+              {{ createVerb(group) }}
+            </button>
+          }
+        </div>
+      </div>
+      @if (group.helpText) {
+        <p class="text-sm text-muted-foreground">{{ group.helpText }}</p>
+      }
+      @if (group.credentials.length === 0) {
+        <p class="text-sm text-muted-foreground" data-test="empty">Not set up.</p>
+      } @else {
+        <ul class="flex flex-col divide-y divide-line">
+          @for (item of group.credentials; track item.id) {
+            <li class="flex flex-wrap items-center justify-between gap-2 py-2" data-test="item">
+              <div class="flex flex-col">
+                <span class="text-foreground">{{ itemName(group, item) }}</span>
+                @if (item.createdDate) {
+                  <span class="text-xs text-muted-foreground">Created {{ item.createdDate | date: 'mediumDate' }}</span>
+                }
+              </div>
+              @if (group.removeable) {
+                <button type="button" fb-button variant="soft-destructive" size="sm" data-test="remove"
+                        [attr.aria-label]="removeLabel(group, item)" (click)="remove(group, item)">
+                  Remove
+                </button>
+              }
+            </li>
+          }
+        </ul>
+      }
+    </div>
+  }
+</section>

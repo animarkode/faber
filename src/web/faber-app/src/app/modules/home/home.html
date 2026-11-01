@@ -1,3 +1,8 @@
+@if (accountDeleted()) {
+  <p role="status" class="text-center text-sm text-foreground py-3 bg-card border-b-[0.5px] border-line" data-test="account-deleted">
+    Your account has been deleted.
+  </p>
+}
 <div class="dotted-background relative overflow-hidden min-h-[calc(100vh-var(--navbar-height))] flex items-center">
   <div class="max-w-5xl mx-auto px-6 py-24 relative z-10 text-center">
     <h1 class="font-serif text-[2.25rem] font-extrabold leading-[1.1] text-foreground md:text-5xl lg:text-6xl">

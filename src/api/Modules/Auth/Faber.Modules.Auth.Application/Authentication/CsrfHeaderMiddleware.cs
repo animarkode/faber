@@ -21,13 +21,16 @@ public sealed class CsrfHeaderMiddleware(RequestDelegate next)
         "/api/v1/auth/backchannel-logout"
     ];
 
+    private static readonly PathString AccountActionPrefix = "/api/v1/auth/account-action";
+
     public Task InvokeAsync(HttpContext context)
     {
         var request = context.Request;
         var needsHeader = request.Path.StartsWithSegments(Api, StringComparison.OrdinalIgnoreCase)
                           && request.Cookies.ContainsKey(AuthSchemes.SessionCookieName)
                           && !AuthSchemes.IsBearerRequest(request)
-                          && !Navigations.Any(path => request.Path.Equals(path, StringComparison.OrdinalIgnoreCase));
+                          && !Navigations.Any(path => request.Path.Equals(path, StringComparison.OrdinalIgnoreCase))
+                          && !IsAccountAction(request.Path);
 
         if (needsHeader && request.Headers[AuthSchemes.CsrfHeaderName] != "1")
         {
@@ -36,5 +39,14 @@ public sealed class CsrfHeaderMiddleware(RequestDelegate next)
         }
 
         return next(context);
+    }
+
+    /// <summary>Exactly one extra segment after the prefix: <c>/account-action/{action}</c>.</summary>
+    private static bool IsAccountAction(PathString path)
+    {
+        return path.StartsWithSegments(AccountActionPrefix, StringComparison.OrdinalIgnoreCase, out var rest)
+               && rest.HasValue
+               && rest.Value.Length > 1
+               && rest.Value.IndexOf('/', 1) < 0;
     }
 }

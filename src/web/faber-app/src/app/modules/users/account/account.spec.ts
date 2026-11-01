@@ -1,68 +1,76 @@
 import { ComponentFixture, TestBed } from '@angular/core/testing';
-import { signal } from '@angular/core';
+import { provideHttpClient } from '@angular/common/http';
+import { provideHttpClientTesting } from '@angular/common/http/testing';
+import { ActivatedRoute, convertToParamMap } from '@angular/router';
+import { of } from 'rxjs';
 
 import { Account } from './account';
-import { AuthStore } from '../../../core/auth/auth-store';
-import { User } from '../../../core/auth/contracts/user';
-import { expectNoAxeViolations } from '../../../shared/testing/axe';
+import { AccountClient } from './account-client';
+import { AccountConfirm } from './account-confirm';
+import { confirmAnswering } from './account-testing';
 
 describe('Account', () => {
   let fixture: ComponentFixture<Account>;
 
-  const mockUser: User = {
-    id: 'user-1',
-    email: 'john@example.com',
-    firstName: 'John',
-    lastName: 'Doe',
-    name: 'John Doe',
-    roles: ['regular'],
-    accountUrl: 'https://keycloak.example/realms/faber/account?referrer=faber-api',
-  };
+  const el = () => fixture.nativeElement as HTMLElement;
+  const status = () => el().querySelector('[data-test="status"]')!;
 
-  const mockAuthStore = { user: signal<User | null>(mockUser) };
-
-  beforeEach(async () => {
-    mockAuthStore.user.set(mockUser);
+  async function setup(query: Record<string, string>, answer = true): Promise<void> {
     await TestBed.configureTestingModule({
       imports: [Account],
-      providers: [{ provide: AuthStore, useValue: mockAuthStore }],
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        { provide: ActivatedRoute, useValue: { queryParamMap: of(convertToParamMap(query)) } },
+        { provide: AccountConfirm, useValue: confirmAnswering(answer) },
+      ],
     }).compileComponents();
-
     fixture = TestBed.createComponent(Account);
-    await fixture.whenStable();
-  });
-
-  function text(): string {
-    return (fixture.nativeElement as HTMLElement).textContent ?? '';
+    fixture.detectChanges();
   }
 
-  it('should show the name and e-mail Keycloak holds', () => {
-    expect(text()).toContain('John Doe');
-    expect(text()).toContain('john@example.com');
-  });
+  it('should compose the settings sections under one h1', async () => {
+    await setup({});
 
-  it('should offer no form: the profile is edited in Keycloak', () => {
-    expect((fixture.nativeElement as HTMLElement).querySelector('form, input')).toBeNull();
-  });
-
-  it('should link to the Keycloak account console', () => {
-    const link = (fixture.nativeElement as HTMLElement).querySelector<HTMLAnchorElement>('a[data-test="manage-account"]');
-
-    expect(link).not.toBeNull();
-    expect(link!.getAttribute('href')).toBe(mockUser.accountUrl);
-    expect(link!.textContent).toContain('Manage account');
-  });
-
-  it('should have no AXE violations (light)', async () => {
-    await expectNoAxeViolations(fixture);
-  }, 20000);
-
-  it('should have no AXE violations (dark)', async () => {
-    document.documentElement.classList.add('dark');
-    try {
-      await expectNoAxeViolations(fixture);
-    } finally {
-      document.documentElement.classList.remove('dark');
+    expect(el().querySelectorAll('h1').length).toBe(1);
+    for (const tag of ['app-personal-info', 'app-signing-in', 'app-device-activity', 'app-linked-accounts']) {
+      expect(el().querySelector(tag)).not.toBeNull();
     }
-  }, 20000);
+    expect(el().querySelector('[data-test="manage-account"]')).toBeNull();
+  });
+
+  it('should announce nothing without a returned action', async () => {
+    await setup({});
+
+    expect(status().getAttribute('role')).toBe('status');
+    expect(status().textContent?.trim()).toBe('');
+  });
+
+  it.each([
+    [{ action: 'password', status: 'success' }, 'Password updated'],
+    [{ action: 'passkey', status: 'cancelled' }, 'Cancelled'],
+    [{ action: 'totp', status: 'error' }, 'Something went wrong'],
+  ])('should show the outcome of %j', async (query, message) => {
+    await setup(query);
+
+    expect(status().textContent).toContain(message);
+  });
+
+  it('should navigate to the delete action only after confirmation', async () => {
+    await setup({});
+    const start = vi.spyOn(TestBed.inject(AccountClient), 'startAction').mockImplementation(() => undefined);
+
+    el().querySelector<HTMLElement>('[data-test="delete-account"]')!.click();
+
+    expect(start).toHaveBeenCalledWith('delete');
+  });
+
+  it('should stay put when deleting is declined', async () => {
+    await setup({}, false);
+    const start = vi.spyOn(TestBed.inject(AccountClient), 'startAction').mockImplementation(() => undefined);
+
+    el().querySelector<HTMLElement>('[data-test="delete-account"]')!.click();
+
+    expect(start).not.toHaveBeenCalled();
+  });
 });

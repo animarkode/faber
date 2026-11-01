@@ -1,4 +1,5 @@
 using Faber.Modules.Auth.Application.Authentication;
+using Faber.Modules.Auth.Application.Features.Account;
 using Faber.Modules.Auth.Application.Features.BackchannelLogout;
 using Faber.Modules.Auth.Application.Options;
 using Faber.Modules.Auth.Application.Sessions;
@@ -47,8 +48,10 @@ public static class DependencyInjection
         services.AddScoped<ExpiredSessionSweeper>();
         services.AddHostedService<ExpiredSessionSweepService>();
         services.AddScoped<LogoutTokenValidator>();
+        services.AddScoped<AccountSignInMethodsLock>();
         // Short: a refresh holds the session's row lock while it waits.
         services.AddHttpClient<KeycloakTokenClient>(client => client.Timeout = TimeSpan.FromSeconds(5));
+        services.AddHttpClient<KeycloakAccountClient>(client => client.Timeout = TimeSpan.FromSeconds(5));
 
         services.AddFaberAuthentication();
 

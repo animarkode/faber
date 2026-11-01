@@ -14,7 +14,7 @@ src/app/
 ├── core/           # App-wide singletons: auth (session store, guard, CSRF interceptor), layouts
 ├── shared/         # Reusable standalone components (fb-* prefix), pipes, directives
 └── modules/        # Lazy-loaded feature modules
-    ├── users/      # Account page (profile itself is managed in Keycloak's account console)
+    ├── users/      # Account page (`/account`: profile, sign-in methods, devices, linked accounts, delete)
     ├── resumes/    # Resume builder and catalog
     ├── home/
     └── about/

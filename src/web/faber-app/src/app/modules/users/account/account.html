@@ -1,29 +1,20 @@
-<div class="max-w-lg mx-auto mt-10 px-4">
-  <h1 class="font-serif text-2xl font-bold text-foreground mb-6">Account</h1>
+<div class="max-w-2xl mx-auto mt-10 mb-10 px-4 flex flex-col gap-6">
+  <h1 class="font-serif text-2xl font-bold text-foreground">Account</h1>
 
-  <div class="bg-card border-[0.5px] border-line rounded-xl p-6 flex flex-col gap-4">
+  <p role="status" class="text-sm" [class.text-destructive-text]="failed()" [class.text-foreground]="!failed()" data-test="status">{{ statusMessage() }}</p>
 
-    <div class="flex flex-col gap-1">
-      <span class="text-sm font-medium text-muted-foreground">Name</span>
-      <span class="text-foreground">{{ displayName() }}</span>
+  <app-personal-info />
+  <app-signing-in />
+  <app-device-activity />
+  <app-linked-accounts />
+
+  <section class="bg-card border-[0.5px] border-destructive-text rounded-xl p-6 flex flex-col gap-3" aria-labelledby="danger-zone-heading">
+    <h2 id="danger-zone-heading" class="font-serif text-lg font-bold text-foreground">Danger zone</h2>
+    <p class="text-sm text-muted-foreground">Deleting your account permanently removes it and your ability to sign in.</p>
+    <div>
+      <button type="button" fb-button variant="destructive" data-test="delete-account" (click)="deleteAccount()">
+        Delete account
+      </button>
     </div>
-
-    <div class="flex flex-col gap-1">
-      <span class="text-sm font-medium text-muted-foreground">Email</span>
-      <span class="text-foreground">{{ user()?.email }}</span>
-    </div>
-
-    <hr class="border-line" />
-
-    <p class="text-sm text-muted-foreground">
-      Your name, email, password, passkeys, two-factor authentication, linked Google and GitHub
-      sign-ins and active sessions are managed on the account page.
-    </p>
-
-    @if (user(); as user) {
-      <div class="flex justify-end">
-        <a [href]="user.accountUrl" fb-button variant="primary" data-test="manage-account">Manage account</a>
-      </div>
-    }
-  </div>
+  </section>
 </div>

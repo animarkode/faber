@@ -1,0 +1,58 @@
+<section class="bg-card border-[0.5px] border-line rounded-xl p-6 flex flex-col gap-4" aria-labelledby="personal-info-heading">
+  <h2 id="personal-info-heading" class="font-serif text-lg font-bold text-foreground">Personal info</h2>
+
+  @if (profile.isLoading() && !account()) {
+    <p class="text-sm text-muted-foreground">Loading your details…</p>
+  } @else if (profile.error() && !account()) {
+    <p role="alert" class="text-sm text-destructive-text" data-test="load-error">Your details could not be loaded.</p>
+  } @else if (account(); as acct) {
+    <div class="flex flex-col gap-1">
+      <span class="text-sm font-medium text-muted-foreground">Email</span>
+      <div class="flex flex-wrap items-center justify-between gap-2">
+        <span class="text-foreground" data-test="email">{{ acct.email }}</span>
+        <button type="button" fb-button variant="outline" size="sm" data-test="change-email" (click)="changeEmail()">
+          Change e-mail
+        </button>
+      </div>
+      <span class="text-xs text-muted-foreground" data-test="email-verified">
+        {{ acct.emailVerified ? 'Verified' : 'Not verified yet' }}
+      </span>
+    </div>
+
+    @if (form(); as form) {
+      <form [formGroup]="form" (ngSubmit)="save()" class="flex flex-col gap-4" novalidate>
+        <div>
+          <fb-input label="First name" autocomplete="given-name" formControlName="firstName" />
+          @for (message of errorsFor('firstName'); track message) {
+            <p class="mt-1 text-xs text-destructive-text" role="alert" data-test="server-error">{{ message }}</p>
+          }
+        </div>
+        <div>
+          <fb-input label="Last name" autocomplete="family-name" formControlName="lastName" />
+          @for (message of errorsFor('lastName'); track message) {
+            <p class="mt-1 text-xs text-destructive-text" role="alert" data-test="server-error">{{ message }}</p>
+          }
+        </div>
+        @for (field of extraFields(); track field.name) {
+          <div>
+            <fb-input [label]="field.label" [formControlName]="field.name" />
+            @for (message of errorsFor(field.name); track message) {
+              <p class="mt-1 text-xs text-destructive-text" role="alert" data-test="server-error">{{ message }}</p>
+            }
+          </div>
+        }
+
+        @if (error(); as message) {
+          <p role="alert" class="text-sm text-destructive-text" data-test="save-error">{{ message }}</p>
+        }
+        <p role="status" class="text-sm text-muted-foreground" data-test="saved">{{ saved() ? 'Details saved' : '' }}</p>
+
+        <div class="flex justify-end">
+          <button type="submit" fb-button variant="primary" [disabled]="saving()" data-test="save">
+            {{ saving() ? 'Saving…' : 'Save' }}
+          </button>
+        </div>
+      </form>
+    }
+  }
+</section>

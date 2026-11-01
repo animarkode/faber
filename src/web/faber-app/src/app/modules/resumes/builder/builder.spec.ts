@@ -145,7 +145,7 @@ describe('Builder', () => {
     beforeEach(() => {
       mockStore.isLoading.set(false);
       mockAuthStore.user.set({
-        id: 'u1', firstName: 'Ada', lastName: 'Lovelace', name: 'Ada Lovelace', email: 'ada@example.com', roles: [], accountUrl: '',
+        id: 'u1', firstName: 'Ada', lastName: 'Lovelace', name: 'Ada Lovelace', email: 'ada@example.com', roles: [],
       } satisfies User);
       fixture.detectChanges();
     });
@@ -296,7 +296,7 @@ describe('Builder', () => {
 
     it('has no AXE violations', async () => {
       mockAuthStore.user.set({
-        id: 'u1', firstName: 'Ada', lastName: 'Lovelace', name: 'Ada Lovelace', email: 'ada@example.com', roles: [], accountUrl: '',
+        id: 'u1', firstName: 'Ada', lastName: 'Lovelace', name: 'Ada Lovelace', email: 'ada@example.com', roles: [],
       } satisfies User);
       fixture.detectChanges();
       await expectNoAxeViolations(fixture);
@@ -587,7 +587,7 @@ describe('Builder', () => {
   describe('accessibility', () => {
     beforeEach(() => {
       mockAuthStore.user.set({
-        id: 'u1', firstName: 'Ada', lastName: 'Lovelace', name: 'Ada Lovelace', email: 'ada@example.com', roles: [], accountUrl: '',
+        id: 'u1', firstName: 'Ada', lastName: 'Lovelace', name: 'Ada Lovelace', email: 'ada@example.com', roles: [],
       } satisfies User);
       mockStore.resume.set({ id: '1' } as unknown as Resume);
       fixture.detectChanges();

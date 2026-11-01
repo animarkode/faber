@@ -19,6 +19,18 @@ export const API_ROUTES = {
     login: (returnUrl = '/') => `${base}/auth/login?returnUrl=${encodeURIComponent(returnUrl)}`,
     /** A page navigation to Keycloak's registration page. */
     register: `${base}/auth/register`,
+    account: {
+      profile: `${base}/auth/account/profile`,
+      credentials: `${base}/auth/account/credentials`,
+      credential: (id: string) => `${base}/auth/account/credentials/${encodeURIComponent(id)}`,
+      devices: `${base}/auth/account/devices`,
+      linkedAccounts: `${base}/auth/account/linked-accounts`,
+      linkedAccount: (alias: string) => `${base}/auth/account/linked-accounts/${encodeURIComponent(alias)}`,
+      session: (id: string) => `${base}/auth/account/sessions/${encodeURIComponent(id)}`,
+      otherSessions: `${base}/auth/account/sessions/others`,
+      /** A page navigation, not a fetch: the API sends the browser on to Keycloak to perform the action. */
+      action: (name: string) => `${base}/auth/account-action/${encodeURIComponent(name)}`,
+    },
   },
   resumes: {
     root: `${base}/resumes`,
