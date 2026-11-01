@@ -6,7 +6,7 @@ This guide is for operators of a deployed Faber. It covers how sign-in works, wh
 
 - **Keycloak owns every credential.** People sign in, register, reset their password, confirm their e-mail, set up passkeys or 2FA and link Google or GitHub on Keycloak's own pages. Neither the API nor the web app ever sees a password.
 - **The API is a backend-for-frontend.** It runs the OpenID Connect authorization code flow with PKCE as the confidential client `faber-api`, keeps the tokens in an encrypted server-side session in PostgreSQL, and gives the browser only an opaque cookie, `__Host-faber` (HttpOnly, Secure, SameSite=Strict). Cookie-authenticated API calls must also carry `X-CSRF: 1`, which the web app adds.
-- **Sessions end everywhere at once.** Sign-out ends the Keycloak session on the back channel. When Keycloak ends a session itself (sign-out elsewhere, "sign out everywhere" in the account console, an admin action), it calls the API's back-channel logout endpoint. A session that simply expires is noticed at the next token refresh, within five minutes.
+- **Sessions end everywhere at once.** Sign-out ends the Keycloak session on the back channel. When Keycloak ends a session itself (sign-out elsewhere, "Sign out of other devices" on the account page, an admin action), it calls the API's back-channel logout endpoint. A session that simply expires is noticed at the next token refresh, within five minutes.
 - **"Remember me"** on Keycloak's page decides between a cookie that ends with the browser (30 minutes idle, 10 hours at most) and a persistent one (7 days idle, 30 days at most).
 - **Bearer tokens** are accepted for non-browser clients: Keycloak access tokens with `aud=faber-api` and `typ=Bearer`. ID tokens are refused.
 
@@ -17,7 +17,7 @@ One e-mail is one account, and e-mail is the login.
 - A first sign-in through Google or GitHub with a **new** e-mail creates the account.
 - With the e-mail of an **existing** account, Keycloak asks whether to link and then asks the person to sign in to the existing account (password plus 2FA if set, or a provider already linked). Only then is the provider linked. Nothing is linked automatically, so a provider account someone else controls cannot take over an existing account.
 - **Google sign-ins whose e-mail Google has not verified are refused** (an essential-claim filter on `email_verified`). GitHub only completes OAuth for users with a verified primary e-mail.
-- A provider with a different e-mail is linked from the account console's *Linked accounts*. Keycloak refuses to remove the last way to sign in.
+- A provider with a different e-mail is linked from the account page's *Linked accounts* (see section 2a). The API refuses to remove the last way to sign in.
 - A password registration asks only for e-mail and name. The password is set after the e-mail link is followed (Keycloak 26.8 does this when e-mail verification is on), so nobody can set a password on an address they do not control.
 
 ## 2. The realm is code
@@ -47,6 +47,22 @@ Run the image `adorsys/keycloak-config-cli:6.5.1-26.1.0` as a one-shot job after
 The job exits with code 0 on success. A non-zero exit must stop the deployment.
 
 The passkeys step then runs, as `keycloak-passkeys` in Development. Run the Keycloak image (the same tag as the server) as a one-shot job after keycloak-config, with `infra/keycloak/passkeys.sh` mounted read-only, the entrypoint `/bin/bash`, the script's path as the only argument, and the environment variables `KEYCLOAK_URL`, `KEYCLOAK_USER` and `KEYCLOAK_PASSWORD` (the same values as for keycloak-config; keep the credentials out of the arguments). It only turns passkeys on with `kcadm.sh`, because the config tool's realm model cannot express that setting yet and drops it on every import. A non-zero exit must stop the deployment. It does not touch the client secret. In Development the secret is the AppHost parameter `faber-api-client-secret`, generated on the first run and kept in the AppHost user-secrets. In production it is an environment variable from the platform's secret store.
+
+## 2a. Account management
+
+People manage their account on the web app's `/account` page; Keycloak's account console is disabled (`account-console` client off, no redirect to it anywhere).
+
+- **Reads and edits use Keycloak's Account REST API** with the signed-in person's own access token: profile (first and last name only; the e-mail is never changed there), credentials, devices and linked accounts, removing a credential or a linked account, and ending a device session. The API never uses the Admin API and holds no service account.
+- **Actions that need Keycloak's own pages** (change password, add a passkey or an authenticator app, change e-mail, link Google or GitHub, delete the account) go through `GET /api/v1/auth/account-action/{name}`, a top-level navigation. `name` is checked against a fixed allow-list (`password`, `passkey`, `totp`, `email`, `link-google`, `link-github`, `delete`) and mapped to a Keycloak `kc_action`; anything else is refused. Keycloak runs the action, and the callback returns the person to `/account?action=<name>&status=<success|cancelled|...>`. The sign-in session is replaced by the new one and the old session row is removed. After `delete` succeeds the person is signed out and lands on `/?accountDeleted=true`.
+- **Lock-out guard:** passwords, passwordless passkeys and connected providers count as ways to sign in. The API refuses (409 `Account.LastSignInMethod`) to remove the last one. Authenticator apps and security keys used as a second factor can always be removed.
+- **Ending other sessions** removes them in Keycloak; those devices are signed out of the app through back-channel logout (section 1). A device's "last access" only moves when the API refreshes its tokens, so it can lag by minutes.
+
+### Realm hardening
+
+- The `account` client stays **enabled**: its roles are what authorize Account REST. Its standard, implicit and direct-access flows are off, so nobody can sign in through it. Do not disable it, or the account page stops working.
+- `delete-account` is part of `default-roles-faber`, so a person may delete their own account.
+- The required actions `UPDATE_PASSWORD`, `CONFIGURE_TOTP`, `webauthn-register-passwordless`, `idp_link` and `delete_account` are enabled. Each has `max_auth_age` set to `300`: if the person last signed in more than five minutes ago, Keycloak asks for their credentials again before the action. `UPDATE_EMAIL` is unchanged.
+- To change the window, edit `max_auth_age` (seconds) on those required actions in `infra/keycloak/config/faber.json` and redeploy `keycloak-config`; it applies on the next action, with no user impact. `0` means always re-authenticate.
 
 ## 3. Keycloak itself
 
@@ -189,5 +205,7 @@ A limit per recipient address needs a Keycloak extension and is a planned follow
 - The password grant is refused: a `POST` to `https://<KEYCLOAK-HOST>/realms/faber/protocol/openid-connect/token` with `grant_type=password` and `client_id=admin-cli` answers an error.
 - `https://<KEYCLOAK-HOST>/admin` is not reachable from outside.
 - The reverse-proxy limits from section 6 answer 429 when exceeded.
-- The sign-in page at `https://<KEYCLOAK-HOST>/realms/faber/account` shows the Faber theme, and the light and dark toggle carries over to the web app.
-- "Sign out everywhere" in the account console signs the web app out within seconds.
+- The sign-in page at `https://<KEYCLOAK-HOST>/realms/faber/protocol/openid-connect/auth` (reached through `/api/v1/auth/login`) shows the Faber theme, and the light and dark toggle carries over to the web app.
+- `https://<KEYCLOAK-HOST>/realms/faber/account` does not offer an account console (the client is disabled).
+- "Sign out of other devices" on `https://<APP-HOST>/account` signs those devices out of the web app within seconds.
+- `https://<APP-HOST>/api/v1/auth/account-action/unknown` is refused, and `.../password` sends a signed-in person to Keycloak's change-password page.

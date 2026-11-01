@@ -1,6 +1,6 @@
 ---
 name: keycloak-aspnet-integration
-description: Keycloak hosted login and the API's BFF session in Faber — realm as code (faber.json + keycloak-config-cli), OIDC code+PKCE, server-side sessions in Postgres, single-flight refresh, CSRF header, back-channel logout, bearer access tokens, account linking, and the Testcontainers fixture with a browser-less login driver. Use when working with sign-in, sessions, the Keycloak realm config, or auth tests.
+description: Keycloak hosted login and the API's BFF session in Faber — realm as code (faber.json + keycloak-config-cli), OIDC code+PKCE, server-side sessions in Postgres, single-flight refresh, CSRF header, back-channel logout, bearer access tokens, account linking, in-app account management (Account REST, allow-listed `kc_action` navigation, lock-out guard), and the Testcontainers fixture with a browser-less login driver. Use when working with sign-in, sessions, the Keycloak realm config, or auth tests.
 ---
 
 # Keycloak hosted login and the BFF session — Faber
@@ -16,7 +16,9 @@ Keycloak owns every credential and every sign-in page. The API is a backend-for-
 | Passkeys toggle (`keycloak-passkeys` step) | `infra/keycloak/passkeys.sh` |
 | Schemes, cookie, OIDC and JWT bearer options | `src/api/Modules/Auth/Faber.Modules.Auth.Application/Authentication/` |
 | Session store, refresh, Keycloak back-channel calls | `.../Auth.Application/Sessions/` |
-| Endpoints (`login`, `register`, `user`, `logout`, `backchannel-logout`) | `.../Auth.Application/Features/` |
+| Endpoints (`login`, `register`, `user`, `logout`, `backchannel-logout`, `account-action`) | `.../Auth.Application/Features/` |
+| Account actions allow-list, lock-out guard | `.../Features/AccountAction/AccountActions.cs`, `.../Features/Account/LastSignInMethodGuard.cs` |
+| Account REST client (user's access token) | `.../Auth.Application/Sessions/KeycloakAccountClient.cs` |
 | Sessions + Data Protection keys (`auth` schema) | `src/api/Modules/Auth/Faber.Modules.Auth.Infrastructure/Database/` |
 | JWT claim names, plan roles | `src/api/Modules/Auth/Faber.Modules.Auth.PublicApi/` |
 | Test fixture, login driver, back-channel relay | `tests/Integration/Modules/Common/Faber.Testing.Shared/` |
@@ -30,7 +32,12 @@ Keycloak owns every credential and every sign-in page. The API is a backend-for-
 5. **Linking stays inside Keycloak.** The `faber first broker login` flow creates a user for a new e-mail and otherwise runs `idp-confirm-link` + re-authentication. Never add `idp-auto-link` or `idp-email-verification`. Google keeps its `email_verified` essential-claim filter.
 6. **One bearer predicate.** `AuthSchemes.IsBearerRequest` decides both the scheme and whether the CSRF header is required. Never test the `Authorization` header another way.
 7. **Bearer means access token.** JwtBearer rejects any token whose `typ` claim is not `Bearer` (ID tokens share `aud=faber-api`).
-8. **Every cookie-authenticated `/api` call needs `X-CSRF: 1`**, except the top-level navigations (`login`, `register`, `callback`) and Keycloak's `backchannel-logout`. A new navigation endpoint goes on `CsrfHeaderMiddleware`'s list.
+8. **Every cookie-authenticated `/api` call needs `X-CSRF: 1`**, except the top-level navigations (`login`, `register`, `callback`) and Keycloak's `backchannel-logout`. A new navigation endpoint goes on `CsrfHeaderMiddleware`'s list. `account-action/{name}` is one too (exactly one segment).
+9. **The account console is disabled; the `account` client stays enabled** (its roles back Account REST) with every sign-in flow off. Never link to `/realms/faber/account` or re-add an account URL to `auth/user`.
+10. **Account REST only with the session's own access token.** No Admin API, no service account. Account reads and edits go through `KeycloakAccountClient`.
+11. **Keycloak-hosted actions go through the allow-list.** Add a name to `AccountActions` (name to `kc_action`); never pass a client-supplied `kc_action` through. The matching required action in the realm needs `max_auth_age` (300) so it re-authenticates after 5 minutes.
+12. **Run removals through `LastSignInMethodGuard`.** Passwords, passwordless passkeys and connected providers are sign-in methods; removing the last one is 409 `Account.LastSignInMethod`. OTP and 2FA keys are always removable.
+13. **An account-action callback replaces the session.** The old session row is deleted using its id hash carried in the OIDC state, because the SameSite=Strict cookie is absent on the cross-site callback. `delete` success signs out. Ending other sessions relies on back-channel logout to sign those devices out of the app.
 
 ## How a request is authenticated
 

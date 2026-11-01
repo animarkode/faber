@@ -152,7 +152,7 @@ public static class CreateEducationMapper
 Real Faber patterns:
 - request → command mapping almost always lives in the feature folder
 - entity/external-contract → response mapping may live in the feature folder or a shared mapper namespace
-- some mappers take extra arguments, e.g. `User.MapToResponse(accountUrl)` in `Auth`'s `UserMapper`
+- some mappers extend a non-DTO source, e.g. `ClaimsPrincipal.MapToResponse()` in `Auth`'s `UserMapper`
 
 ---
 
