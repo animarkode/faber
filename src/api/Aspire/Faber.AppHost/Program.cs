@@ -73,6 +73,9 @@ var keycloak = builder.AddContainer("keycloak", keycloakImage, keycloakTag)
     .WithEnvironment("KC_DB_SCHEMA", keycloakSchema)
     .WithEnvironment("KC_DB_USERNAME", postgresUser)
     .WithEnvironment("KC_DB_PASSWORD", postgresPass)
+    // The login theme's "Back to microcivi" where Keycloak has no client to take the address from.
+    // Keep it equal to keycloak-config's FABER_APP_URL below.
+    .WithEnvironment("FABER_APP_URL", "http://localhost:4200")
     .WaitForCompletion(migrations)
     .WithArgs("start-dev");
 
