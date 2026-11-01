@@ -19,13 +19,19 @@ public class DeleteCredentialEndpoint : Endpoint<DeleteCredentialRequest, Result
         DeleteCredentialRequest req,
         CancellationToken ct)
     {
+        var subject = User.GetSubject();
+        if (subject.IsError)
+        {
+            return subject.FirstError.ToProblem();
+        }
+
         var token = await HttpContext.GetAccessTokenAsync();
         if (token.IsError)
         {
             return token.FirstError.ToProblem();
         }
 
-        var result = await req.MapToCommand(token.Value).ExecuteAsync(ct);
+        var result = await req.MapToCommand(subject.Value, token.Value).ExecuteAsync(ct);
 
         return result.IsError ? result.FirstError.ToProblem() : TypedResults.NoContent();
     }

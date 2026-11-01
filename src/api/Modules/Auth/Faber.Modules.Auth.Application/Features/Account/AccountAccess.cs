@@ -1,5 +1,7 @@
+using System.Security.Claims;
 using ErrorOr;
 using Faber.Modules.Auth.Application.Authentication;
+using Faber.Modules.Auth.PublicApi;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -20,6 +22,16 @@ public static class AccountAccess
         return string.IsNullOrEmpty(token)
             ? Error.Unauthorized("Account.Unauthorized", "There is no signed-in session.")
             : token;
+    }
+
+    /// <summary>The user's <c>sub</c> claim, which keys the per-user lock; a principal without one gets an error.</summary>
+    public static ErrorOr<string> GetSubject(this ClaimsPrincipal user)
+    {
+        var subject = user.FindFirst(JwtClaimTypes.Registered.Sub)?.Value;
+
+        return string.IsNullOrEmpty(subject)
+            ? Error.Unauthorized("Account.Unauthorized", "There is no signed-in session.")
+            : subject;
     }
 
     /// <summary>

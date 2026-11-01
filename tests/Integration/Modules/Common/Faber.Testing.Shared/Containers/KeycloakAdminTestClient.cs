@@ -68,6 +68,21 @@ public sealed class KeycloakAdminTestClient(string baseAddress, string adminUser
             $"admin/realms/{Realm}/users/{userId}/federated-identity", ct))!;
     }
 
+    /// <summary>
+    /// Links an identity of an external provider (such as <c>google</c>) to a user, as a completed
+    /// "Link account" flow would, without a round trip to the provider.
+    /// </summary>
+    public async Task LinkFederatedIdentityAsync(
+        string userId, string providerAlias, string externalUserId, string externalUserName, CancellationToken ct = default)
+    {
+        await AuthorizeAsync(ct);
+        using var response = await _http.PostAsJsonAsync(
+            $"admin/realms/{Realm}/users/{userId}/federated-identity/{Uri.EscapeDataString(providerAlias)}",
+            new { identityProvider = providerAlias, userId = externalUserId, userName = externalUserName },
+            ct);
+        response.EnsureSuccessStatusCode();
+    }
+
     /// <summary>Ends one Keycloak session, as "Sign out" on a session in the admin console does.</summary>
     public async Task DeleteSessionAsync(string sessionId, CancellationToken ct = default)
     {

@@ -52,6 +52,34 @@ public class AccountRemovalTests(WebApp app)
     }
 
     [Fact]
+    public async Task Remove_WhenTwoRemovalsOfTheTwoSignInMethodsRunAtOnce_ShouldLetAtMostOneSucceed()
+    {
+        var user = await CreateUserAsync(5107);
+        var userId = (await app.Keycloak.Admin.FindUserIdAsync(user.Email, Ct))!;
+        await app.Keycloak.Admin.LinkFederatedIdentityAsync(userId, "google", $"google-{userId}", user.Email, Ct);
+        var (client, _) = await app.SignInAsync(user, ct: Ct);
+        using var _client = client;
+        var passwordId = await FindPasswordIdAsync(client);
+
+        var responses = await Task.WhenAll(
+            client.DeleteAsync($"api/v1/auth/account/credentials/{passwordId}", Ct),
+            client.DeleteAsync("api/v1/auth/account/linked-accounts/google", Ct));
+        var statuses = responses.Select(r => r.StatusCode).ToList();
+        responses.ToList().ForEach(r => r.Dispose());
+
+        statuses.Count(s => s == HttpStatusCode.NoContent).ShouldBe(1);
+        statuses.Count(s => s == HttpStatusCode.Conflict).ShouldBe(1);
+        var credentials = await client.GetFromJsonAsync<JsonArray>("api/v1/auth/account/credentials", Ct);
+        var accounts = await client.GetFromJsonAsync<JsonArray>("api/v1/auth/account/linked-accounts", Ct);
+        var storedPasswords = credentials!
+            .Select(c => c!.AsObject())
+            .Where(c => string.Equals(c["type"]!.GetValue<string>(), "password", StringComparison.Ordinal))
+            .Sum(c => c["credentials"]!.AsArray().Count);
+        var connected = accounts!.Count(a => a!["connected"]!.GetValue<bool>());
+        (storedPasswords + connected).ShouldBe(1);
+    }
+
+    [Fact]
     public async Task DeleteCredential_WithUnknownId_ShouldReturnNotFound()
     {
         var (client, _) = await app.SignInAsync(await CreateUserAsync(5102), ct: Ct);

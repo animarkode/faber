@@ -6,7 +6,10 @@ using Microsoft.Extensions.Logging;
 namespace Faber.Modules.Auth.Application.Features.Account.UnlinkAccount;
 
 /// <summary>Unlinks a provider, unless it is the user's last way to sign in.</summary>
-public class UnlinkAccountCommandHandler(KeycloakAccountClient keycloak, ILogger<UnlinkAccountCommandHandler> logger)
+public class UnlinkAccountCommandHandler(
+    AccountSignInMethodsLock signInMethods,
+    KeycloakAccountClient keycloak,
+    ILogger<UnlinkAccountCommandHandler> logger)
     : ICommandHandler<UnlinkAccountCommand, ErrorOr<Success>>
 {
     private const string HandlerName = nameof(UnlinkAccountCommandHandler);
@@ -15,37 +18,20 @@ public class UnlinkAccountCommandHandler(KeycloakAccountClient keycloak, ILogger
     {
         logger.LogInformation("[START] {HandlerName}", HandlerName);
 
-        var credentials = await keycloak.GetCredentialsAsync(command.AccessToken, ct);
-        if (credentials.IsError)
-        {
-            return Fail(credentials.FirstError);
-        }
+        var result = await signInMethods.RemoveAsync(
+            command.Subject,
+            command.AccessToken,
+            (credentials, linked) => LastSignInMethodGuard.CheckUnlink(credentials, linked, command.Alias),
+            token => keycloak.DeleteLinkedAccountAsync(command.AccessToken, command.Alias, token),
+            ct);
 
-        var linked = await keycloak.GetLinkedAccountsAsync(command.AccessToken, ct);
-        if (linked.IsError)
+        if (result.IsError)
         {
-            return Fail(linked.FirstError);
-        }
-
-        var allowed = LastSignInMethodGuard.CheckUnlink(credentials.Value, linked.Value, command.Alias);
-        if (allowed.IsError)
-        {
-            return Fail(allowed.FirstError);
-        }
-
-        var deleted = await keycloak.DeleteLinkedAccountAsync(command.AccessToken, command.Alias, ct);
-        if (deleted.IsError)
-        {
-            return Fail(deleted.FirstError);
+            logger.LogWarning("[FAIL] {HandlerName} | {Error}", HandlerName, result.FirstError.Code);
+            return result;
         }
 
         logger.LogInformation("[SUCCESS] {HandlerName}", HandlerName);
         return Result.Success;
-    }
-
-    private ErrorOr<Success> Fail(Error error)
-    {
-        logger.LogWarning("[FAIL] {HandlerName} | {Error}", HandlerName, error.Code);
-        return error;
     }
 }
