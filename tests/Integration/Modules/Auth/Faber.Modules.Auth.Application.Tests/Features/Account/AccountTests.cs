@@ -152,17 +152,18 @@ public class AccountTests(WebApp app)
     }
 
     [Fact]
-    public async Task GetLinkedAccounts_WithSession_ShouldListGoogleAndGitHubAsNotConnected()
+    public async Task GetLinkedAccounts_WithSession_ShouldListTheEnabledProvidersAsNotConnected()
     {
         var (client, _) = await app.SignInAsync(app.Users[3], ct: Ct);
         using var _client = client;
 
         var accounts = await client.GetFromJsonAsync<JsonArray>("api/v1/auth/account/linked-accounts", Ct);
 
+        // Google and GitHub are disabled in the test realm, so Keycloak lists only the stand-in provider, which
+        // is not on the app's allow-list and therefore has no link action.
         var byAlias = accounts!.Select(a => a!.AsObject()).ToDictionary(a => a["providerAlias"]!.GetValue<string>(), StringComparer.Ordinal);
-        byAlias["google"]["connected"]!.GetValue<bool>().ShouldBeFalse();
-        byAlias["google"]["linkAction"]!.GetValue<string>().ShouldBe("link-google");
-        byAlias["github"]["connected"]!.GetValue<bool>().ShouldBeFalse();
-        byAlias["github"]["linkAction"]!.GetValue<string>().ShouldBe("link-github");
+        byAlias.ContainsKey("google").ShouldBeFalse();
+        byAlias[WebApp.StandIn.Alias]["connected"]!.GetValue<bool>().ShouldBeFalse();
+        byAlias[WebApp.StandIn.Alias]["linkAction"].ShouldBeNull();
     }
 }

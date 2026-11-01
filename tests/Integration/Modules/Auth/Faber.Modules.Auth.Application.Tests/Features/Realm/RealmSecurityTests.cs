@@ -83,14 +83,19 @@ public class RealmSecurityTests(WebApp app)
     [InlineData("account")]
     public async Task BrowserSignIn_ThroughKeycloakAccountClients_ShouldBeRefused(string clientId)
     {
-        using var http = new HttpClient { BaseAddress = new Uri(app.Keycloak.BaseAddress) };
+        // Keycloak refuses either with an error page or by redirecting back with `error=`; following that redirect
+        // would land on an unrelated page, so it is read as is.
+        using var handler = new HttpClientHandler { AllowAutoRedirect = false, CheckCertificateRevocationList = true };
+        using var http = new HttpClient(handler) { BaseAddress = new Uri(app.Keycloak.BaseAddress) };
         var redirectUri = Uri.EscapeDataString($"{app.Keycloak.BaseAddress.TrimEnd('/')}/realms/{FaberKeycloak.Realm}/account/");
 
         using var response = await http.GetAsync(
             $"realms/{FaberKeycloak.Realm}/protocol/openid-connect/auth?client_id={clientId}&response_type=code&scope=openid&redirect_uri={redirectUri}", Ct);
         var body = await response.Content.ReadAsStringAsync(Ct);
+        var refusedByRedirect = (int)response.StatusCode is >= 300 and < 400
+                                && response.Headers.Location?.ToString().Contains("error=", StringComparison.Ordinal) == true;
 
-        response.IsSuccessStatusCode.ShouldBeFalse();
+        (refusedByRedirect || (int)response.StatusCode >= 400).ShouldBeTrue($"Keycloak answered {(int)response.StatusCode} {response.Headers.Location}");
         body.ShouldNotContain("kc-form-login");
     }
 

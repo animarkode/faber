@@ -56,14 +56,14 @@ public class AccountRemovalTests(WebApp app)
     {
         var user = await CreateUserAsync(5107);
         var userId = (await app.Keycloak.Admin.FindUserIdAsync(user.Email, Ct))!;
-        await app.Keycloak.Admin.LinkFederatedIdentityAsync(userId, "google", $"google-{userId}", user.Email, Ct);
+        await app.Keycloak.Admin.LinkFederatedIdentityAsync(userId, WebApp.StandIn.Alias, $"standin-{userId}", user.Email, Ct);
         var (client, _) = await app.SignInAsync(user, ct: Ct);
         using var _client = client;
         var passwordId = await FindPasswordIdAsync(client);
 
         var responses = await Task.WhenAll(
             client.DeleteAsync($"api/v1/auth/account/credentials/{passwordId}", Ct),
-            client.DeleteAsync("api/v1/auth/account/linked-accounts/google", Ct));
+            client.DeleteAsync($"api/v1/auth/account/linked-accounts/{WebApp.StandIn.Alias}", Ct));
         var statuses = responses.Select(r => r.StatusCode).ToList();
         responses.ToList().ForEach(r => r.Dispose());
 
@@ -96,7 +96,7 @@ public class AccountRemovalTests(WebApp app)
         var (client, _) = await app.SignInAsync(await CreateUserAsync(5103), ct: Ct);
         using var _client = client;
 
-        using var response = await client.DeleteAsync("api/v1/auth/account/linked-accounts/google", Ct);
+        using var response = await client.DeleteAsync($"api/v1/auth/account/linked-accounts/{WebApp.StandIn.Alias}", Ct);
 
         response.StatusCode.ShouldBe(HttpStatusCode.NotFound);
     }
@@ -172,8 +172,8 @@ public class AccountRemovalTests(WebApp app)
     {
         var devices = await client.GetFromJsonAsync<JsonArray>("api/v1/auth/account/devices", Ct);
 
+        // The API answers one entry per session (Keycloak's devices are flattened).
         return devices!
-            .SelectMany(d => d!["sessions"]!.AsArray())
             .Select(s => s!.AsObject())
             .ToList();
     }
