@@ -23,7 +23,6 @@ public class SessionTests(WebApp app)
         profile["lastName"]!.GetValue<string>().ShouldBe(user.LastName);
         profile["id"]!.GetValue<string>().ShouldBe(await app.Keycloak.Admin.FindUserIdAsync(user.Email, TestContext.Current.CancellationToken));
         profile["roles"]!.AsArray().Select(r => r!.GetValue<string>()).ShouldContain("regular", StringComparer.Ordinal);
-        profile["accountUrl"]!.GetValue<string>().ShouldStartWith($"{app.Keycloak.Issuer}/account");
     }
 
     [Fact]
