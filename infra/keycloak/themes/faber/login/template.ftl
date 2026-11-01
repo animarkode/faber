@@ -33,6 +33,15 @@
     <meta http-equiv="Content-Type" content="text/html; charset=UTF-8" />
     <meta name="color-scheme" content="light${darkMode?then(' dark', '')}">
     <meta name="viewport" content="width=device-width, initial-scale=1">
+    <#-- Fetch the faces the page shows straight away before the first paint. faber.css uses
+         font-display: optional, so a font that is late is skipped instead of swapped in mid-page. -->
+    <#assign fbFonts = ["nunito-sans-latin", "playfair-display-latin", "space-grotesk-latin"]>
+    <#if social?? && social.providers?has_content>
+      <#assign fbFonts = fbFonts + ["google-sans-latin"]>
+    </#if>
+    <#list fbFonts as fbFont>
+    <link rel="preload" href="${url.resourcesPath}/fonts/${fbFont}.woff2" as="font" type="font/woff2" crossorigin>
+    </#list>
     <#-- Pre-paint theme: the faber-theme cookie wins, else the OS preference. Runs before the CSS so there is no flash. -->
     <script>
       (function () {
@@ -160,9 +169,15 @@
 </head>
 
 <body id="keycloak-bg" class="${properties.kcBodyClass!}" data-page-id="login-${pageId}">
-<#-- Shell: brand and theme toggle -->
-<header class="fb-header">
+<#-- Shell: the web app's navbar, brand and theme toggle only. The brand leads back to the app's
+     home page (the client's base URL); a page without a client shows it as plain text. -->
+<header class="fb-header" id="fb-header">
+  <div class="fb-header__inner">
+      <#if (client.baseUrl)?has_content>
+      <a class="fb-brand" href="${client.baseUrl}">microcivi.com</a>
+      <#else>
       <span class="fb-brand">microcivi.com</span>
+      </#if>
       <#-- Both labels are rendered; faber.css hides the one that does not fit html.dark, and a
            display:none element drops out of the accessibility tree, so the name is right before any JS runs. -->
       <button type="button" id="fb-theme-toggle" class="fb-icon-btn">
@@ -171,7 +186,8 @@
         <svg class="fb-icon-moon" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20.985 12.486a9 9 0 1 1-9.473-9.472c.405-.022.617.46.402.803a6 6 0 0 0 8.268 8.268c.344-.215.825-.004.803.401"/></svg>
         <svg class="fb-icon-sun" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"/><path d="M12 2v2"/><path d="M12 20v2"/><path d="m4.93 4.93 1.41 1.41"/><path d="m17.66 17.66 1.41 1.41"/><path d="M2 12h2"/><path d="M20 12h2"/><path d="m6.34 17.66-1.41 1.41"/><path d="m19.07 4.93-1.41 1.41"/></svg>
       </button>
-    </header>
+  </div>
+</header>
 <div class="${properties.kcLogin!}">
   <div class="${properties.kcLoginContainer!}">
     <main class="${properties.kcLoginMain!}">
@@ -194,7 +210,11 @@
             <@fbArt.linkart left="person-solid" right=((idpAlias!"") = "github")?then("github", "link") />
             <#break>
           <#case "info">
-            <#if (message.type)! = "success">
+            <#-- messageHeader arrives as the resolved text, not the key, so compare it with msg(key).
+                 Keycloak sends the not-yet-confirmed page as "success" too; it gets no check yet. -->
+            <#if (messageHeader!"") = msg("confirmEmailAddressVerificationHeader")>
+              <@fbArt.linkart left="mail" right="person" />
+            <#elseif (message.type)! = "success" || (messageHeader!"") = msg("emailVerifiedMessageHeader") || (messageHeader!"") = msg("emailVerifiedAlreadyMessageHeader")>
               <@fbArt.linkart left="mail" right="person" bridge="check" />
             </#if>
             <#break>
@@ -208,7 +228,10 @@
             <@fbArt.linkart left="person" right="laptop" />
             <#break>
         </#switch>
-        <h1 class="${properties.kcLoginMainTitle!}" id="kc-page-title"><#nested "header"></h1>
+        <#-- error.ftl titles every error "Something went wrong"; an expired e-mail link gets its own title. -->
+        <#assign fbExpiredLink = (pageId!"") = "error" && message?has_content
+          && (message.summary = msg("expiredActionTokenNoSessionMessage") || message.summary = msg("expiredActionTokenSessionExistsMessage"))>
+        <h1 class="${properties.kcLoginMainTitle!}" id="kc-page-title"><#if fbExpiredLink>${msg("fbExpiredLinkTitle")}<#else><#nested "header"></#if></h1>
         <#assign fbSubtitleKeys = {
           "login": "fbSubtitleLogin",
           "register": "fbSubtitleRegister",
@@ -216,7 +239,9 @@
           "webauthn-authenticate": "fbSubtitlePasskeyAuthenticate",
           "webauthn-register": "fbSubtitlePasskeyRegister",
           "webauthn-error": "fbSubtitlePasskeyError",
-          "login-idp-link-confirm": "fbSubtitleLinkAccount"
+          "login-idp-link-confirm": "fbSubtitleLinkAccount",
+          "login-page-expired": "fbSubtitlePageExpired",
+          "update-email": "fbSubtitleUpdateEmail"
         }>
         <#if fbSubtitleKeys[pageId!""]??>
           <p class="fb-lead">${msg(fbSubtitleKeys[pageId])}</p>
@@ -224,42 +249,55 @@
           <#-- v2 prints this in the footer; here it moves under the title and faber.css hides the footer copy -->
           <p class="fb-lead">${realm.duplicateEmailsAllowed?then(msg("emailInstructionUsername"), msg("emailInstruction"))}</p>
         </#if>
+        <#-- Email pages: the instruction is plain text under the title and the address is a badge under it.
+             The stock sentence that runs both together is hidden in faber.css (.fb-own-instruction). -->
+        <#assign fbEmail = "">
+        <#if (pageId!"") = "login-verify-email" && verifyEmail??>
+          <#assign fbEmail = verifyEmail>
+          <p class="fb-lead">${msg("fbVerifyEmailLead")}</p>
+        <#elseif (pageId!"") = "info" && (messageHeader!"") = msg("confirmEmailAddressVerificationHeader") && message?has_content>
+          <#-- The address only arrives inside the formatted summary; cut the message's own words off it. -->
+          <#assign fbParts = msg("confirmEmailAddressVerification", "@@fb@@")?split("@@fb@@")>
+          <#assign fbEmail = message.summary?remove_beginning(fbParts[0])?remove_ending(fbParts[1])>
+          <p class="fb-lead">${msg("fbConfirmEmailLead")}</p>
+        <#elseif (pageId!"") = "info" && !(messageHeader??) && message?has_content && message.summary = msg("successLogout")>
+          <#-- info.ftl prints the same sentence as title and body; the body becomes this lead instead. -->
+          <#assign fbOwnInstruction = true>
+          <p class="fb-lead">${msg("fbSignedOutLead")}</p>
+        </#if>
+        <#if fbEmail?has_content>
+          <p class="fb-identity">
+            <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m22 7-8.991 5.727a2 2 0 0 1-2.009 0L2 7"/><rect x="2" y="4" width="20" height="16" rx="2"/></svg>
+            <span>${fbEmail}</span>
+          </p>
+        </#if>
       </div>
-      <div class="${properties.kcLoginMainBody!}">
-        <#if !(auth?has_content && auth.showUsername() && !auth.showResetCredentials())>
-            <#if displayRequiredFields>
-                <div class="${properties.kcContentWrapperClass!}">
-                    <div class="${properties.kcLabelWrapperClass!} subtitle">
-                        <span class="${properties.kcInputHelperTextItemTextClass!}">
-                          <span class="${properties.kcInputRequiredClass!}">*</span> ${msg("requiredFields")}
-                        </span>
-                    </div>
-                </div>
-            </#if>
-        <#else>
-            <#if displayRequiredFields>
-                <div class="${properties.kcContentWrapperClass!}">
-                    <div class="${properties.kcLabelWrapperClass!} subtitle">
-                        <span class="${properties.kcInputHelperTextItemTextClass!}">
-                          <span class="${properties.kcInputRequiredClass!}">*</span> ${msg("requiredFields")}
-                        </span>
-                    </div>
-                    <div class="${properties.kcFormClass} ${properties.kcContentWrapperClass}">
-                        <#nested "show-username">
-                        <@username />
-                    </div>
-                </div>
-            <#else>
-                <div class="${properties.kcFormClass} ${properties.kcContentWrapperClass}">
-                  <#nested "show-username">
-                  <@username />
-                </div>
-            </#if>
+      <div class="${properties.kcLoginMainBody!}${(fbEmail?has_content || (fbOwnInstruction!false))?then(" fb-own-instruction", "")}">
+        <#-- v2 prints the required-fields note at the top, above the provider buttons it does not apply to;
+             here it sits right above the form (see below). -->
+        <#if auth?has_content && auth.showUsername() && !auth.showResetCredentials()>
+            <div class="${properties.kcFormClass} ${properties.kcContentWrapperClass}">
+              <#nested "show-username">
+              <@username />
+            </div>
         </#if>
 
         <#-- App-initiated actions should not see warning messages about the need to complete the action -->
         <#-- during login.                                                                               -->
-        <#if displayMessage && message?has_content && (message.type != 'warning' || !isAppInitiatedAction??)>
+        <#-- login.ftl turns the message off when the email/password pair is wrong and shows it under the email
+             field instead. It is about the pair, not that field, so here it is the alert above the form;
+             faber.css hides the field copy. -->
+        <#assign fbPairError = (pageId!"") = "login" && messagesPerField?? && messagesPerField.existsError('username','password')>
+        <#-- Required-action pages open with Keycloak's "You need to <do this page's job> to activate your
+             account." It only repeats the title and subtitle, so it is dropped; any other warning still shows. -->
+        <#assign fbRepeatsTitle = false>
+        <#if message?has_content && message.type = 'warning'>
+          <#list ["verifyEmailMessage", "updatePasswordMessage", "resetPasswordMessage", "updateProfileMessage",
+                  "updateEmailMessage", "configureTotpMessage", "configureBackupCodesMessage"] as fbKey>
+            <#if message.summary = msg(fbKey)><#assign fbRepeatsTitle = true></#if>
+          </#list>
+        </#if>
+        <#if (displayMessage || fbPairError) && message?has_content && !fbRepeatsTitle && (message.type != 'warning' || !isAppInitiatedAction??)>
             <#assign fbAlertType = (message.type = 'error')?then('error', message.type)>
             <div class="fb-alert fb-alert--${fbAlertType}" role="${(message.type = 'error')?then('alert', 'status')}">
                 <#if message.type = 'success'>
@@ -284,7 +322,25 @@
             </div>
         </#if>
 
+        <#if displayRequiredFields>
+            <p class="fb-required-note"><span class="${properties.kcInputRequiredClass!}">*</span> ${msg("fbRequiredFieldsNote")}</p>
+        </#if>
+
         <#nested "form">
+
+        <#-- Page expired: v2 offers "restart" and "continue" as two "click here" links. From the usual cause
+             (Back on the sign-in page) both land on the same form; mid-flow, continue keeps the steps already
+             done and restart drops them. So one button, continue; faber.css hides the stock sentence. -->
+        <#-- Keycloak drops the link (skipLink) on pages like "You are logged out" after a sign-out that did
+             not start in the app; its only client there is the account console. That left a dead end, so the
+             page links to the app instead (fbAppUrl in theme.properties). -->
+        <#if (pageId!"") = "info" && (skipLink!false)>
+            <a id="fb-back-to-app" class="${properties.kcButtonClass!} ${properties.kcButtonPrimaryClass!} ${properties.kcButtonBlockClass!}" href="${properties.fbAppUrl!"/"}">${msg("backToApplication")}</a>
+        </#if>
+
+        <#if (pageId!"") = "login-page-expired">
+            <a class="${properties.kcButtonClass!} ${properties.kcButtonPrimaryClass!} ${properties.kcButtonBlockClass!}" href="${url.loginAction}">${msg("doContinue")}</a>
+        </#if>
 
         <#if auth?has_content && auth.showTryAnotherWayLink()>
           <form id="kc-select-try-another-way-form" action="${url.loginAction}" method="post" novalidate="novalidate">
