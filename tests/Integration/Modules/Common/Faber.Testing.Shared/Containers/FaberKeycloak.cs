@@ -10,7 +10,8 @@ namespace Faber.Testing.Shared.Containers;
 
 /// <summary>
 /// A throwaway Keycloak configured exactly like the real one: the stock image the AppHost runs, with
-/// <c>infra/keycloak/config/faber.json</c> applied by the same keycloak-config-cli image. Only the variables
+/// <c>infra/keycloak/config/faber.json</c> applied by the same keycloak-config-cli image, and the <c>faber</c>
+/// login theme mounted (the realm selects it, so it must exist). Only the variables
 /// differ (URLs, SMTP, a known <c>faber-api</c> secret passed the way the AppHost passes it) and a test-only client for bearer tokens.
 /// </summary>
 public sealed class FaberKeycloak : IAsyncDisposable
@@ -63,6 +64,7 @@ public sealed class FaberKeycloak : IAsyncDisposable
             .WithNetwork(network)
             .WithNetworkAliases(NetworkAlias)
             .WithExtraHost("host.docker.internal", "host-gateway")
+            .WithBindMount(RepositoryFile("infra", "keycloak", "themes", "faber"), "/opt/keycloak/themes/faber", AccessMode.ReadOnly)
             .WithUsername(AdminUsername)
             .WithPassword(AdminPassword)
             .Build();

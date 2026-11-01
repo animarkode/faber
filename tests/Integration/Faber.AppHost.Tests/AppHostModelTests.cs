@@ -53,7 +53,13 @@ public class AppHostModelTests
         image.Registry.ShouldBe("quay.io");
         image.Image.ShouldBe("keycloak/keycloak");
         image.Tag.ShouldBe("26.8.1");
-        keycloak.Annotations.OfType<ContainerMountAnnotation>().ShouldBeEmpty();
+        // Only the login theme is mounted (read-only); the realm is applied by keycloak-config, not imported.
+        var mount = keycloak.Annotations.OfType<ContainerMountAnnotation>().Single();
+        mount.Type.ShouldBe(ContainerMountType.BindMount);
+        mount.IsReadOnly.ShouldBeTrue();
+        mount.Target.ShouldBe("/opt/keycloak/themes/faber");
+        Path.GetFullPath(mount.Source!).ShouldBe(Path.GetFullPath(Path.Combine(
+            builder.AppHostDirectory, "..", "..", "..", "..", "infra", "keycloak", "themes", "faber")));
 
         var configuration = await ExecutionConfigurationBuilder
             .Create(keycloak)
@@ -70,6 +76,7 @@ public class AppHostModelTests
         var environment = configuration.EnvironmentVariables.ToDictionary(variable => variable.Key, variable => variable.Value, StringComparer.Ordinal);
         environment["KC_DB"].ShouldBe("postgres");
         environment["KC_DB_SCHEMA"].ShouldBe("keycloak");
+        environment["FABER_APP_URL"].ShouldBe("http://localhost:4200");
         // Keycloak must use the database the migration service created its schema in. Asserted by
         // database name rather than the full JDBC URL, which the public-snapshot secret scan flags
         // and has reviewed once, in Program.cs.

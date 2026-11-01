@@ -50,11 +50,13 @@ The passkeys step then runs, as `keycloak-passkeys` in Development. Run the Keyc
 
 ## 3. Keycloak itself
 
-Run the stock image `quay.io/keycloak/keycloak:26.8.1`, in production mode:
+Run the Faber Keycloak image, `ghcr.io/<OWNER>/faber-keycloak:<TAG>`, in production mode. It is built from `infra/keycloak/Dockerfile` on top of `quay.io/keycloak/keycloak:26.8.1`, has the login theme baked in (see "Login theme" below) and has `kc.sh build` already run with `KC_DB=postgres` and `KC_HEALTH_ENABLED=true`. Start it with the optimized flag, which skips the build step and fails if a build-time option differs from the baked ones:
 
 ```text
-start
+start --optimized
 ```
+
+The theme cache is on, as in any production-mode Keycloak, so a theme change needs a new image.
 
 Set at least:
 
@@ -74,9 +76,30 @@ KC_PROXY_HEADERS=xforwarded
 KC_HTTP_ENABLED=true
 ```
 
-`KC_HTTP_ENABLED` is only for TLS terminated at the reverse proxy in front of Keycloak; the public URL stays HTTPS. Point `KC_DB*` at PostgreSQL with `KC_DB_SCHEMA=keycloak`, as the AppHost does.
+Optionally set `FABER_APP_URL` to the web app's public origin, the same value as for keycloak-config. The login theme links "Back to microcivi" to it on pages where Keycloak has no client to take the address from, such as "You are logged out" after a sign-out that did not start in the app. Without it the link is `/`, which is right while Keycloak is served on the app's host.
+
+`KC_HTTP_ENABLED` is only for TLS terminated at the reverse proxy in front of Keycloak; the public URL stays HTTPS. Point `KC_DB_URL` and the other runtime `KC_DB*` options at PostgreSQL with `KC_DB_SCHEMA=keycloak`, as the AppHost does. `KC_DB` and `KC_HEALTH_ENABLED` are build-time options and are already fixed in the image; the health endpoints are served on the management port (9000).
 
 **Keep the admin console off the public host.** Serve `/admin` and `/realms/master` only on `<KEYCLOAK-ADMIN-HOST>`, reachable from the operators' network, and refuse both paths on `<KEYCLOAK-HOST>` at the reverse proxy. The `faber` realm's own admin console client is disabled in the realm.
+
+### Login theme
+
+The sign-in, registration and other Keycloak pages use the `faber` login theme in `infra/keycloak/themes/faber/login/`. The realm selects it (`loginTheme: faber`). The pages are in English only: internationalization is off and the theme ships English messages.
+
+The theme extends `keycloak.v2` and overrides only two templates, `template.ftl` (the page shell) and `register.ftl`. Everything else is v2's own, with Faber CSS, a small script for the light and dark toggle, self-hosted fonts and English messages on top. Keep the overrides few: each one is a fork that must be compared with Keycloak's version on every upgrade, and the auth tests' login driver parses the v2 forms, so a heavily rewritten form breaks it.
+
+- **Development:** the AppHost bind-mounts the theme read-only into the Keycloak container, which runs `start-dev` with the theme cache off. Edit a file and refresh the page.
+- **Tests:** the Testcontainers fixture `FaberKeycloak.cs` mounts the same directory.
+- **Production:** the theme is part of the `faber-keycloak` image, which the `build-images.yml` workflow builds and pushes with the other images on every release. The Keycloak version in `infra/keycloak/Dockerfile` must match `keycloakTag` in the AppHost, `FaberKeycloak.Image` and the version named in §3. `scripts/verify-keycloak-version.sh` checks this on every pull request; nothing bumps these versions automatically, so update all four together.
+
+The light or dark choice is kept in the `faber-theme` cookie, which the web app and the Keycloak pages both read and write. The cookie is host-only, so **serve Keycloak's public pages on the same host name as the web app**, behind the same reverse proxy. A cookie is scoped to a host, not a port or a path, so this is what lets both sides see it, just as `localhost:4200` and `localhost:8080` share it in development. On a separate subdomain each side would keep its own copy of the choice.
+
+Upgrade checklist for a new Keycloak version:
+
+1. Diff our `template.ftl` and `register.ftl` against the same files of the new `keycloak.v2` theme and carry over the upstream changes.
+2. Change the version in `infra/keycloak/Dockerfile`, the AppHost `keycloakTag` and `FaberKeycloak.Image` together.
+3. Run the auth integration tests.
+4. Open the sign-in, registration and reset pages in both the light and the dark theme.
 
 ## 4. The API
 
@@ -166,4 +189,5 @@ A limit per recipient address needs a Keycloak extension and is a planned follow
 - The password grant is refused: a `POST` to `https://<KEYCLOAK-HOST>/realms/faber/protocol/openid-connect/token` with `grant_type=password` and `client_id=admin-cli` answers an error.
 - `https://<KEYCLOAK-HOST>/admin` is not reachable from outside.
 - The reverse-proxy limits from section 6 answer 429 when exceeded.
+- The sign-in page at `https://<KEYCLOAK-HOST>/realms/faber/account` shows the Faber theme, and the light and dark toggle carries over to the web app.
 - "Sign out everywhere" in the account console signs the web app out within seconds.

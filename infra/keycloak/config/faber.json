@@ -2,6 +2,10 @@
   "realm": "faber",
   "displayName": "Faber",
   "enabled": true,
+  "loginTheme": "faber",
+  "internationalizationEnabled": false,
+  "supportedLocales": ["en"],
+  "defaultLocale": "en",
   "sslRequired": "external",
 
   "registrationAllowed": true,

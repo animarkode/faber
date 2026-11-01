@@ -2,17 +2,18 @@
   fb-icon-button
   intent="surface"
   size="lg"
+  class="border border-provider-border"
   type="button"
   data-testid="theme-toggle"
   [attr.aria-label]="themeService.isDark() ? 'Switch to light mode' : 'Switch to dark mode'"
   [title]="themeService.isDark() ? 'Switch to light mode' : 'Switch to dark mode'"
   (click)="themeService.toggle()">
-  <span class="relative flex h-[19px] w-[19px] items-center justify-center overflow-hidden">
+  <span class="relative flex h-5 w-5 items-center justify-center overflow-hidden">
     @if (themeService.isDark()) {
       <lucide-icon
         name="sun"
-        [size]="19"
-        [strokeWidth]="2.4"
+        [size]="20"
+        [strokeWidth]="2"
         aria-hidden="true"
         class="absolute inset-0"
         [animate.enter]="animationsReady() ? 'theme-icon-sun-enter' : ''"
@@ -20,8 +21,8 @@
     } @else {
       <lucide-icon
         name="moon"
-        [size]="19"
-        [strokeWidth]="2.4"
+        [size]="20"
+        [strokeWidth]="2"
         aria-hidden="true"
         class="absolute inset-0"
         [animate.enter]="animationsReady() ? 'theme-icon-moon-enter' : ''"

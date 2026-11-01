@@ -1,0 +1,805 @@
+/* Faber login theme. Ported from the design prototype (faber-login.css); tokens are 1:1 with
+   src/web/faber-app/src/styles.css. The prototype's .fb is html here and .fb.dark is html.dark.
+   Dark mode is driven only by faber-theme.js / the pre-paint script in template.ftl. */
+
+/* Self-hosted fonts (SIL OFL, see ../fonts/OFL.txt). No request leaves the realm. */
+@font-face {
+  font-family: 'Nunito Sans';
+  font-style: normal;
+  font-weight: 200 1000;
+  font-display: optional;
+  src: url('../fonts/nunito-sans-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Nunito Sans';
+  font-style: normal;
+  font-weight: 200 1000;
+  font-display: optional;
+  src: url('../fonts/nunito-sans-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Nunito Sans';
+  font-style: normal;
+  font-weight: 200 1000;
+  font-display: optional;
+  src: url('../fonts/nunito-sans-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Playfair Display';
+  font-style: normal;
+  font-weight: 700;
+  font-display: optional;
+  src: url('../fonts/playfair-display-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Playfair Display';
+  font-style: normal;
+  font-weight: 700;
+  font-display: optional;
+  src: url('../fonts/playfair-display-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Playfair Display';
+  font-style: normal;
+  font-weight: 700;
+  font-display: optional;
+  src: url('../fonts/playfair-display-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 600;
+  font-display: optional;
+  src: url('../fonts/space-grotesk-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Space Grotesk';
+  font-style: normal;
+  font-weight: 600;
+  font-display: optional;
+  src: url('../fonts/space-grotesk-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+@font-face {
+  font-family: 'Google Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: optional;
+  src: url('../fonts/google-sans-cyrillic.woff2') format('woff2');
+  unicode-range: U+0301, U+0400-045F, U+0490-0491, U+04B0-04B1, U+2116;
+}
+@font-face {
+  font-family: 'Google Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: optional;
+  src: url('../fonts/google-sans-latin-ext.woff2') format('woff2');
+  unicode-range: U+0100-02BA, U+02BD-02C5, U+02C7-02CC, U+02CE-02D7, U+02DD-02FF, U+0304, U+0308, U+0329, U+1D00-1DBF, U+1E00-1E9F, U+1EF2-1EFF, U+2020, U+20A0-20AB, U+20AD-20C4, U+2113, U+2C60-2C7F, U+A720-A7FF;
+}
+@font-face {
+  font-family: 'Google Sans';
+  font-style: normal;
+  font-weight: 500;
+  font-display: optional;
+  src: url('../fonts/google-sans-latin.woff2') format('woff2');
+  unicode-range: U+0000-00FF, U+0131, U+0152-0153, U+02BB-02BC, U+02C6, U+02DA, U+02DC, U+0304, U+0308, U+0329, U+2000-206F, U+20AC, U+2122, U+2191, U+2193, U+2212, U+2215, U+FEFF, U+FFFD;
+}
+
+/* Tokens */
+html {
+  --color-primary: oklch(78.4% 0.16 80);
+  --color-primary-foreground: oklch(14.5% 0.02 264);
+  --color-bg: oklch(93% 0 0);
+  --color-foreground: oklch(14.5% 0.025 264);
+  --color-card: oklch(98.5% 0 0);
+  --color-muted: oklch(93% 0.01 264);
+  --color-muted-foreground: oklch(46% 0.02 264);
+  --color-surface: oklch(90% 0.01 264);
+  --color-line: oklch(90% 0.01 264);
+  --color-input: oklch(93% 0.01 264);
+  --color-ring: oklch(60% 0.18 250);
+  --color-destructive: oklch(58% 0.22 27);
+  --color-destructive-foreground: oklch(98% 0.01 264);
+  --color-destructive-soft: oklch(94.5% 0.03 25);
+  --color-destructive-text: oklch(47% 0.20 27);
+  --color-success-solid: oklch(50% 0.13 160);
+  --color-success-foreground: oklch(98% 0.01 264);
+  --color-success-text: oklch(45% 0.13 160);
+  --color-info-text: oklch(45% 0.15 230);
+  --color-warning-text: oklch(48% 0.14 75);
+  --color-dot: oklch(80% 0 0);
+
+  /* Opaque status tints for messages */
+  --color-success-soft: oklch(96% 0.03 150);
+  --color-success-ink: oklch(40% 0.07 150);
+  --color-info-soft: oklch(96% 0.02 240);
+  --color-info-ink: oklch(40% 0.07 240);
+  --color-danger-soft: oklch(96% 0.03 25);
+  --color-danger-ink: oklch(42% 0.12 25);
+  --color-warning-soft: oklch(96% 0.04 85);
+  --color-warning-ink: oklch(42% 0.09 70);
+
+  /* A field sits straight on the page, not on a card, so its border needs 3:1 against the page (WCAG 1.4.11). */
+  --color-field: var(--color-card);
+  --color-field-border: oklch(58% 0.01 264);
+
+  /* Google sign-in branding, light */
+  --color-provider-bg: #ffffff;
+  --color-provider-border: #747775;
+  --color-provider-text: #1f1f1f;
+
+  --font-sans: 'Nunito Sans', ui-sans-serif, system-ui, sans-serif;
+  --font-display: 'Space Grotesk', ui-sans-serif, system-ui, sans-serif;
+  --font-serif: 'Playfair Display', ui-serif, Georgia, serif;
+  --font-provider: 'Google Sans', ui-sans-serif, system-ui, sans-serif;
+
+  --ease-press: cubic-bezier(0.2, 0.7, 0.2, 1);
+  --ease-pop: cubic-bezier(0.34, 1.56, 0.64, 1);
+
+  /* Frosted glass of the navbar, 1:1 with styles.css */
+  --color-glass: oklch(100% 0 0 / 0.46);
+  --color-glass-border: oklch(100% 0 0 / 0.3);
+  --glass-filter: blur(9px) saturate(130%);
+  --glass-highlight: rgb(255 255 255 / 0.8);
+  --glass-inset: inset 0 1px 0 rgb(255 255 255 / 0.5), inset 0 -1px 0 rgb(255 255 255 / 0.1);
+
+  /* PatternFly 5 (keycloak.v2) variables, so components this theme does not restyle still follow the tokens */
+  --pf-v5-global--Color--100: var(--color-foreground);
+  --pf-v5-global--Color--200: var(--color-muted-foreground);
+  --pf-v5-global--Color--300: var(--color-foreground);
+  --pf-v5-global--Color--400: var(--color-muted-foreground);
+  --pf-v5-global--BackgroundColor--100: var(--color-card);
+  --pf-v5-global--BackgroundColor--200: var(--color-bg);
+  --pf-v5-global--BackgroundColor--300: var(--color-card);
+  --pf-v5-global--BackgroundColor--400: var(--color-field);
+  --pf-v5-global--BorderColor--100: var(--color-line);
+  --pf-v5-global--BorderColor--200: var(--color-field-border);
+  --pf-v5-global--BorderColor--300: var(--color-field-border);
+  --pf-v5-global--BorderColor--400: var(--color-field-border);
+  --pf-v5-global--link--Color: var(--color-foreground);
+  --pf-v5-global--link--Color--hover: var(--color-foreground);
+  --pf-v5-global--primary-color--100: var(--color-primary);
+  --pf-v5-global--danger-color--100: var(--color-destructive-text);
+  --pf-v5-global--success-color--100: var(--color-success-text);
+  --pf-v5-global--info-color--100: var(--color-info-text);
+  --pf-v5-global--warning-color--100: var(--color-warning-text);
+  --pf-v5-global--active-color--100: var(--color-ring);
+  --pf-v5-global--FontFamily--sans-serif: var(--font-sans);
+  --pf-v5-global--FontFamily--text: var(--font-sans);
+  --pf-v5-global--FontFamily--heading: var(--font-serif);
+  --pf-v5-c-form--GridGap: 16px;
+
+  color-scheme: light;
+  min-height: 100%;
+  background-color: var(--color-bg);
+  background-image: radial-gradient(circle, color-mix(in srgb, var(--color-dot) 40%, transparent) 0.9px, transparent 0.9px);
+  background-size: 0.9rem 0.9rem;
+  color: var(--color-foreground);
+  font-family: var(--font-sans);
+  font-size: 16px;
+  line-height: 1.5;
+  transition: background-color 150ms ease, color 150ms ease;
+}
+
+html.dark {
+  --color-bg: oklch(22% 0 0);
+  --color-foreground: oklch(98% 0.01 264);
+  --color-card: oklch(31% 0 0);
+  --color-muted: oklch(35.5% 0 0);
+  --color-muted-foreground: oklch(70% 0 0);
+  --color-surface: oklch(38% 0 0);
+  --color-line: oklch(38% 0 0);
+  --color-input: oklch(24.5% 0 0);
+  --color-destructive: oklch(50% 0.18 27);
+  --color-destructive-soft: oklch(37% 0.11 27);
+  --color-destructive-text: oklch(77% 0.16 27);
+  --color-success-text: oklch(68% 0.13 160);
+  --color-info-text: oklch(68% 0.15 230);
+  --color-warning-text: oklch(70% 0.14 75);
+  --color-dot: oklch(38% 0 0);
+  --color-success-soft: oklch(30% 0.035 150);
+  --color-success-ink: oklch(82% 0.08 150);
+  --color-info-soft: oklch(30% 0.03 240);
+  --color-info-ink: oklch(82% 0.06 240);
+  --color-danger-soft: oklch(30% 0.05 25);
+  --color-danger-ink: oklch(82% 0.1 25);
+  --color-warning-soft: oklch(30% 0.045 75);
+  --color-warning-ink: oklch(84% 0.1 80);
+
+  /* Achromatic like the rest of the dark ramp */
+  --color-field: var(--color-input);
+  --color-field-border: oklch(56% 0 0);
+
+  /* Google sign-in branding, dark */
+  --color-provider-bg: #131314;
+  --color-provider-border: #8e918f;
+  --color-provider-text: #e3e3e3;
+
+  --color-glass: oklch(27.5% 0 0 / 0.55);
+  --color-glass-border: oklch(98% 0 0 / 0.12);
+  --glass-highlight: rgb(255 255 255 / 0.25);
+  --glass-inset: inset 0 1px 0 rgb(255 255 255 / 0.08), inset 0 -1px 0 rgb(0 0 0 / 0.2);
+
+  color-scheme: dark;
+}
+
+html *, html *::before, html *::after { box-sizing: border-box; }
+
+/* Shell */
+/* dvh: the visible height on phones, without the area under the browser's toolbars; vh is the fallback. */
+html.login-pf body {
+  min-height: 100vh;
+  min-height: 100dvh;
+  margin: 0;
+  background: none;
+  color: inherit;
+  font-family: var(--font-sans);
+}
+
+.fb-header {
+  position: fixed; inset: 0 0 auto 0; z-index: 50;
+  border-bottom: 1px solid transparent;
+  transition: background-color 260ms ease, border-color 260ms ease, box-shadow 260ms ease, backdrop-filter 260ms ease;
+}
+/* Same box as the app's navbar: max-w-screen-xl, p-4 */
+.fb-header__inner {
+  display: flex; align-items: center; justify-content: space-between; gap: 12px;
+  max-width: 1280px; margin: 0 auto; padding: 16px;
+}
+.fb-header::before {
+  content: ''; position: absolute; inset: 0 0 auto 0; height: 1px; pointer-events: none;
+  opacity: 0; transition: opacity 260ms ease;
+  background: linear-gradient(90deg, transparent, var(--glass-highlight), transparent);
+}
+.fb-header--glass {
+  background: var(--color-glass); border-bottom-color: var(--color-glass-border); box-shadow: var(--glass-inset);
+  -webkit-backdrop-filter: var(--glass-filter); backdrop-filter: var(--glass-filter);
+}
+.fb-header--glass::before { opacity: 1; }
+.fb-brand {
+  font-family: var(--font-display); font-weight: 600; font-size: 24px; line-height: 32px;
+  color: var(--color-foreground); white-space: nowrap; text-decoration: none;
+}
+
+/* Theme toggle: moon in light, sun in dark */
+.fb-icon-btn {
+  width: 40px; height: 40px; flex: none; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border-radius: 1.25rem; border: 1px solid var(--color-provider-border);
+  background: var(--color-card); color: var(--color-foreground);
+  cursor: pointer; transition: border-radius 320ms var(--ease-pop), background-color 150ms ease;
+}
+.fb-icon-btn:hover { border-radius: 0.75rem; }
+html.dark .fb-icon-moon, html:not(.dark) .fb-icon-sun { display: none; }
+
+/* The toggle's accessible name: the label for the current theme only, without JS. */
+.fb-sr-only {
+  position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px;
+  overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0;
+}
+html.dark .fb-label-to-dark, html:not(.dark) .fb-label-to-light { display: none; }
+
+html .pf-v5-c-login {
+  display: flex; align-items: center; justify-content: center;
+  min-height: 100vh; min-height: 100dvh; padding: 88px 24px 40px;
+  background: none;
+}
+html .pf-v5-c-login__container {
+  display: block; width: 100%; max-width: 400px; padding: 0; margin: 0;
+}
+html .pf-v5-c-login__main {
+  display: flex; flex-direction: column; gap: 24px;
+  width: 100%; max-width: none; margin: 0;
+  background: transparent; box-shadow: none; border: 0; border-radius: 0;
+}
+html .pf-v5-c-login__main-header {
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  padding: 0; border: 0;
+}
+html .pf-v5-c-login__main-body {
+  display: flex; flex-direction: column; gap: 24px; padding: 0;
+}
+html .pf-v5-c-login__main-footer {
+  padding: 0; border: 0; background: none;
+}
+
+html .pf-v5-c-title, html #kc-page-title {
+  margin: 0; font-family: var(--font-serif); font-weight: 700; color: var(--color-foreground);
+  font-size: 40px; line-height: 1.1; letter-spacing: -0.01em; text-wrap: balance;
+}
+
+/* Links */
+html .pf-v5-c-login__main a:not(.pf-v5-c-button) {
+  color: var(--color-foreground); font-weight: 600;
+  text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px;
+  border-radius: 4px;
+}
+html .pf-v5-c-login__main a:not(.pf-v5-c-button):hover { text-decoration-thickness: 2px; }
+
+html a:focus-visible, html button:focus-visible, html .pf-v5-c-button:focus-visible,
+html .pf-v5-c-check__input:focus-visible, .fb-icon-btn:focus-visible {
+  outline: 2px solid var(--color-ring); outline-offset: 2px;
+}
+
+/* Form layout */
+html .pf-v5-c-form { display: flex; flex-direction: column; gap: 16px; margin: 0; }
+html .pf-v5-c-form__group { margin: 0; }
+html .pf-v5-c-form__group-label { padding: 0 0 6px; }
+html .pf-v5-c-form__label {
+  font-size: 14px; font-weight: 600; color: var(--color-foreground);
+}
+html .pf-v5-c-form__label-text { font-size: 14px; font-weight: 600; }
+html .pf-v5-c-form__label-required { color: var(--color-destructive-text); }
+html .pf-v5-c-form__helper-text { margin: 6px 0 0; padding: 0; font-size: 14px; }
+html .pf-v5-c-helper-text { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+html .pf-v5-c-helper-text__item-text { font-size: 14px; color: var(--color-muted-foreground); }
+html .pf-v5-c-form__actions { margin: 0; padding: 0; gap: 12px; }
+
+/* Required-fields note (template.ftl): just above the form, at the same spacing as the fields */
+html .pf-v5-c-login__main-body .fb-required-note { margin: 0 0 -8px; font-size: 13px; line-height: 1.4; color: var(--color-muted-foreground); }
+.fb-required-note .pf-v5-c-form__label-required { margin-right: 2px; font-weight: 600; }
+/* An asterisk means something only next to the note that explains it. Pages that pass
+   displayRequiredFields=false (update email: one field) keep the field required, without the mark. */
+html .pf-v5-c-login__main-body:not(:has(.fb-required-note)) .pf-v5-c-form__label-required { display: none; }
+
+/* Text fields: v2 draws PatternFly's underline with pseudo-elements; replace it with a full border */
+html .pf-v5-c-form-control {
+  position: relative; display: grid; min-height: 48px; width: 100%;
+  border-radius: 12px; border: 1px solid var(--color-field-border);
+  background: var(--color-field); color: var(--color-foreground);
+  font-size: 16px; line-height: 1.5;
+  transition: border-color 150ms ease, box-shadow 150ms ease;
+}
+html .pf-v5-c-form-control::before, html .pf-v5-c-form-control::after { display: none; }
+html .pf-v5-c-form-control > input, html .pf-v5-c-form-control > select {
+  min-width: 0; height: 46px; padding: 0 16px; margin: 0;
+  border: 0; background: transparent; color: inherit;
+  font: inherit; outline: none;
+}
+html .pf-v5-c-form-control > input::placeholder { color: var(--color-muted-foreground); opacity: 1; }
+html .pf-v5-c-form-control:focus-within {
+  border-color: var(--color-foreground); box-shadow: 0 0 0 1px var(--color-foreground);
+}
+html .pf-v5-c-form-control:has(> input[aria-invalid='true']),
+html .pf-v5-c-form-control.pf-m-error {
+  border-color: var(--color-destructive-text); box-shadow: 0 0 0 1px var(--color-destructive-text);
+}
+/* Sign-in: a wrong email/password pair is shown as the alert above the form (template.ftl), so the email
+   field drops v2's copy of it and its red border. Keycloak never sets any other error on this field. */
+body[data-page-id='login-login'] #input-error-container-username { display: none; }
+body[data-page-id='login-login'] .pf-v5-c-form-control:has(> #username) {
+  border-color: var(--color-field-border); box-shadow: none;
+}
+body[data-page-id='login-login'] .pf-v5-c-form-control:has(> #username):focus-within {
+  border-color: var(--color-foreground); box-shadow: 0 0 0 1px var(--color-foreground);
+}
+html .pf-v5-c-form-control.pf-m-readonly { color: var(--color-muted-foreground); }
+/* The error is spelled out below the field; v2's inline status icon is redundant */
+html .pf-v5-c-form-control__utilities { display: none; }
+
+html .pf-v5-c-input-group { position: relative; display: flex; align-items: stretch; }
+html .pf-v5-c-input-group__item { margin: 0; padding: 0; border: 0; background: none; }
+html .pf-v5-c-input-group__item.pf-m-fill { flex: 1 1 auto; min-width: 0; }
+html .pf-v5-c-input-group__item:not(.pf-m-fill) { position: absolute; top: 4px; right: 4px; z-index: 1; }
+html .pf-v5-c-input-group .pf-v5-c-form-control > input { padding-right: 52px; }
+
+/* Password reveal and the "restart login" button: a quiet icon button inside the field */
+html .pf-v5-c-button.pf-m-control {
+  width: 40px; height: 40px; min-width: 0; padding: 0;
+  display: inline-flex; align-items: center; justify-content: center;
+  border: 0; border-radius: 10px; background: transparent;
+  color: var(--color-muted-foreground); cursor: pointer;
+}
+html .pf-v5-c-button.pf-m-control::after { display: none; }
+html .pf-v5-c-button.pf-m-control:hover, html .pf-v5-c-button.pf-m-control:focus {
+  background: var(--color-muted); color: var(--color-foreground);
+}
+html .pf-v5-c-button.pf-m-control:focus-visible { outline-offset: 0; }
+
+/* Password reveal: Lucide eye / eye-off, 18px with a 2.25 stroke. passwordVisibility.js swaps
+   the <i>'s class between fa-eye and fa-eye-slash, so the class picks the mask. */
+html [data-password-toggle] i { display: block; width: 18px; height: 18px; background: currentColor; }
+html [data-password-toggle] i::before { content: none; }
+html [data-password-toggle] i.fa-eye {
+  -webkit-mask: var(--fb-icon-eye) center / contain no-repeat;
+  mask: var(--fb-icon-eye) center / contain no-repeat;
+}
+html [data-password-toggle] i.fa-eye-slash {
+  -webkit-mask: var(--fb-icon-eye-off) center / contain no-repeat;
+  mask: var(--fb-icon-eye-off) center / contain no-repeat;
+}
+
+/* Field errors: Lucide triangle-alert as a mask so the colour stays a token */
+html .pf-v5-c-helper-text__item.pf-m-error .pf-v5-c-helper-text__item-text,
+html .pf-v5-c-helper-text__item-text.pf-m-error {
+  display: flex; align-items: flex-start; gap: 6px;
+  font-size: 14px; font-weight: 600; color: var(--color-destructive-text);
+}
+html .pf-v5-c-helper-text__item.pf-m-error .pf-v5-c-helper-text__item-text::before,
+html .pf-v5-c-helper-text__item-text.pf-m-error::before {
+  content: ''; flex: none; width: 16px; height: 16px; margin-top: 2px;
+  background: currentColor;
+  -webkit-mask: var(--fb-icon-alert) center / contain no-repeat;
+  mask: var(--fb-icon-alert) center / contain no-repeat;
+}
+html {
+  --fb-icon-alert: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3'/%3E%3Cpath d='M12 9v4'/%3E%3Cpath d='M12 17h.01'/%3E%3C/svg%3E");
+  --fb-icon-key: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.586 17.414A2 2 0 0 0 2 18.828V21a1 1 0 0 0 1 1h3a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h1a1 1 0 0 0 1-1v-1a1 1 0 0 1 1-1h.172a2 2 0 0 0 1.414-.586l.814-.814a6.5 6.5 0 1 0-4-4z'/%3E%3Ccircle cx='16.5' cy='7.5' r='.5' fill='black'/%3E%3C/svg%3E");
+  --fb-icon-eye: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M2.062 12.348a1 1 0 0 1 0-.696 10.75 10.75 0 0 1 19.876 0 1 1 0 0 1 0 .696 10.75 10.75 0 0 1-19.876 0'/%3E%3Ccircle cx='12' cy='12' r='3'/%3E%3C/svg%3E");
+  --fb-icon-eye-off: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2.25' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M10.733 5.076a10.744 10.744 0 0 1 11.205 6.575 1 1 0 0 1 0 .696 10.747 10.747 0 0 1-1.444 2.49'/%3E%3Cpath d='M14.084 14.158a3 3 0 0 1-4.242-4.242'/%3E%3Cpath d='M17.479 17.499a10.75 10.75 0 0 1-15.417-5.151 1 1 0 0 1 0-.696 10.75 10.75 0 0 1 4.446-5.143'/%3E%3Cpath d='m2 2 20 20'/%3E%3C/svg%3E");
+  --fb-icon-arrow-left: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='m12 19-7-7 7-7'/%3E%3Cpath d='M19 12H5'/%3E%3C/svg%3E");
+  --fb-icon-check: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 24 24' fill='none' stroke='black' stroke-width='3' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpath d='M20 6 9 17l-5-5'/%3E%3C/svg%3E");
+}
+
+/* Checkbox: 20px rounded square; checked = brand yellow with a dark Lucide check */
+html .pf-v5-c-check { display: inline-flex; align-items: center; gap: 10px; min-height: 24px; cursor: pointer; }
+html label.pf-v5-c-check { font-size: 14px; }
+html .pf-v5-c-check__input {
+  appearance: none; -webkit-appearance: none; margin: 0; flex: none;
+  width: 20px; height: 20px; border-radius: 6px;
+  border: 1px solid var(--color-field-border); background: var(--color-field);
+  display: grid; place-content: center; cursor: pointer;
+}
+html .pf-v5-c-check__input::before {
+  content: ''; width: 14px; height: 14px; transform: scale(0);
+  -webkit-mask: var(--fb-icon-check) center / contain no-repeat;
+  mask: var(--fb-icon-check) center / contain no-repeat;
+  background: var(--color-primary-foreground);
+  transition: transform 200ms var(--ease-pop);
+}
+html .pf-v5-c-check__input:hover { border-color: var(--color-foreground); }
+html .pf-v5-c-check__input:checked { background: var(--color-primary); border-color: var(--color-primary); }
+html .pf-v5-c-check__input:checked::before { transform: scale(1); }
+html .pf-v5-c-check__input:disabled { cursor: not-allowed; opacity: 0.5; }
+html .pf-v5-c-check__label { font-size: 14px; font-weight: 400; color: var(--color-foreground); cursor: pointer; }
+
+/* Buttons. Primary = brand yellow; every secondary action (also social providers) uses the provider look */
+html .pf-v5-c-button.pf-m-primary,
+html .pf-v5-c-button.pf-m-secondary,
+html .pf-v5-c-button.pf-m-tertiary {
+  position: relative; display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+  min-height: 48px; padding: 0 24px; margin: 0;
+  border-radius: 9999px; border: 1px solid transparent;
+  font: inherit; font-size: 16px; font-weight: 600; line-height: 1.5;
+  text-decoration: none; cursor: pointer; box-shadow: none;
+  transition: transform 280ms var(--ease-press), background-color 280ms var(--ease-press);
+}
+html .pf-v5-c-button.pf-m-block { width: 100%; }
+html .pf-v5-c-button::after { display: none; }
+html .pf-v5-c-button.pf-m-primary:hover, html .pf-v5-c-button.pf-m-secondary:hover, html .pf-v5-c-button.pf-m-tertiary:hover { transform: scale(0.975); }
+
+html .pf-v5-c-button.pf-m-primary,
+html .pf-v5-c-button.pf-m-primary:hover, html .pf-v5-c-button.pf-m-primary:focus, html .pf-v5-c-button.pf-m-primary:active {
+  background-color: var(--color-primary); color: var(--color-primary-foreground); font-weight: 700;
+}
+html .pf-v5-c-button.pf-m-secondary, html .pf-v5-c-button.pf-m-tertiary {
+  background-color: var(--color-provider-bg); color: var(--color-provider-text); font-size: 14px;
+  /* The outline is an inset shadow, not a border. Firefox draws a rounded border in pieces (corners
+     and straight runs), and while the hover scale runs the seams between them show as light lines.
+     A shadow is drawn as one shape. */
+  border-width: 0; box-shadow: inset 0 0 0 1px var(--color-provider-border);
+}
+
+/* Passkey button (login.ftl via passkeys.ftl). v2 puts it after the hidden #webauth form, so the
+   body's 24px gap counted twice, plus a PF margin utility. One standard 12px gap to the form instead. */
+html #webauth { display: none; }
+html #kc-form ~ #authenticateWebAuthnButton { margin-top: -12px !important; }
+html #authenticateWebAuthnButton::before {
+  content: ''; width: 20px; height: 20px; flex: none; background: currentColor;
+  -webkit-mask: var(--fb-icon-key) center / contain no-repeat;
+  mask: var(--fb-icon-key) center / contain no-repeat;
+}
+html .pf-v5-c-button.pf-m-secondary:hover, html .pf-v5-c-button.pf-m-secondary:focus, html .pf-v5-c-button.pf-m-secondary:active,
+html .pf-v5-c-button.pf-m-tertiary:hover, html .pf-v5-c-button.pf-m-tertiary:focus, html .pf-v5-c-button.pf-m-tertiary:active {
+  background-color: color-mix(in oklch, var(--color-provider-bg) 92%, var(--color-provider-text));
+  border-color: var(--color-provider-border); color: var(--color-provider-text);
+}
+html .pf-v5-c-button.pf-m-link {
+  padding: 0; min-height: 0; color: var(--color-foreground); font-weight: 600;
+  text-decoration: underline; text-decoration-thickness: 1px; text-underline-offset: 3px;
+}
+html .pf-v5-c-button:disabled, html .pf-v5-c-button.pf-m-aria-disabled { opacity: 0.6; pointer-events: none; }
+
+/* Waiting for the next page after a primary submit (faber-theme.js). The button stays full strength,
+   so it reads as "working", not "broken"; after 300ms the label gives way to a spinner. It is a
+   background image, not a pseudo-element, because some v2 pages submit with <input type="submit">. */
+html .pf-v5-c-button.pf-m-primary.fb-submitting { opacity: 1; transform: none; }
+html .pf-v5-c-button.pf-m-primary.fb-busy,
+html .pf-v5-c-button.pf-m-primary.fb-busy:hover, html .pf-v5-c-button.pf-m-primary.fb-busy:focus {
+  color: transparent;
+  background-image: var(--fb-spinner); background-repeat: no-repeat; background-position: center; background-size: 22px;
+}
+
+/* Social providers (social-providers.ftl) */
+html .fb-social { display: flex; flex-direction: column; gap: 24px; }
+html .fb-social .kc-login-divider { display: none; }
+html #kc-social-providers ul {
+  display: flex; flex-direction: column; gap: 12px;
+  margin: 0; padding: 0 !important; list-style: none;
+}
+html #kc-social-providers ul.pf-v5-l-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+html #kc-social-providers li { margin: 0; padding: 0 !important; }
+html #kc-social-providers .pf-v5-c-button {
+  justify-content: center !important; font-family: var(--font-provider); font-weight: 500; font-size: 14px;
+}
+html #kc-social-providers .pf-v5-c-button .pf-v5-u-m-auto { margin: 0 !important; }
+html #kc-social-providers img { width: 20px; height: 20px; flex: none; }
+/* The dark-glyph logos (GitHub and friends) vanish on the dark provider fill */
+html.dark #kc-social-providers img[src$='/github.svg'],
+html.dark #kc-social-providers img[src$='/twitter.svg'],
+html.dark #kc-social-providers img[src$='/instagram.svg'],
+html.dark #kc-social-providers img[src$='/default.svg'] { filter: invert(1); }
+
+.fb-divider {
+  display: flex; align-items: center; gap: 12px;
+  font-size: 14px; color: var(--color-muted-foreground);
+}
+.fb-divider::before, .fb-divider::after {
+  content: ''; flex: 1; height: 1px;
+  background: color-mix(in oklch, var(--color-field-border) 45%, transparent);
+}
+
+/* Messages (template.ftl) */
+.fb-alert {
+  display: flex; align-items: flex-start; gap: 12px;
+  padding: 14px 16px; border-radius: 12px;
+  background: var(--color-card); color: var(--color-foreground);
+  font-size: 14px; line-height: 1.45; text-align: left;
+}
+.fb-alert > svg { flex: none; width: 20px; height: 20px; margin-top: 1px; }
+.fb-alert--success, .fb-alert--info, .fb-alert--error, .fb-alert--warning {
+  background: var(--alert-fill); color: var(--alert-ink);
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--alert-ink) 18%, transparent);
+}
+.fb-alert--success { --alert-fill: var(--color-success-soft); --alert-ink: var(--color-success-ink); }
+.fb-alert--info { --alert-fill: var(--color-info-soft); --alert-ink: var(--color-info-ink); }
+.fb-alert--error { --alert-fill: var(--color-danger-soft); --alert-ink: var(--color-danger-ink); }
+.fb-alert--warning { --alert-fill: var(--color-warning-soft); --alert-ink: var(--color-warning-ink); }
+
+/* Footer ("info" section) */
+html .pf-v5-c-login__main-footer-band {
+  margin: 0; padding: 0; border: 0; background: none;
+  display: flex; flex-direction: column; align-items: center; text-align: center;
+  font-size: 14px; color: var(--color-muted-foreground);
+}
+html .pf-v5-c-login__main-footer-band:first-child, html .pf-v5-c-login__main-footer-band:last-child { margin: 0; padding: 0; }
+html .pf-v5-c-login__main-footer-band-item { padding: 0; }
+html #kc-info { gap: 10px; }
+
+/* Lead under the title (template.ftl) */
+html .pf-v5-c-login__main-header { gap: 8px; }
+.fb-lead { margin: 0; max-width: 360px; font-size: 16px; color: var(--color-muted-foreground); text-wrap: pretty; }
+
+/* Illustrations above the title (fb-illustrations.ftl). All animations are one-shot. */
+.fb-envelope { width: 120px; height: 100px; margin-bottom: 8px; }
+.fb-envelope svg, .fb-linkart svg { display: block; overflow: visible; }
+.fb-envelope__letter { animation: fb-letter 1.6s var(--ease-pop) 0.2s both; }
+@keyframes fb-letter { from { transform: translateY(26px); } to { transform: translateY(0); } }
+
+.fb-linkart { width: 160px; height: 100px; margin-bottom: 8px; }
+.fb-linkart__bridge { transform-box: fill-box; transform-origin: center; animation: fb-bridge 0.9s var(--ease-pop) 0.35s both; }
+.fb-linkart__left { animation: fb-from-left 0.9s var(--ease-pop) both; }
+.fb-linkart__right { animation: fb-from-right 0.9s var(--ease-pop) both; }
+.fb-linkart__cross { transform-box: fill-box; transform-origin: center; animation: fb-pop 0.6s var(--ease-pop) 0.6s both; }
+@keyframes fb-pop { from { transform: scale(0); } to { transform: scale(1); } }
+@keyframes fb-bridge { from { transform: scaleX(0); } to { transform: scaleX(1); } }
+@keyframes fb-from-left { from { transform: translateX(-14px); } to { transform: translateX(0); } }
+@keyframes fb-from-right { from { transform: translateX(14px); } to { transform: translateX(0); } }
+@media (prefers-reduced-motion: reduce) {
+  .fb-envelope__letter, .fb-linkart__bridge, .fb-linkart__left, .fb-linkart__right, .fb-linkart__cross { animation: none; }
+}
+
+/* Page-level text: v2 renders instructions as plain paragraphs */
+html .pf-v5-c-login__main-body p { margin: 0; }
+html .pf-v5-c-login__main-body .instruction { font-size: 16px; color: var(--color-muted-foreground); text-wrap: pretty; text-align: center; }
+html #kc-info-message, html #kc-error-message, html #kc-logout-confirm { display: flex; flex-direction: column; gap: 16px; text-align: center; }
+html #kc-logout-confirm form, html #kc-logout-confirm .pf-v5-c-form__group { margin: 0; }
+
+/* Primary submit buttons: <input type=submit> and <button> alike */
+html input.pf-v5-c-button { appearance: none; -webkit-appearance: none; font-family: inherit; }
+html .pf-v5-c-form__actions, html .pf-v5-c-form__group.pf-m-action { display: flex; flex-direction: column; gap: 12px; }
+
+/* "Back to login" and other link-buttons render as the full-width secondary (provider look) */
+html a.pf-v5-c-button.pf-m-secondary, html a.pf-v5-c-button.pf-m-tertiary { text-decoration: none; }
+body[data-page-id='login-register'] #kc-form-options { width: 100%; }
+body[data-page-id='login-register'] #kc-form-options a {
+  display: flex; align-items: center; justify-content: center; min-height: 48px; padding: 0 24px;
+  border-radius: 9999px; border: 1px solid var(--color-provider-border);
+  background: var(--color-provider-bg); color: var(--color-provider-text);
+  font-size: 14px; font-weight: 600; text-decoration: none;
+}
+/* "Back to login" starts with a left arrow: register (plain link) and forgot password (button link) */
+body[data-page-id='login-register'] #kc-form-options a::before,
+body[data-page-id='login-login-reset-password'] a.pf-v5-c-button.pf-m-secondary::before {
+  content: ''; width: 18px; height: 18px; flex: none; margin-right: 8px; background: currentColor;
+  -webkit-mask: var(--fb-icon-arrow-left) center / contain no-repeat;
+  mask: var(--fb-icon-arrow-left) center / contain no-repeat;
+}
+/* The button already spaces its children with a gap */
+body[data-page-id='login-login-reset-password'] a.pf-v5-c-button.pf-m-secondary { gap: 8px; }
+body[data-page-id='login-login-reset-password'] a.pf-v5-c-button.pf-m-secondary::before { margin-right: 0; }
+body[data-page-id='login-register'] #kc-form-options a:hover {
+  background: color-mix(in oklch, var(--color-provider-bg) 92%, var(--color-provider-text));
+}
+body[data-page-id='login-register'] .pf-v5-c-login__main-footer-band { margin-top: 0; }
+body[data-page-id='login-register'] .pf-v5-c-login__main-footer-band-item { width: 100%; }
+
+/* "New to microcivi? Create account" stays on one line */
+html #kc-registration-container, html #kc-registration { width: 100%; }
+html #kc-registration span { display: inline; white-space: nowrap; }
+html #kc-registration a { margin-left: 4px; }
+
+/* Email address as a badge under the instruction (template.ftl), and the stock sentence that ran the
+   two together hidden */
+.fb-identity {
+  display: inline-flex; align-items: center; gap: 8px; max-width: 100%; margin: 8px 0 0; padding: 8px 16px;
+  border-radius: 9999px; background: var(--color-card); box-shadow: inset 0 0 0 1px var(--color-line);
+  font-size: 15px; font-weight: 600; color: var(--color-foreground);
+}
+.fb-identity svg { flex: none; color: var(--color-muted-foreground); }
+.fb-identity span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+html .fb-own-instruction > p.instruction, html .fb-own-instruction #kc-info-message > p.instruction { display: none; }
+
+/* Info and error pages: the one link (Continue, Back to microcivi) is the page's main action, so a primary button */
+html #kc-info-message p:has(> a), html #kc-error-message p:has(> #backToApplication) { width: 100%; }
+html .pf-v5-c-login__main #kc-info-message a, html .pf-v5-c-login__main #kc-error-message #backToApplication {
+  display: flex; align-items: center; justify-content: center; width: 100%; min-height: 48px; padding: 0 24px;
+  border-radius: 9999px; background: var(--color-primary); color: var(--color-primary-foreground);
+  font-size: 16px; font-weight: 700; text-decoration: none;
+  transition: transform 280ms var(--ease-press);
+}
+html .pf-v5-c-login__main #kc-info-message a:hover, html .pf-v5-c-login__main #kc-error-message #backToApplication:hover { transform: scale(0.975); }
+/* "Back to microcivi" leaves Keycloak for the app, so it gets the back arrow; "Continue" stays inside
+   Keycloak (/realms/...) and does not. */
+html .pf-v5-c-login__main #kc-info-message a:not([href*="/realms/"]), html .pf-v5-c-login__main #kc-error-message #backToApplication, html #fb-back-to-app { gap: 8px; }
+html .pf-v5-c-login__main #kc-info-message a:not([href*="/realms/"])::before, html .pf-v5-c-login__main #kc-error-message #backToApplication::before, html #fb-back-to-app::before {
+  content: ''; width: 18px; height: 18px; flex: none; background: currentColor;
+  -webkit-mask: var(--fb-icon-arrow-left) center / contain no-repeat;
+  mask: var(--fb-icon-arrow-left) center / contain no-repeat;
+}
+
+/* Page expired: the stock two-link sentence is replaced by one button and the subtitle (template.ftl) */
+body[data-page-id='login-login-page-expired'] #instruction1 { display: none; }
+
+/* Forgot password: the instruction moved under the title */
+body[data-page-id='login-login-reset-password'] #kc-info { display: none; }
+body[data-page-id='login-login-reset-password'] .pf-v5-c-login__main-footer-band { display: none; }
+
+/* Attempted username (re-auth, update password) reads as a pill, like .fb-identity */
+html .pf-v5-c-form__group:has(#kc-attempted-username) > .pf-v5-c-form__group-label {
+  position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap;
+}
+html .pf-v5-c-form__group:has(#kc-attempted-username) .pf-v5-c-form-control {
+  border-radius: 9999px; background: var(--color-card); border: 0.5px solid var(--color-line);
+}
+html .pf-v5-c-form__group:has(#kc-attempted-username) input { font-size: 15px; font-weight: 600; padding-left: 20px; }
+html .pf-v5-c-form__group:has(#kc-attempted-username) .pf-v5-c-form-control:focus-within { box-shadow: none; border-color: var(--color-line); }
+html #reset-login { border-radius: 9999px; }
+html .kc-login-tooltip { position: relative; }
+/* Keycloak's own rule puts it at left: 64px, past the button and off a phone screen; anchor it to the button's right edge. */
+html .kc-login-tooltip .kc-tooltip-text {
+  position: absolute; left: auto; right: 0; top: calc(100% + 6px); z-index: 3; white-space: nowrap;
+  padding: 4px 10px; border-radius: 8px; font-size: 13px; font-weight: 600;
+  background: var(--color-foreground); color: var(--color-bg); opacity: 0; pointer-events: none; transition: opacity 150ms ease;
+}
+html .kc-login-tooltip:hover .kc-tooltip-text, html .kc-login-tooltip:focus-visible .kc-tooltip-text { opacity: 1; }
+
+/* Remember me / forgot password row and the "sign out of other devices" checkbox */
+html .pf-v5-c-form__group .pf-v5-c-check { margin: 0; }
+html .pf-v5-c-form__group-label-help, html .pf-v5-c-form__label-help { font-size: 14px; }
+
+/* Credential and authenticator lists: passkeys (webauthn-authenticate), select-authenticator */
+html .select-auth-container, html .pf-v5-c-data-list {
+  display: flex; flex-direction: column; gap: 12px;
+  margin: 0; padding: 0; list-style: none; border: 0; background: none;
+}
+html .pf-v5-c-data-list__item {
+  position: relative; list-style: none; border-radius: 12px;
+  background: var(--color-card); border: 0.5px solid var(--color-line); box-shadow: none;
+}
+html .pf-v5-c-data-list__item.pf-m-clickable:hover { border-color: var(--color-field-border); }
+html .pf-v5-c-data-list__item-row, html .select-auth-box-parent {
+  display: flex; align-items: center; gap: 14px; padding: 14px 16px; text-align: left;
+}
+html .pf-v5-c-data-list__cell { padding: 0; margin: 0; }
+html .pf-v5-c-data-list__cell.pf-m-icon, html .pf-v5-c-icon.pf-m-xl {
+  width: 40px; height: 40px; flex: none; border-radius: 10px; padding: 0;
+  display: flex; align-items: center; justify-content: center;
+  background: var(--color-muted); color: var(--color-foreground);
+}
+html .pf-v5-c-icon.pf-m-xl { background: none; }
+html .pf-v5-c-icon.pf-m-xl svg, html .pf-v5-c-icon.pf-m-xl img { width: 24px; height: 24px; }
+html .select-auth-box-headline, html .pf-v5-u-font-family-heading.select-auth-box-headline {
+  font-family: var(--font-sans); font-weight: 700; font-size: 15px; color: var(--color-foreground);
+}
+html .select-auth-box-desc, html .pf-v5-u-color-200 { font-size: 14px; color: var(--color-muted-foreground); }
+html .pf-v5-c-data-list__item-action { margin-left: auto; color: var(--color-muted-foreground); }
+
+/* OTP app picker (login-config-totp) and tiles (login-otp credential choice) */
+html .pf-v5-c-tile {
+  display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 14px 16px;
+  border-radius: 12px; background: var(--color-card); border: 0.5px solid var(--color-line);
+  color: var(--color-foreground); cursor: pointer;
+}
+html .pf-v5-c-tile.pf-m-selected, html .pf-v5-c-tile:has(input:checked) {
+  border-color: var(--color-ring); box-shadow: 0 0 0 1px var(--color-ring);
+}
+html .pf-v5-c-tile__title { font-weight: 700; font-size: 15px; }
+html #kc-totp-supported-apps { margin: 0; padding-left: 20px; text-align: left; font-size: 14px; color: var(--color-muted-foreground); }
+html .kc-qr-code, html .pf-v5-u-display-flex.kc-qr-code { gap: 8px; }
+html #kc-totp-secret-qr-code { padding: 12px; border-radius: 12px; background: #ffffff; }
+html .kc-qr-code img, html #kc-totp-secret-qr-code { max-width: 100%; }
+
+/* Inline alerts rendered by individual pages (recovery codes warning, update profile) */
+html .pf-v5-c-alert {
+  display: grid; grid-template-columns: auto 1fr; align-items: start; gap: 4px 12px;
+  margin: 0; padding: 14px 16px; border-radius: 12px; border: 0;
+  background: var(--color-card); color: var(--color-foreground);
+  box-shadow: inset 0 0 0 1px var(--color-line); font-size: 14px; text-align: left;
+}
+html .pf-v5-c-alert__icon { color: inherit; margin-top: 1px; }
+/* Same pairs as .fb-alert: low-chroma fill, one ink for icon and text, hairline ring */
+html .pf-v5-c-alert.pf-m-success { --alert-fill: var(--color-success-soft); --alert-ink: var(--color-success-ink); }
+html .pf-v5-c-alert.pf-m-info { --alert-fill: var(--color-info-soft); --alert-ink: var(--color-info-ink); }
+html .pf-v5-c-alert.pf-m-danger { --alert-fill: var(--color-danger-soft); --alert-ink: var(--color-danger-ink); }
+html .pf-v5-c-alert.pf-m-warning { --alert-fill: var(--color-warning-soft); --alert-ink: var(--color-warning-ink); }
+html .pf-v5-c-alert:is(.pf-m-success, .pf-m-info, .pf-m-danger, .pf-m-warning) {
+  background: var(--alert-fill); color: var(--alert-ink);
+  box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--alert-ink) 18%, transparent);
+}
+html .pf-v5-c-alert:is(.pf-m-success, .pf-m-info, .pf-m-danger, .pf-m-warning) .pf-v5-c-alert__title { color: inherit; }
+html .pf-v5-c-alert__title { font-weight: 700; font-size: 15px; margin: 0; }
+html .pf-v5-c-alert__description { grid-column: 2; }
+
+/* Recovery codes and one-time code page */
+html .kc-recovery-codes-list, html #kc-recovery-codes-list {
+  margin: 0; padding: 14px 16px; list-style: none; columns: 2; column-gap: 24px;
+  border-radius: 12px; background: var(--color-card); border: 0.5px solid var(--color-line);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px;
+}
+html .pf-v5-c-clipboard-copy__group { display: flex; gap: 8px; }
+html .pf-v5-c-clipboard-copy__expandable-content, html #kc-code pre, body[data-page-id='login-code'] pre {
+  margin: 0; padding: 14px 16px; border-radius: 12px; overflow: auto;
+  background: var(--color-card); border: 0.5px solid var(--color-line);
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 14px; text-align: left;
+}
+html #kc-code textarea, html #kc-code input, body[data-page-id='login-code'] textarea { max-width: 100%; }
+
+/* Terms and conditions */
+body[data-page-id='login-terms'] #kc-terms-text {
+  max-height: 320px; overflow: auto; padding: 14px 16px; border-radius: 12px; text-align: left;
+  background: var(--color-card); border: 0.5px solid var(--color-line); font-size: 14px;
+}
+
+/* Text areas and selects in profile forms (idp-review-user-profile, login-update-profile, register) */
+html .pf-v5-c-form-control > textarea { min-height: 96px; padding: 12px 16px; border: 0; background: transparent; color: inherit; font: inherit; outline: none; resize: vertical; }
+html .pf-v5-c-form-control > select { appearance: none; -webkit-appearance: none; padding-right: 40px; }
+html .pf-v5-c-form-control > select option { background: var(--color-card); color: var(--color-foreground); }
+html .pf-v5-c-form__group-control .pf-v5-c-check, html .pf-v5-c-form__group-control .pf-v5-c-radio { margin: 0; }
+
+/* Below md the app's navbar drops the glass edges */
+@media (max-width: 767.98px) {
+  .fb-header--glass { border-bottom-color: transparent; box-shadow: none; }
+  .fb-header--glass::before { opacity: 0; }
+}
+
+/* Phone */
+@media (max-width: 480px) {
+  html .pf-v5-c-login { padding: 80px 16px 32px; }
+  html #kc-registration span { white-space: normal; }
+  html .pf-v5-c-title, html #kc-page-title { font-size: 32px; }
+  html #kc-social-providers ul.pf-v5-l-grid { grid-template-columns: minmax(0, 1fr); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html, .fb-header, .fb-icon-btn, html .pf-v5-c-form-control, html .pf-v5-c-button,
+  html .pf-v5-c-check__input::before { transition: none; }
+  html .pf-v5-c-button:hover { transform: none !important; }
+}
