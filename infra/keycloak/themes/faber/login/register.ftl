@@ -67,7 +67,11 @@
 
         </form>
 
+        <#-- v2 always adds the password-policy script, which throws when the page has no password field
+             (Faber registers without one; the password is set after the e-mail link). -->
+        <#if passwordRequired??>
         <@validator.templates/>
         <@validator.script field="password"/>
+        </#if>
     </#if>
 </@layout.registrationLayout>
