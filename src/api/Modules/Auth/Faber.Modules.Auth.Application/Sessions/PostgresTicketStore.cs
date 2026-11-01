@@ -83,6 +83,19 @@ public sealed class PostgresTicketStore(
         await db.Sessions.Where(session => session.Id == id).ExecuteDeleteAsync();
     }
 
+    /// <summary>
+    /// Deletes a session row by its id, leaving the Keycloak session alone (its tokens are shared with the
+    /// session that replaces this one). When <paramref name="subject"/> is given, only that user's row goes.
+    /// </summary>
+    public async Task RemoveByIdAsync(string id, string? subject = null)
+    {
+        await using var scope = scopes.CreateAsyncScope();
+        var db = scope.ServiceProvider.GetRequiredService<AuthDbContext>();
+        await db.Sessions
+            .Where(session => session.Id == id && (subject == null || session.Subject == subject))
+            .ExecuteDeleteAsync();
+    }
+
     /// <summary>The row id of the session the cookie key names.</summary>
     public static string HashKey(string key)
     {

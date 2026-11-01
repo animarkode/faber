@@ -1,5 +1,6 @@
 using System.Globalization;
 using System.Security.Claims;
+using Faber.Modules.Auth.Application.Features.AccountAction;
 using Faber.Modules.Auth.Application.Options;
 using Faber.Modules.Auth.Application.Sessions;
 using Faber.Modules.Auth.PublicApi;
@@ -100,6 +101,11 @@ internal static class AuthenticationRegistration
                 context.ProtocolMessage.Prompt = prompt;
             }
 
+            if (context.Properties.Items.TryGetValue(OidcParameters.KcAction, out var kcAction))
+            {
+                context.ProtocolMessage.SetParameter(OidcParameters.KcAction, kcAction);
+            }
+
             return Task.CompletedTask;
         };
 
@@ -119,13 +125,88 @@ internal static class AuthenticationRegistration
             return Task.CompletedTask;
         };
 
-        o.Events.OnRemoteFailure = context =>
+        o.Events.OnTicketReceived = OnTicketReceivedAsync;
+        o.Events.OnRemoteFailure = OnRemoteFailureAsync;
+    }
+
+    /// <summary>
+    /// After an account action the callback signs the user in again. The session it replaces is removed
+    /// (not the Keycloak session, which the new tokens share), so one browser keeps exactly one app session.
+    /// A deleted account ends the app session and signs nobody in.
+    /// </summary>
+    private static async Task OnTicketReceivedAsync(TicketReceivedContext context)
+    {
+        var properties = context.Properties;
+        if (properties is null || !properties.Items.TryGetValue(OidcParameters.AccountAction, out var action) || action is null)
+        {
+            return;
+        }
+
+        var status = AccountActions.NormalizeStatus(context.Request.Query[OidcParameters.KcActionStatus]);
+        properties.Items.TryGetValue(OidcParameters.ReplacesSession, out var replaces);
+        var store = context.HttpContext.RequestServices.GetRequiredService<PostgresTicketStore>();
+
+        if (string.Equals(action, AccountActions.Delete, StringComparison.Ordinal)
+            && string.Equals(status, AccountActions.StatusSuccess, StringComparison.Ordinal))
+        {
+            await EndAfterDeletionAsync(context.HttpContext, store, replaces);
+            context.Response.Redirect(AccountDeletedUri);
+            context.HandleResponse();
+            return;
+        }
+
+        if (replaces is not null)
+        {
+            var subject = context.Principal?.FindFirst(JwtClaimTypes.Registered.Sub)?.Value;
+            await store.RemoveByIdAsync(replaces, subject);
+        }
+
+        // Neither marker belongs in the stored ticket.
+        properties.Items.Remove(OidcParameters.AccountAction);
+        properties.Items.Remove(OidcParameters.ReplacesSession);
+        properties.Items.Remove(OidcParameters.KcAction);
+        context.ReturnUri = AccountActions.ReturnPath(action, status);
+    }
+
+    private static async Task OnRemoteFailureAsync(RemoteFailureContext context)
+    {
+        context.HandleResponse();
+
+        if (context.Properties is null
+            || !context.Properties.Items.TryGetValue(OidcParameters.AccountAction, out var action)
+            || action is null)
         {
             context.Response.Redirect("/?signInFailed=true");
-            context.HandleResponse();
-            return Task.CompletedTask;
-        };
+            return;
+        }
+
+        // Keycloak deletes the user before it redirects, so the code exchange for a deleted account can fail
+        // even though the action succeeded: its own success flag decides.
+        var status = AccountActions.NormalizeStatus(context.Request.Query[OidcParameters.KcActionStatus]);
+        if (string.Equals(action, AccountActions.Delete, StringComparison.Ordinal)
+            && string.Equals(status, AccountActions.StatusSuccess, StringComparison.Ordinal))
+        {
+            context.Properties.Items.TryGetValue(OidcParameters.ReplacesSession, out var replaces);
+            await EndAfterDeletionAsync(
+                context.HttpContext, context.HttpContext.RequestServices.GetRequiredService<PostgresTicketStore>(), replaces);
+            context.Response.Redirect(AccountDeletedUri);
+            return;
+        }
+
+        context.Response.Redirect(AccountActions.ReturnPath(action, AccountActions.StatusError));
     }
+
+    private static async Task EndAfterDeletionAsync(HttpContext http, PostgresTicketStore store, string? replaces)
+    {
+        if (replaces is not null)
+        {
+            await store.RemoveByIdAsync(replaces);
+        }
+
+        await http.SignOutAsync(AuthSchemes.Session);
+    }
+
+    private const string AccountDeletedUri = "/?accountDeleted=true";
 
     private static void ConfigureBearer(JwtBearerOptions o, KeycloakOptions keycloak)
     {
