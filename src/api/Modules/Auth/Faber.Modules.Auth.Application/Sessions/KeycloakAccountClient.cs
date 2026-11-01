@@ -124,6 +124,8 @@ public sealed class KeycloakAccountClient(
     {
         using var request = new HttpRequestMessage(method, _baseUrl + path) { Content = content };
         request.Headers.Authorization = new AuthenticationHeaderValue("Bearer", accessToken);
+        // Without it Keycloak answers /account with the account console's HTML page instead of the REST API.
+        request.Headers.Accept.Add(new MediaTypeWithQualityHeaderValue("application/json"));
 
         return await http.SendAsync(request, ct);
     }
