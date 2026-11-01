@@ -76,15 +76,17 @@ KC_PROXY_HEADERS=xforwarded
 KC_HTTP_ENABLED=true
 ```
 
+Optionally set `FABER_APP_URL` to the web app's public origin, the same value as for keycloak-config. The login theme links "Back to microcivi" to it on pages where Keycloak has no client to take the address from, such as "You are logged out" after a sign-out that did not start in the app. Without it the link is `/`, which is right while Keycloak is served on the app's host.
+
 `KC_HTTP_ENABLED` is only for TLS terminated at the reverse proxy in front of Keycloak; the public URL stays HTTPS. Point `KC_DB_URL` and the other runtime `KC_DB*` options at PostgreSQL with `KC_DB_SCHEMA=keycloak`, as the AppHost does. `KC_DB` and `KC_HEALTH_ENABLED` are build-time options and are already fixed in the image; the health endpoints are served on the management port (9000).
 
 **Keep the admin console off the public host.** Serve `/admin` and `/realms/master` only on `<KEYCLOAK-ADMIN-HOST>`, reachable from the operators' network, and refuse both paths on `<KEYCLOAK-HOST>` at the reverse proxy. The `faber` realm's own admin console client is disabled in the realm.
 
 ### Login theme
 
-The sign-in, registration and other Keycloak pages use the `faber` login theme in `infra/keycloak/themes/faber/login/`. The realm selects it (`loginTheme: faber`) and enables the `en` and `uk` locales.
+The sign-in, registration and other Keycloak pages use the `faber` login theme in `infra/keycloak/themes/faber/login/`. The realm selects it (`loginTheme: faber`). The pages are in English only: internationalization is off and the theme ships English messages.
 
-The theme extends `keycloak.v2` and overrides only two templates, `template.ftl` (the page shell) and `register.ftl`. Everything else is v2's own, with Faber CSS, a small script for the light and dark toggle, self-hosted fonts and en/uk messages on top. Keep the overrides few: each one is a fork that must be compared with Keycloak's version on every upgrade, and the auth tests' login driver parses the v2 forms, so a heavily rewritten form breaks it.
+The theme extends `keycloak.v2` and overrides only two templates, `template.ftl` (the page shell) and `register.ftl`. Everything else is v2's own, with Faber CSS, a small script for the light and dark toggle, self-hosted fonts and English messages on top. Keep the overrides few: each one is a fork that must be compared with Keycloak's version on every upgrade, and the auth tests' login driver parses the v2 forms, so a heavily rewritten form breaks it.
 
 - **Development:** the AppHost bind-mounts the theme read-only into the Keycloak container, which runs `start-dev` with the theme cache off. Edit a file and refresh the page.
 - **Tests:** the Testcontainers fixture `FaberKeycloak.cs` mounts the same directory.
