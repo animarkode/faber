@@ -49,6 +49,7 @@ public static class DependencyInjection
         services.AddScoped<LogoutTokenValidator>();
         // Short: a refresh holds the session's row lock while it waits.
         services.AddHttpClient<KeycloakTokenClient>(client => client.Timeout = TimeSpan.FromSeconds(5));
+        services.AddHttpClient<KeycloakAccountClient>(client => client.Timeout = TimeSpan.FromSeconds(5));
 
         services.AddFaberAuthentication();
 

@@ -32,6 +32,15 @@ public static class AccountActions
         return name is not null && KcActions.TryGetValue(name, out kcAction!);
     }
 
+    private static readonly FrozenDictionary<string, string> Names =
+        KcActions.ToFrozenDictionary(pair => pair.Value, pair => pair.Key, StringComparer.Ordinal);
+
+    /// <summary>The app action name for a Keycloak <c>kc_action</c>; <see langword="null"/> when it is not on the allow-list.</summary>
+    public static string? FindName(string? kcAction)
+    {
+        return kcAction is not null && Names.TryGetValue(kcAction, out var name) ? name : null;
+    }
+
     /// <summary>Keycloak's <c>kc_action_status</c> reduced to the three values the app knows; anything else is an error.</summary>
     public static string NormalizeStatus(string? kcActionStatus)
     {
