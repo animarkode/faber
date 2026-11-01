@@ -90,6 +90,32 @@ public class AccountTests(WebApp app)
     }
 
     [Fact]
+    public async Task UpdateProfile_WithNewNames_ShouldShowThemInTheSignedInUser()
+    {
+        var user = app.Users[4];
+        var (client, _) = await app.SignInAsync(user, ct: Ct);
+        using var _client = client;
+
+        try
+        {
+            using var response = await client.PostAsJsonAsync(
+                "api/v1/auth/account/profile", new { firstName = "Renamed", lastName = "Someone" }, Ct);
+            response.StatusCode.ShouldBe(HttpStatusCode.OK);
+
+            var signedIn = await client.GetFromJsonAsync<JsonObject>("api/v1/auth/user", Ct);
+            signedIn!["firstName"]!.GetValue<string>().ShouldBe("Renamed");
+            signedIn["lastName"]!.GetValue<string>().ShouldBe("Someone");
+            signedIn["name"]!.GetValue<string>().ShouldBe("Renamed Someone");
+        }
+        finally
+        {
+            using var restore = await client.PostAsJsonAsync(
+                "api/v1/auth/account/profile", new { firstName = user.FirstName, lastName = user.LastName }, Ct);
+            restore.EnsureSuccessStatusCode();
+        }
+    }
+
+    [Fact]
     public async Task UpdateProfile_WithTooLongName_ShouldReturnBadRequest()
     {
         var (client, _) = await app.SignInAsync(app.Users[1], ct: Ct);

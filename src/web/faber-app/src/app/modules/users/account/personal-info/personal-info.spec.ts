@@ -3,6 +3,7 @@ import { provideHttpClient } from '@angular/common/http';
 import { HttpTestingController, provideHttpClientTesting } from '@angular/common/http/testing';
 
 import { PersonalInfo } from './personal-info';
+import { AuthStore } from '../../../../core/auth/auth-store';
 import { AccountClient } from '../account-client';
 import { AccountProfile } from '../account-contracts';
 import { API_ROUTES } from '../../../../core/routes/api-routes';
@@ -21,6 +22,7 @@ const profile: AccountProfile = {
 describe('PersonalInfo', () => {
   let fixture: ComponentFixture<PersonalInfo>;
   let http: HttpTestingController;
+  const auth = { reload: vi.fn() };
 
   const el = () => fixture.nativeElement as HTMLElement;
   const inputs = () => Array.from(el().querySelectorAll<HTMLInputElement>('input'));
@@ -31,9 +33,10 @@ describe('PersonalInfo', () => {
   }
 
   beforeEach(async () => {
+    auth.reload.mockClear();
     await TestBed.configureTestingModule({
       imports: [PersonalInfo],
-      providers: [provideHttpClient(), provideHttpClientTesting()],
+      providers: [provideHttpClient(), provideHttpClientTesting(), { provide: AuthStore, useValue: auth }],
     }).compileComponents();
     http = TestBed.inject(HttpTestingController);
     fixture = TestBed.createComponent(PersonalInfo);
@@ -81,6 +84,22 @@ describe('PersonalInfo', () => {
     fixture.detectChanges();
 
     expect(el().querySelector('[data-test="saved"]')!.textContent).toContain('Details saved');
+  });
+
+  it('should reload the signed-in user after a successful save', async () => {
+    el().querySelector<HTMLElement>('[data-test="save"]')!.click();
+    http.expectOne(API_ROUTES.auth.account.profile).flush(profile);
+    await fixture.whenStable();
+
+    expect(auth.reload).toHaveBeenCalledTimes(1);
+  });
+
+  it('should not reload the signed-in user when the save fails', async () => {
+    el().querySelector<HTMLElement>('[data-test="save"]')!.click();
+    http.expectOne(API_ROUTES.auth.account.profile).flush({}, { status: 500, statusText: 'Server Error' });
+    await fixture.whenStable();
+
+    expect(auth.reload).not.toHaveBeenCalled();
   });
 
   it('should show server validation errors beside the field', async () => {

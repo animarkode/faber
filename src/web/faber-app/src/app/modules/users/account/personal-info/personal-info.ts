@@ -9,6 +9,7 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { HttpErrorResponse } from '@angular/common/http';
 import { FormControl, FormGroup, ReactiveFormsModule, ValidatorFn, Validators } from '@angular/forms';
+import { AuthStore } from '../../../../core/auth/auth-store';
 import { AccountClient } from '../account-client';
 import { AccountProfile, ProfileField } from '../account-contracts';
 import { humanize } from '../account-labels';
@@ -32,6 +33,7 @@ interface EditableField {
 })
 export class PersonalInfo {
   private readonly client = inject(AccountClient);
+  private readonly auth = inject(AuthStore);
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly profile = this.client.profileResource();
@@ -74,6 +76,8 @@ export class PersonalInfo {
       .subscribe({
         next: updated => {
           this.current.set(updated);
+          // The navbar shows the name from the signed-in user, which the API has just refreshed.
+          this.auth.reload();
           this.saving.set(false);
           this.saved.set(true);
         },

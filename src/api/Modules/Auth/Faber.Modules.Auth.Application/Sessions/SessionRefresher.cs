@@ -4,6 +4,7 @@ using Faber.Modules.Auth.Application.Authentication;
 using Faber.Modules.Auth.Infrastructure.Database;
 using Microsoft.AspNetCore.Authentication;
 using Microsoft.AspNetCore.Authentication.Cookies;
+using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Logging;
 
@@ -80,11 +81,58 @@ public sealed class SessionRefresher(
                 return;
         }
 
-        await SaveRefreshedAsync(context, session, stored, key, result.Tokens!, transaction);
+        var principal = await SaveRefreshedAsync(session, stored, key, result.Tokens!, transaction);
+        Adopt(context, principal, stored.Properties);
     }
 
-    private async Task SaveRefreshedAsync(
-        CookieValidatePrincipalContext context,
+    /// <summary>
+    /// Refreshes the signed-in session's tokens now, whether or not they are about to expire, so that claims
+    /// Keycloak changed (the name after a profile update) reach the stored ticket. It takes the same row lock as
+    /// <see cref="ValidateAsync"/>, so it cannot spend a refresh token a concurrent request is using.
+    /// </summary>
+    /// <returns>Whether the session now holds fresh tokens; a failure leaves the session as it was.</returns>
+    public async Task<bool> RefreshNowAsync(HttpContext http, CancellationToken ct)
+    {
+        var authenticated = await http.AuthenticateAsync(AuthSchemes.Session);
+        if (!authenticated.Succeeded
+            || !authenticated.Properties.Items.TryGetValue(PostgresTicketStore.SessionKeyItem, out var key)
+            || key is null)
+        {
+            return false;
+        }
+
+        await using var transaction = await db.Database.BeginTransactionAsync(ct);
+        var session = await db.Sessions
+            .FromSqlRaw($"SELECT * FROM {DbConstants.SchemaName}.sessions WHERE id = {{0}} FOR UPDATE",
+                PostgresTicketStore.HashKey(key))
+            .SingleOrDefaultAsync(ct);
+        var stored = session is null ? null : store.Unprotect(session.Ticket, key);
+        var refreshToken = stored?.Properties.GetTokenValue("refresh_token");
+
+        if (session is null || stored is null || string.IsNullOrEmpty(refreshToken))
+        {
+            return false;
+        }
+
+        // As in ValidateAsync: once Keycloak answers, the old refresh token is spent and the new one must be saved.
+        var result = await keycloak.RefreshAsync(refreshToken, CancellationToken.None);
+        if (result.Outcome != RefreshOutcome.Refreshed)
+        {
+            // A refused token is left for the next ValidateAsync to end the session on.
+            logger.LogWarning("Forced session refresh did not succeed: {Outcome}", result.Outcome);
+            return false;
+        }
+
+        var principal = await SaveRefreshedAsync(session, stored, key, result.Tokens!, transaction);
+
+        // The cookie handler may still write this request's ticket back (sliding expiry), which would undo the
+        // save above; signing in with the fresh ticket makes that write carry the same claims.
+        await http.SignInAsync(AuthSchemes.Session, principal, stored.Properties);
+
+        return true;
+    }
+
+    private async Task<ClaimsPrincipal> SaveRefreshedAsync(
         AuthSession session,
         AuthenticationTicket stored,
         string key,
@@ -93,6 +141,7 @@ public sealed class SessionRefresher(
     {
         var principal = new ClaimsPrincipal(stored.Principal.Identities.Select(identity => identity.Clone()));
         SessionClaims.ApplyAccessToken((ClaimsIdentity)principal.Identity!, tokens.AccessToken);
+        SessionClaims.ApplyIdToken((ClaimsIdentity)principal.Identity!, tokens.IdToken);
         StoreTokens(stored.Properties, tokens);
 
         session.Ticket = store.Protect(new AuthenticationTicket(principal, stored.Properties, AuthSchemes.Session));
@@ -100,7 +149,8 @@ public sealed class SessionRefresher(
         await transaction.CommitAsync(CancellationToken.None);
 
         stored.Properties.Items[PostgresTicketStore.SessionKeyItem] = key;
-        Adopt(context, principal, stored.Properties);
+
+        return principal;
     }
 
     private bool NeedsRefresh(AuthenticationProperties properties)

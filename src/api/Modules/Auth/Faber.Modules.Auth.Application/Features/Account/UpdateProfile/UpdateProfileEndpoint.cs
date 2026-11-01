@@ -1,5 +1,6 @@
 using Faber.Modules.Auth.Application.Features.Account.GetProfile;
 using Faber.Modules.Auth.Application.Groups;
+using Faber.Modules.Auth.Application.Sessions;
 using FastEndpoints;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Http.HttpResults;
@@ -7,7 +8,7 @@ using Microsoft.AspNetCore.Http.HttpResults;
 namespace Faber.Modules.Auth.Application.Features.Account.UpdateProfile;
 
 /// <summary>Changes the signed-in user's names and other editable profile fields; never the e-mail.</summary>
-public class UpdateProfileEndpoint : Endpoint<UpdateProfileRequest, Results<Ok<GetProfileResponse>, ProblemHttpResult>>
+public class UpdateProfileEndpoint(SessionRefresher sessions) : Endpoint<UpdateProfileRequest, Results<Ok<GetProfileResponse>, ProblemHttpResult>>
 {
     public override void Configure()
     {
@@ -28,6 +29,15 @@ public class UpdateProfileEndpoint : Endpoint<UpdateProfileRequest, Results<Ok<G
 
         var result = await req.MapToCommand(token.Value).ExecuteAsync(ct);
 
-        return result.IsError ? result.FirstError.ToProblem() : TypedResults.Ok(result.Value);
+        if (result.IsError)
+        {
+            return result.FirstError.ToProblem();
+        }
+
+        // The session's claims (the name in /auth/user) come from the ID token, so they stay stale until the next
+        // refresh. A refresh that fails is logged by the refresher and must not fail the update, which has happened.
+        await sessions.RefreshNowAsync(HttpContext, ct);
+
+        return TypedResults.Ok(result.Value);
     }
 }
