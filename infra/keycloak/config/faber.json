@@ -194,7 +194,9 @@
       "enabled": true,
       "defaultAction": false,
       "priority": 70,
-      "config": {}
+      "config": {
+        "max_auth_age": "300"
+      }
     },
     {
       "alias": "UPDATE_PASSWORD",

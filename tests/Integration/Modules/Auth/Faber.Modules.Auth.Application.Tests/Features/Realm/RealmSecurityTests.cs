@@ -111,6 +111,7 @@ public class RealmSecurityTests(WebApp app)
     [InlineData("webauthn-register-passwordless")]
     [InlineData("idp_link")]
     [InlineData("delete_account")]
+    [InlineData("UPDATE_EMAIL")]
     public async Task SensitiveRequiredAction_ShouldBeEnabledAndRequireARecentSignIn(string alias)
     {
         var action = await app.Keycloak.Admin.GetRequiredActionAsync(alias, Ct);

@@ -61,7 +61,7 @@ People manage their account on the web app's `/account` page; Keycloak's account
 
 - The `account` client stays **enabled**: its roles are what authorize Account REST. Its standard, implicit and direct-access flows are off, so nobody can sign in through it. Do not disable it, or the account page stops working.
 - `delete-account` is part of `default-roles-faber`, so a person may delete their own account.
-- The required actions `UPDATE_PASSWORD`, `CONFIGURE_TOTP`, `webauthn-register-passwordless`, `idp_link` and `delete_account` are enabled. Each has `max_auth_age` set to `300`: if the person last signed in more than five minutes ago, Keycloak asks for their credentials again before the action. `UPDATE_EMAIL` is unchanged.
+- The required actions `UPDATE_EMAIL`, `UPDATE_PASSWORD`, `CONFIGURE_TOTP`, `webauthn-register-passwordless`, `idp_link` and `delete_account` are enabled. Each has `max_auth_age` set to `300`: if the person last signed in more than five minutes ago, Keycloak asks for their credentials again before the action.
 - To change the window, edit `max_auth_age` (seconds) on those required actions in `infra/keycloak/config/faber.json` and redeploy `keycloak-config`; it applies on the next action, with no user impact. `0` means always re-authenticate.
 
 ## 3. Keycloak itself
